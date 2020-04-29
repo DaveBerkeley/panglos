@@ -53,7 +53,7 @@ test: $(APP)
 doxygen: $(APP)
 	doxygen
 
-valgrind: test
+valgrind: $(APP)
 	valgrind ./$(APP)
 
 $(APP): $(OBJS) $(XOBJS)
