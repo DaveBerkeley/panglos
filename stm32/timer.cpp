@@ -5,9 +5,9 @@
 
 #include "cmsis_os.h"
 
-#include <panglos/debug.h>
-#include <panglos/mutex.h>
-#include <panglos/timer.h>
+#include "../debug.h"
+#include "../mutex.h"
+#include "../timer.h"
 
 static TIM_HandleTypeDef htim5;
 

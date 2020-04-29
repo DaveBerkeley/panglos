@@ -7,12 +7,12 @@
 
 #include "stm32f4xx_hal.h"
 
-#include <panglos/debug.h>
+#include "../debug.h"
 
-#include <panglos/gpio.h>
-#include <panglos/mutex.h>
-#include <panglos/list.h>
-#include <panglos/uart.h>
+#include "../gpio.h"
+#include "../mutex.h"
+#include "../list.h"
+#include "../uart.h"
 
 namespace panglos {
 

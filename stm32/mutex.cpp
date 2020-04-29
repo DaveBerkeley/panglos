@@ -4,9 +4,9 @@
 
 #include <list>
 
-#include <panglos/debug.h>
-#include <panglos/mutex.h>
-#include <panglos/msg_queue.h>
+#include "../debug.h"
+#include "../mutex.h"
+#include "../msg_queue.h"
 #include "hal.h"
 
 using namespace panglos;

@@ -5,8 +5,8 @@
 
 #include "cmsis_os.h"
 
-#include <panglos/debug.h>
-#include <panglos/gpio.h>
+#include "../debug.h"
+#include "../gpio.h"
 #include "gpio_arm.h"
 
     /*

@@ -1,9 +1,9 @@
 
 #include "stm32f4xx_hal.h"
 
-#include <panglos/debug.h>
+#include "../debug.h"
 
-#include <panglos/spi.h>
+#include "../spi.h"
 
 namespace panglos {
 
