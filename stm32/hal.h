@@ -2,8 +2,6 @@
 #if !defined(__STM32_HAL_H__)
 #define __STM32_HAL_H__
 
-#include "cmsis_os.h"
-
 // NOTE : CORTEX M4
 #define portNVIC_INT_CTRL_REG       ( * ( ( volatile uint32_t * ) 0xe000ed04 ) )
 

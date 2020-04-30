@@ -3,8 +3,6 @@
 
 #include "stm32f4xx_hal.h"
 
-#include "cmsis_os.h"
-
 #include "../debug.h"
 #include "../gpio.h"
 #include "gpio_arm.h"
