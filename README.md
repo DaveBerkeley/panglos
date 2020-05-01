@@ -5,6 +5,8 @@
 Panglos is a set of C++ classes 
 designed to be used as a framework to build real-time applications around.
 
+The source is available on [github](https://github.com/DaveBerkeley/panglos).
+
 It is written as a wrapper around [FreeRTOS][1] 
 and the STM32 HAL. I hope to port it to other platforms.
 
@@ -16,7 +18,7 @@ The name @ref panglos is taken from the character Dr. Pangloss in Voltaire's sat
 It is intended as a warning about boundless optimism.
 Optimism in the face of evidence to the contrary is dangerous in software development.
 I have seen it kill projects and companies.
-It isn't _the best of all possible worlds_. It's not even close.
+It is not __The best of all possible worlds__. It's not even close.
 
 The key classes are :
 
@@ -24,7 +26,7 @@ The key classes are :
 * high resolution timer : panglos::Event
 * task / scheduling control : panglos::Mutex, panglos::Semaphore
 * task communication : panglos::MsgQueue, panglos::Select, panglos::Dispatch
-* miscellaneous : panglos::CLI
+* miscellaneous : panglos::CLI, debug.h
 
 It was designed using test driven development (TDD), as far as possible.
 This is often difficult to do with embedded systems, but by implementing
@@ -52,12 +54,25 @@ An interrupt mutex is for use when one of the execution threads is an interrupt.
 This is implemented using a critical section.
 You need to know which to use, which depends on the application. 
 See panglos::Mutex::create() and panglos::Mutex::create_critical_section().
-The class panglos::Lock is used as a simple way of locking / unlocking the mutex.
+The class panglos::Lock is used as a simple way of locking / unlocking the mutex
+automatically.
+
+    void function()
+    {
+        Lock lock(mutex);
+
+        ... code protected by Mutex
+    }
+
+This runs even if the mutex is null. 
+It doesn't care if it is a critical section or a task lock.
+All my mutexes work like this.
 
 Next I implemented an Event queue. The panglos::EventQueue class
 provides a high resolution timer that is key to high resolution scheduling.
 It is implemented using an ordered list of panglos::Event objects, each one of which contains a 
-Semaphore. The list is simply waited on, in order, any event that becomes due is signalled.
+Semaphore. The list is simply waited on, in sequence. 
+Any event that becomes due is signalled and removed from the event list.
 
 The single linked list code (@ref list.cpp) is from a C project I wrote a while ago. 
 It has the advantage over the std::list<> class; it does not have to use any dynamic memory allocation.
@@ -69,6 +84,7 @@ You need to implement this function for each object type. You pass the function 
 functions which use it to traverse the list. If you have more than one next pointer, you can provide
 a different function for each pointer.
 This allows the same object to potentially be in multiple lists.
+I may write a similar double ended linked list to replace the use of std::deque<> in panglos::MsgQueue.
 
 The other core classes are panglos::MsgQueue and panglos::Select, which provide a thread-safe queue
 and a multiple Semaphore select (similar to posix [select()](https://linux.die.net/man/3/select)). 
@@ -76,6 +92,7 @@ I started by using the [FreeRTOS][1] QueueSet functions, which are horrible and 
 reliably. I then wrote panglos::Select, which is a very simple MsgQueue with a hook to the Semaphore object.
 This is simple, fast, portable (no underlying OS dependency), and easy to test.
 It demonstrates that with the right API you can make powerful functions very simply.
+See [select.cpp](https://github.com/DaveBerkeley/panglos/blob/master/select.cpp).
 
 On the hardware side I needed a panglos::GPIO class. This is a simple wrapper for hardware IO functions.
 It also supports interrupt callbacks.
@@ -92,6 +109,13 @@ In the application code, it doesn't matter if you have a hardware GPIO or a seri
 If you were using the HAL to talk to the IO, you would have to rewrite your code to use different IO.
 And it would be difficult to unit-test it.
 
-TODO ...
+To aid debugging I added some code to produce formatted output. The base code is in sprintf.cpp. 
+It provides a simple subset of [printf()](https://linux.die.net/man/3/printf) formatting.
+It uses the panglos::Output class, which is implemented by the panglos::UART class.
+This allows powerful debugging traces to be used, see debug.h.
+I've always found that printf debugging and logging is incredibly useful during development,
+giving insight into the running of a program.
+
+work in progress ...
 
 [1]: https://www.freertos.org/        "FreeRTOS"
