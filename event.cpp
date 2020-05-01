@@ -114,6 +114,13 @@ d_timer_t EventQueue::check()
 void EventQueue::wait(Semaphore *semaphore, d_timer_t d_time)
 {
     ASSERT(semaphore);
+
+    if (d_time == 0)
+    {
+        // no point waiting
+        return;
+    }
+
     const timer_t now = panglos::timer_now();
 
     Event event(semaphore, now + d_time);
