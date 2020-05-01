@@ -46,6 +46,15 @@ panglos::timer_t timer_now()
     return cycles;
 }
 
+void timer_wait(d_timer_t dt)
+{
+    IGNORE(dt);
+}
+
+void timer_init()
+{
+}
+
 } // namespace panglos
 
 static pthread_t thread;

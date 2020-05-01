@@ -56,6 +56,8 @@ public:
 
     void wait(Semaphore *s, d_timer_t time);
     d_timer_t check();
+
+    void run();
 };
 
 // Global event queue

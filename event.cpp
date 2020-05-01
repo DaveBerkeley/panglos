@@ -132,6 +132,19 @@ void EventQueue::wait(Semaphore *semaphore, d_timer_t d_time)
     _remove(& event, mutex);
 }
 
+void EventQueue::run()
+{
+    PO_DEBUG("");
+    // start the global timer on this task
+    timer_init();
+
+    while (true)
+    {
+        d_timer_t next = event_queue.check();
+        timer_wait(next);
+    }
+}
+
 }   //  namespace
 
 //  FIN

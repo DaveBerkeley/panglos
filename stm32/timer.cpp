@@ -25,14 +25,9 @@ timer_t timer_now()
 }
 
 static TaskHandle_t event_h = 0;
-static void (*irq_callback)(void*) = 0;
-static void *irq_callback_arg = 0;
 
-void timer_init(void (*irq_cb)(void *arg), void *arg)
+void timer_init()
 {
-    irq_callback = irq_cb;
-    irq_callback_arg = arg;
-
     event_h = xTaskGetCurrentTaskHandle();
 
     // start the timer
@@ -61,11 +56,6 @@ void timer_wait(panglos::d_timer_t dt)
 
 static void timer_irq()
 {
-    if (irq_callback)
-    {
-        irq_callback(irq_callback_arg);
-    }
-
     // signal waiting task
     if (event_h)
     {
