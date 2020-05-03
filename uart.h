@@ -17,6 +17,7 @@ public:
     enum Id {
         UART_1,
         UART_2,
+        UART_3,
     };
 
     virtual ~UART() { }

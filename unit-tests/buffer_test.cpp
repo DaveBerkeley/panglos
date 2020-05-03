@@ -13,7 +13,7 @@ using namespace panglos;
 
 TEST(RingBuffer, EmptyTest)
 {
-    RingBuffer buffer(128);
+    RingBuffer buffer(128, 0);
 
     EXPECT_TRUE(buffer.empty());
     EXPECT_FALSE(buffer.full());
@@ -26,7 +26,7 @@ TEST(RingBuffer, EmptyTest)
 
 TEST(RingBuffer, Add)
 {
-    RingBuffer buffer(8);
+    RingBuffer buffer(8, 0);
 
     EXPECT_TRUE(buffer.empty());
 
@@ -95,7 +95,7 @@ static void * get_fn(void *arg)
 
     while (!info->dead)
     {
-        bool done = info->b->wait(info->q, info->s, 100);
+        bool done = info->b->wait(info->q, 100);
         if (!done)
         {
             continue;
@@ -159,7 +159,7 @@ TEST(RingBuffer, Wait)
 
     EventQueue q(0);
     Semaphore *s = Semaphore::create();
-    RingBuffer buffer(1024);
+    RingBuffer buffer(1024, s);
     Info info = {
         .q = & q,
         .s = s,
@@ -178,7 +178,7 @@ TEST(RingBuffer, Wait)
     ASSERT(err == 0);
 
     // this should time out, no data in buffer
-    bool done = buffer.wait(& q, s, 100);
+    bool done = buffer.wait(& q, 100);
     EXPECT_FALSE(done);
 
     err = pthread_create(& get, 0, add_fn, & info);
@@ -208,7 +208,7 @@ TEST(RingBuffer, Timeout)
 
     EventQueue q(0);
     Semaphore *s = Semaphore::create();
-    RingBuffer buffer(1024);
+    RingBuffer buffer(1024, s);
     Info info = {
         .q = & q,
         .s = s,
@@ -227,7 +227,7 @@ TEST(RingBuffer, Timeout)
     ASSERT(err == 0);
 
     // this should time out, no data in buffer
-    bool done = buffer.wait(& q, s, 1000);
+    bool done = buffer.wait(& q, 1000);
     EXPECT_FALSE(done);
 
     info.kill = true;

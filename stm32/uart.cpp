@@ -12,12 +12,153 @@
 #include "../list.h"
 #include "../uart.h"
 
+//extern panglos::GPIO *err_led;
+
 namespace panglos {
 
-static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud);
+static IRQn_Type get_irq_num(panglos::UART::Id id)
+{
+    switch (id)
+    {
+        case panglos::UART::UART_1 :
+        {
+            return USART1_IRQn;
+        }
+        case panglos::UART::UART_2 :
+        {
+            return USART2_IRQn;
+        }
+        case panglos::UART::UART_3 :
+        {
+            return USART3_IRQn;
+        }
+    }
+
+    ASSERT(0);
+    return (IRQn_Type) 0;
+}
+
+/**
+  * @brief UART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+
+static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud)
+{
+    static UART_HandleTypeDef uart1;
+    static UART_HandleTypeDef uart2;
+    static UART_HandleTypeDef uart3;
+
+    UART_HandleTypeDef *uart = 0;
+    uint32_t rx_pin;
+    uint32_t tx_pin;
+    uint32_t alternate;
+    USART_TypeDef* instance = 0;
+    GPIO_TypeDef *port;
+    uint32_t tx_mode;
+    uint32_t rx_mode;
+
+    switch (id)
+    {
+        case panglos::UART::UART_1 :
+        {
+            __USART1_CLK_ENABLE();
+            uart = & uart1;
+            tx_pin = GPIO_PIN_9;
+            rx_pin = GPIO_PIN_10;
+            alternate = GPIO_AF7_USART1;
+            //irq_num = USART1_IRQn;
+            instance = USART1;
+            port = GPIOA;
+            tx_mode = GPIO_MODE_AF_PP;
+            rx_mode = GPIO_MODE_AF_PP;
+            break;
+        }
+        case panglos::UART::UART_2 :
+        {
+            __USART2_CLK_ENABLE();
+            uart = & uart2;
+            tx_pin = GPIO_PIN_2;
+            rx_pin = GPIO_PIN_3;
+            alternate = GPIO_AF7_USART2;
+            //irq_num = USART2_IRQn;
+            instance = USART2;
+            port = GPIOA;
+            tx_mode = GPIO_MODE_AF_PP;
+            rx_mode = GPIO_MODE_AF_OD;
+            break;
+        }
+        case panglos::UART::UART_3 :
+        {
+            __USART3_CLK_ENABLE();
+            uart = & uart3;
+            tx_pin = GPIO_PIN_10;
+            rx_pin = GPIO_PIN_11;
+            alternate = GPIO_AF7_USART3;
+            //irq_num = USART3_IRQn;
+            instance = USART3;
+            port = GPIOB;
+            tx_mode = GPIO_MODE_AF_PP;
+            rx_mode = GPIO_MODE_AF_PP;
+            break;
+        }
+        default :
+        {
+            ASSERT(0);
+        }
+    }
+
+    GPIO_InitTypeDef gpio_def;
+
+    gpio_def.Pin = tx_pin;
+    gpio_def.Mode = tx_mode;
+    gpio_def.Alternate = alternate;
+    gpio_def.Speed = GPIO_SPEED_HIGH;
+    gpio_def.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(port, & gpio_def);
+
+    gpio_def.Pin = rx_pin;
+    gpio_def.Mode = rx_mode;
+    HAL_GPIO_Init(port, & gpio_def);
+
+    memset(uart, 0, sizeof(*uart));
+    uart->Instance = instance;
+    uart->Init.BaudRate = baud;
+    uart->Init.WordLength = UART_WORDLENGTH_8B;
+    uart->Init.StopBits = UART_STOPBITS_1;
+    uart->Init.Parity = UART_PARITY_NONE;
+    uart->Init.Mode = UART_MODE_TX_RX;
+    uart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    uart->Init.OverSampling = UART_OVERSAMPLING_16;
+
+    if (HAL_UART_Init(uart) != HAL_OK)
+    {
+        ASSERT(0);
+    }
+
+    /* Peripheral interrupt init*/
+    const IRQn_Type irq_num = get_irq_num(id);
+    HAL_NVIC_SetPriority(irq_num, 15, 0);
+    HAL_NVIC_EnableIRQ(irq_num);
+
+    return uart;
+}
+
+static void MX_UART_Deinit(panglos::UART::Id id)
+{
+    /* Peripheral interrupt init*/
+    const IRQn_Type irq_num = get_irq_num(id);
+    HAL_NVIC_DisableIRQ(irq_num);
+}
+
+    /*
+     *
+     */
 
 class ArmUart : public UART
 {
+    Id id;
     // Linked list of UARTS
     ArmUart *next;
     static ArmUart *head;
@@ -59,8 +200,8 @@ private:
     }
 
 public:
-    ArmUart(UART_HandleTypeDef *_handle, RingBuffer *b)
-    : next(0), handle(_handle), buffer(b)
+    ArmUart(Id _id, UART_HandleTypeDef *_handle, RingBuffer *b)
+    : id(_id), next(0), handle(_handle), buffer(b)
     {   
         mutex = Mutex::create();
 
@@ -71,7 +212,7 @@ public:
 
     ~ArmUart()
     {
-        // TODO : disable irqs etc.
+        MX_UART_Deinit(id);
         remove_from_list();
     }
 
@@ -103,7 +244,7 @@ public:
     {
         if (buffer)
         {
-            buffer->add(data, false);
+            buffer->add(data);
         }
     }
 
@@ -151,100 +292,7 @@ int ArmUart::send(const char* data, int n)
 UART *UART::create(UART::Id id, int baud, RingBuffer *b)
 {
     UART_HandleTypeDef *uart = MX_UART_Init(id, baud);
-    return new ArmUart(uart, b);
-}
-
-/**
-  * @brief UART2 Initialization Function
-  * @param None
-  * @retval None
-  */
-
-static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud)
-{
-    static UART_HandleTypeDef uart1;
-    static UART_HandleTypeDef uart2;
-
-    UART_HandleTypeDef *uart = 0;
-    uint32_t rx_pin;
-    uint32_t tx_pin;
-    uint32_t alternate;
-    IRQn_Type irq_num;
-    USART_TypeDef* instance = 0;
-    GPIO_TypeDef *port;
-    uint32_t tx_mode;
-    uint32_t rx_mode;
-
-    switch (id)
-    {
-        case panglos::UART::UART_1 :
-        {
-            __USART1_CLK_ENABLE();
-            uart = & uart1;
-            tx_pin = GPIO_PIN_9;
-            rx_pin = GPIO_PIN_10;
-            alternate = GPIO_AF7_USART1;
-            irq_num = USART1_IRQn;
-            instance = USART1;
-            port = GPIOA;
-            tx_mode = GPIO_MODE_AF_PP;
-            rx_mode = GPIO_MODE_AF_PP;
-            break;
-        }
-        case panglos::UART::UART_2 :
-        {
-            __USART2_CLK_ENABLE();
-            uart = & uart2;
-            tx_pin = GPIO_PIN_2;
-            rx_pin = GPIO_PIN_3;
-            alternate = GPIO_AF7_USART2;
-            irq_num = USART2_IRQn;
-            instance = USART2;
-            port = GPIOA;
-            tx_mode = GPIO_MODE_AF_PP;
-            rx_mode = GPIO_MODE_AF_OD;
-            break;
-        }
-        default :
-        {
-            // ERROR
-            break;
-        }
-    }
-
-    GPIO_InitTypeDef gpio_def;
-
-    gpio_def.Pin = tx_pin;
-    gpio_def.Mode = tx_mode;
-    gpio_def.Alternate = alternate;
-    gpio_def.Speed = GPIO_SPEED_HIGH;
-    gpio_def.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(port, & gpio_def);
-
-    gpio_def.Pin = rx_pin;
-    gpio_def.Mode = rx_mode;
-    HAL_GPIO_Init(port, & gpio_def);
-
-    memset(uart, 0, sizeof(*uart));
-    uart->Instance = instance;
-    uart->Init.BaudRate = baud;
-    uart->Init.WordLength = UART_WORDLENGTH_8B;
-    uart->Init.StopBits = UART_STOPBITS_1;
-    uart->Init.Parity = UART_PARITY_NONE;
-    uart->Init.Mode = UART_MODE_TX_RX;
-    uart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    uart->Init.OverSampling = UART_OVERSAMPLING_16;
-
-    if (HAL_UART_Init(uart) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /* Peripheral interrupt init*/
-    HAL_NVIC_SetPriority(irq_num, 15, 0);
-    HAL_NVIC_EnableIRQ(irq_num);
-
-    return uart;
+    return new ArmUart(id, uart, b);
 }
 
     /*

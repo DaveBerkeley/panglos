@@ -12,27 +12,30 @@ namespace panglos {
 class RingBuffer
 {
     Mutex *mutex;
+    bool delete_mutex;
     Semaphore *semaphore;
 
     uint8_t *data;
     int in, out, size;
 
+    int _add(uint8_t c, Mutex *mutex);
+
 public:
 
-    RingBuffer(int _size);
+    RingBuffer(int _size, Semaphore *s, Mutex *mutex_override=0);
     ~RingBuffer();
 
-    int add(uint8_t c, bool use_mutex=true);
-    int add(const uint8_t *s, int n, bool use_mutex=true);
+    int add(uint8_t c);
+    int add(const uint8_t *s, int n);
 
-    bool empty(bool use_mutex=true);
-    bool full(bool use_mutex=true);
-    int getc(bool use_mutex=true);
-    int gets(uint8_t *s, int n, bool use_mutex=true);
+    bool empty();
+    bool full();
+    int getc();
+    int gets(uint8_t *s, int n);
 
-    int wait(EventQueue *q, Semaphore *s, timer_t timeout);
+    void reset();
 
-    void set_semaphore_in(Semaphore *s) { semaphore = s; }
+    int wait(EventQueue *q, timer_t timeout);
 };
 
 }   //  namespace panglos

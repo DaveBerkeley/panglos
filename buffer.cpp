@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 
+#include "debug.h"
 #include "mutex.h"
 
 #include "buffer.h"
@@ -9,22 +10,33 @@
 
 namespace panglos {
 
-RingBuffer::RingBuffer(int _size)
-: mutex(0), semaphore(0), data(0), in(0), out(0), size(_size)
+RingBuffer::RingBuffer(int _size, Semaphore *s, Mutex *_mutex)
+: mutex(0), delete_mutex(false), semaphore(s), data(0), in(0), out(0), size(_size)
 {
-    mutex = Mutex::create();
+    if (_mutex)
+    {
+        mutex = _mutex;
+    }
+    else
+    {
+        mutex = Mutex::create();
+        delete_mutex = true;
+    }
     data = (uint8_t*) malloc(_size);
 }
 
 RingBuffer::~RingBuffer()
 {
     free(data);
-    delete mutex;
+    if (delete_mutex)
+    {
+        delete mutex;
+    }
 }
 
-int RingBuffer::add(uint8_t c, bool use_mutex)
+int RingBuffer::_add(uint8_t c, Mutex *m)
 {
-    Lock lock(use_mutex ? mutex : 0);
+    Lock lock(m);
 
     int next = in + 1;
     if (next >= size)
@@ -50,15 +62,26 @@ int RingBuffer::add(uint8_t c, bool use_mutex)
     return 1;
 }
 
-int RingBuffer::add(const uint8_t *s, int n, bool use_mutex)
+int RingBuffer::add(uint8_t c)
 {
-    Lock lock(use_mutex ? mutex : 0);
+    const int n = _add(c, mutex);
 
+    if (semaphore)
+    {
+        semaphore->post();
+    }
+
+    return n;
+}
+
+int RingBuffer::add(const uint8_t *s, int n)
+{
+    Lock lock(mutex);
     int count = 0;
 
     for (int i = 0; i < n; i++)
     {
-        if (!add(*s++, false))
+        if (!_add(*s++, 0))
         {
             return count;
         }
@@ -66,18 +89,22 @@ int RingBuffer::add(const uint8_t *s, int n, bool use_mutex)
         count += 1;
     }
 
+    if (semaphore)
+    {
+        semaphore->post();
+    }
+
     return count;
 }
 
-bool RingBuffer::empty(bool use_mutex)
+bool RingBuffer::empty()
 {
-    IGNORE(use_mutex); // int reads are atomic
     return in == out;
 }
 
-bool RingBuffer::full(bool use_mutex)
+bool RingBuffer::full()
 {
-    Lock lock(use_mutex ? mutex : 0);
+    Lock lock(mutex);
 
     int next = in + 1;
     if (next >= size)
@@ -88,9 +115,9 @@ bool RingBuffer::full(bool use_mutex)
     return next == out;
 }
 
-int RingBuffer::getc(bool use_mutex)
+int RingBuffer::getc()
 {
-    Lock lock(use_mutex ? mutex : 0);
+    Lock lock(mutex);
 
     if (empty())
     {
@@ -110,9 +137,9 @@ int RingBuffer::getc(bool use_mutex)
     return c;
 }
 
-int RingBuffer::gets(uint8_t *s, int n, bool use_mutex)
+int RingBuffer::gets(uint8_t *s, int n)
 {
-    Lock lock(use_mutex ? mutex : 0);
+    Lock lock(mutex);
 
     for (int i = 0; i < n; i++)
     {
@@ -135,7 +162,14 @@ int RingBuffer::gets(uint8_t *s, int n, bool use_mutex)
     return n;
 }
 
-int RingBuffer::wait(EventQueue *q, Semaphore *s, timer_t timeout)
+void RingBuffer::reset()
+{
+    Lock lock(mutex);
+
+    in = out;
+}
+
+int RingBuffer::wait(EventQueue *q, timer_t timeout)
 {
     if (!empty())
     {
@@ -143,23 +177,11 @@ int RingBuffer::wait(EventQueue *q, Semaphore *s, timer_t timeout)
         return true;
     }
 
-    // Note : only able to have one semaphore at a time!
-    const bool has_sem = semaphore;
-
-    if (!has_sem)
-    {
-        semaphore = s;
-    }
+    ASSERT(semaphore);
 
     // The semaphore could be triggered by add() or a timeout
     // or possibly both
-    q->wait(s, timeout);
-
-    if (!has_sem)
-    {
-        // no longer waiting on this semaphore
-        semaphore = 0;
-    }
+    q->wait(semaphore, timeout);
 
     return !empty();
 }
