@@ -36,15 +36,18 @@ static int event_cmp(const pList ev1, const pList ev2)
      *
      */
 
-EventQueue::EventQueue(Rescheduler *r)
-: mutex(0), rescheduler(r), events(0)
+EventQueue::EventQueue(Rescheduler *r, Mutex *m)
+: mutex(m), delete_mutex(0), rescheduler(r), events(0)
 {
-    mutex = Mutex::create();
+    if (!mutex)
+    {
+        delete_mutex = mutex = Mutex::create();
+    }
 }
 
 EventQueue::~EventQueue()
 {
-    delete mutex;
+    delete delete_mutex;
 }
 
 void EventQueue::reschedule(d_timer_t dt)

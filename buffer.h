@@ -12,7 +12,7 @@ namespace panglos {
 class RingBuffer
 {
     Mutex *mutex;
-    bool delete_mutex;
+    Mutex *delete_mutex;
     Semaphore *semaphore;
 
     uint8_t *data;

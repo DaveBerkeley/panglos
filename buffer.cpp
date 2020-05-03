@@ -11,27 +11,20 @@
 namespace panglos {
 
 RingBuffer::RingBuffer(int _size, Semaphore *s, Mutex *_mutex)
-: mutex(0), delete_mutex(false), semaphore(s), data(0), in(0), out(0), size(_size)
+: mutex(_mutex), delete_mutex(0), semaphore(s), data(0), in(0), out(0), size(_size)
 {
-    if (_mutex)
+    if (!mutex)
     {
-        mutex = _mutex;
+        delete_mutex = mutex = Mutex::create();
     }
-    else
-    {
-        mutex = Mutex::create();
-        delete_mutex = true;
-    }
+
     data = (uint8_t*) malloc(_size);
 }
 
 RingBuffer::~RingBuffer()
 {
     free(data);
-    if (delete_mutex)
-    {
-        delete mutex;
-    }
+    delete delete_mutex;
 }
 
 int RingBuffer::_add(uint8_t c, Mutex *m)

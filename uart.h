@@ -24,8 +24,9 @@ public:
 
     // implement Output interface
     virtual int _putc(char c) = 0;
-
     virtual int send(const char* data, int n) = 0;
+
+    virtual uint32_t get_error() { return 0; }
 
     static UART *create(Id id, int baud, RingBuffer *b);
 };

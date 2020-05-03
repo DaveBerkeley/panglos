@@ -39,6 +39,7 @@ class EventQueue
 {
 private:
     Mutex *mutex;
+    Mutex *delete_mutex;
     Rescheduler *rescheduler;
 public:
     Event *events;
@@ -51,7 +52,7 @@ public:
     Event* remove(Event *ev);
     void reschedule(d_timer_t dt);
 public:
-    EventQueue(Rescheduler *r);
+    EventQueue(Rescheduler *r, Mutex *mutex=0);
     ~EventQueue();
 
     void wait(Semaphore *s, d_timer_t time);

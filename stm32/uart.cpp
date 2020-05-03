@@ -4,6 +4,7 @@
 #include <stdarg.h>
 
 #include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_uart.h"
 
 #include "../debug.h"
 
@@ -12,9 +13,35 @@
 #include "../list.h"
 #include "../uart.h"
 
-//extern panglos::GPIO *err_led;
+extern panglos::GPIO *err_led;
 
 namespace panglos {
+
+static UART_HandleTypeDef uart1;
+static UART_HandleTypeDef uart2;
+static UART_HandleTypeDef uart3;
+
+static UART_HandleTypeDef *get_uart(panglos::UART::Id id)
+{
+    switch (id)
+    {
+        case panglos::UART::UART_1 :
+        {
+            return & uart1;
+        }
+        case panglos::UART::UART_2 :
+        {
+            return & uart2;
+        }
+        case panglos::UART::UART_3 :
+        {
+            return & uart3;
+        }
+    }
+
+    ASSERT(0);
+    return 0;
+}
 
 static IRQn_Type get_irq_num(panglos::UART::Id id)
 {
@@ -46,11 +73,8 @@ static IRQn_Type get_irq_num(panglos::UART::Id id)
 
 static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud)
 {
-    static UART_HandleTypeDef uart1;
-    static UART_HandleTypeDef uart2;
-    static UART_HandleTypeDef uart3;
 
-    UART_HandleTypeDef *uart = 0;
+    UART_HandleTypeDef *uart = get_uart(id);
     uint32_t rx_pin;
     uint32_t tx_pin;
     uint32_t alternate;
@@ -64,11 +88,9 @@ static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud)
         case panglos::UART::UART_1 :
         {
             __USART1_CLK_ENABLE();
-            uart = & uart1;
             tx_pin = GPIO_PIN_9;
             rx_pin = GPIO_PIN_10;
             alternate = GPIO_AF7_USART1;
-            //irq_num = USART1_IRQn;
             instance = USART1;
             port = GPIOA;
             tx_mode = GPIO_MODE_AF_PP;
@@ -78,25 +100,21 @@ static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud)
         case panglos::UART::UART_2 :
         {
             __USART2_CLK_ENABLE();
-            uart = & uart2;
             tx_pin = GPIO_PIN_2;
             rx_pin = GPIO_PIN_3;
             alternate = GPIO_AF7_USART2;
-            //irq_num = USART2_IRQn;
             instance = USART2;
             port = GPIOA;
             tx_mode = GPIO_MODE_AF_PP;
-            rx_mode = GPIO_MODE_AF_OD;
+            rx_mode = GPIO_MODE_AF_PP;
             break;
         }
         case panglos::UART::UART_3 :
         {
             __USART3_CLK_ENABLE();
-            uart = & uart3;
             tx_pin = GPIO_PIN_10;
             rx_pin = GPIO_PIN_11;
             alternate = GPIO_AF7_USART3;
-            //irq_num = USART3_IRQn;
             instance = USART3;
             port = GPIOB;
             tx_mode = GPIO_MODE_AF_PP;
@@ -142,6 +160,8 @@ static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud)
     HAL_NVIC_SetPriority(irq_num, 15, 0);
     HAL_NVIC_EnableIRQ(irq_num);
 
+    __HAL_UART_ENABLE_IT(uart, UART_IT_RXNE);
+
     return uart;
 }
 
@@ -150,6 +170,8 @@ static void MX_UART_Deinit(panglos::UART::Id id)
     /* Peripheral interrupt init*/
     const IRQn_Type irq_num = get_irq_num(id);
     HAL_NVIC_DisableIRQ(irq_num);
+
+    HAL_UART_DeInit(get_uart(id));
 }
 
     /*
@@ -164,9 +186,13 @@ class ArmUart : public UART
     static ArmUart *head;
     static Mutex *list_mutex;
 
+
     UART_HandleTypeDef *handle;
     RingBuffer *buffer;
-    uint8_t data;
+    //uint8_t data;
+    uint32_t error;
+
+    virtual uint32_t get_error() { uint32_t e = error; error = 0; return e; }
 
 private:
     static pList* next_fn(pList item)
@@ -203,11 +229,13 @@ public:
     ArmUart(Id _id, UART_HandleTypeDef *_handle, RingBuffer *b)
     : id(_id), next(0), handle(_handle), buffer(b)
     {   
+        ASSERT(buffer);
+
         mutex = Mutex::create();
 
         add_to_list();
 
-        HAL_UART_Receive_IT(handle, & data, 1);
+        //HAL_UART_Receive_IT(handle, & data, 1);
     }
 
     ~ArmUart()
@@ -235,15 +263,28 @@ public:
     // Implement UART class
     virtual int send(const char* data, int n);
 
-    void rx()
+    void irq()
     {
-        HAL_UART_Receive_IT(handle, & data, 1);
-    }
+        ASSERT(buffer);
 
-    void process()
-    {
-        if (buffer)
+        static const uint32_t err_mask = UART_FLAG_ORE | UART_FLAG_NE | UART_FLAG_FE | UART_FLAG_PE;
+        const uint32_t sr = handle->Instance->SR;
+
+        const uint32_t err = sr & err_mask;
+
+        if (err)
         {
+            set_error(err);
+            __HAL_UART_CLEAR_FLAG(handle, err);
+        }
+
+        if (sr & UART_FLAG_RXNE)
+        {
+            const uint8_t data = handle->Instance->DR;
+            /* Clear RXNE interrupt flag */
+            //__HAL_UART_SEND_REQ(handle, UART_RXDATA_FLUSH_REQUEST);
+
+            err_led->toggle();
             buffer->add(data);
         }
     }
@@ -253,10 +294,7 @@ public:
         return handle;
     }
 
-    char get_data()
-    {
-        return data;
-    }
+    void set_error(uint32_t e) { error = e; }
 };
 
     /*
@@ -299,18 +337,15 @@ UART *UART::create(UART::Id id, int baud, RingBuffer *b)
      *
      */
 
-static void uart_rx_irq(UART_HandleTypeDef *handle)
+static void uart_rx_irq(ArmUart *uart)
 {
-    ArmUart *uart = ArmUart::find(handle, 0);
-
     if (!uart)
     {
         // UART not found!
         return;
     }
 
-    uart->process();
-    uart->rx();
+    uart->irq();
 }
 
 }   //  namespace panglos
@@ -323,28 +358,34 @@ using namespace panglos;
 
 extern "C" void USART1_IRQHandler(void)
 {
+    err_led->toggle();
     ArmUart *uart = ArmUart::find(USART1, 0);
-    if (!uart)
-    {
-        return;
-    }
-    HAL_UART_IRQHandler(uart->get_handle());
+    uart_rx_irq(uart);
 }
 
 extern "C" void USART2_IRQHandler(void)
 {
     ArmUart *uart = ArmUart::find(USART2, 0);
-    if (!uart)
-    {
-        return;
-    }
-    HAL_UART_IRQHandler(uart->get_handle());
+    uart_rx_irq(uart);
+}
+
+extern "C" void USART3_IRQHandler(void)
+{
+    ArmUart *uart = ArmUart::find(USART3, 0);
+    uart_rx_irq(uart);
 }
 
 /* This callback is called by the HAL_UART_IRQHandler when the given number of bytes are received */
-extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-    uart_rx_irq(huart);
-}
+//extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+//{
+//    uart_rx_irq(huart);
+//}
+
+//extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+//{
+//    ArmUart *uart = ArmUart::find(huart, 0);
+//    ASSERT(uart);
+//    uart->set_error(huart->ErrorCode);
+//}
 
 //  FIN
