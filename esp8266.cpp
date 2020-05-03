@@ -1,6 +1,6 @@
 
-#include <stdio.h> // TODO remove me
-
+#include <stdlib.h>
+#include <string.h>
 
 #include "debug.h"
 
@@ -9,16 +9,19 @@
 namespace panglos {
 
 ESP8266::ESP8266(UART *_uart, RingBuffer *b, GPIO *_reset)
-: uart(_uart), rb(b), gpio_reset(_reset), semaphore(0)
+: uart(_uart), rb(b), gpio_reset(_reset), semaphore(0), buff(0), in(0), size(1024)
 {
     ASSERT(uart);
     ASSERT(rb);
+
     semaphore = Semaphore::create();
+    buff = (uint8_t*) malloc(size);
 }
 
 ESP8266::~ESP8266()
 {
     delete semaphore;
+    delete buff;
 }
 
 void ESP8266::reset()
@@ -37,107 +40,82 @@ void ESP8266::reset()
     event_queue.wait(s, 50000);
 
     rb->reset();
+    in = 0;
 
     PO_DEBUG("reset");
     delete s;
 }
 
-#define HAL_UART_ERROR_NONE              0x00000000U   /*!< No error            */
-#define HAL_UART_ERROR_PE                0x00000001U   /*!< Parity error        */
-#define HAL_UART_ERROR_NE                0x00000002U   /*!< Noise error         */
-#define HAL_UART_ERROR_FE                0x00000004U   /*!< Frame error         */
-#define HAL_UART_ERROR_ORE               0x00000008U   /*!< Overrun error       */
-#define HAL_UART_ERROR_DMA               0x00000010U   /*!< DMA transfer error  */
-
-
-static void pr_error(char *buff, int size, uint32_t err)
+void ESP8266::send_at(const char *cmd)
 {
-    if (err == HAL_UART_ERROR_NONE)
-    {
-        buff[0] = '\0';
-    }
-
-    if (err & HAL_UART_ERROR_PE)
-    {
-        const int n = snprintf(buff, size, "PE ");
-        buff += n;
-        size -= n;
-        if (size <= 0)
-        {
-            return;
-        }
-    }
-
-    if (err & HAL_UART_ERROR_NE)
-    {
-        const int n = snprintf(buff, size, "NE ");
-        buff += n;
-        size -= n;
-        if (size <= 0)
-        {
-            return;
-        }
-    }
-
-    if (err & HAL_UART_ERROR_FE)
-    {
-        const int n = snprintf(buff, size, "FE ");
-        buff += n;
-        size -= n;
-        if (size <= 0)
-        {
-            return;
-        }
-    }
-
-    if (err & HAL_UART_ERROR_ORE)
-    {
-        const int n = snprintf(buff, size, "ORE ");
-        buff += n;
-        size -= n;
-        if (size <= 0)
-        {
-            return;
-        }
-    }
-
-    if (err & HAL_UART_ERROR_DMA)
-    {
-        const int n = snprintf(buff, size, "DMA ");
-        buff += n;
-        size -= n;
-        if (size <= 0)
-        {
-            return;
-        }
-    }
+    PO_DEBUG("send AT%s", cmd);
+    uart->send("AT", 2);
+    uart->send(cmd, strlen(cmd));
+    uart->send("\r\n", 2);
 }
 
+void ESP8266::process(const uint8_t *cmd)
+{
+    ASSERT(cmd);
+    if (!strlen((const char*) cmd))
+    {
+        return;
+    }
+
+    // TODO
+    PO_DEBUG("'%s'", cmd);
+}
+
+void ESP8266::process(uint8_t data)
+{
+    int next = in;
+    next += 1;
+    if (next >= size)
+    {
+        // Buffer overrun
+        PO_ERROR("buffer overrun");
+        in = 0;
+        return;
+    }
+
+    if ((data == '\n') && (in > 0) && (buff[in-1] == '\r'))
+    {
+        // command received
+        buff[in-1] = '\0';
+        process(buff);
+        in = 0;
+        return;
+    }
+
+    buff[in] = data;
+    in = next;
+}
+
+    /*
+     *
+     */
 
 void ESP8266::run()
 {
     reset();
 
-    int fail_count = 0;
+    send_at("E0"); // echo off
+    timer_t last_tx = timer_now();
 
     while (true)
     {
         const bool ready = rb->wait(& event_queue, 120000);
 
-        if(!ready)
+        if (!ready)
         {
-            fail_count += 1;
-            if (fail_count >= 10)
+            timer_t now = timer_now();
+
+            if ((now - last_tx) > (120000 * 10))
             {
-                reset();
-                fail_count = 0;
-                continue;
+                send_at("");
+                last_tx = now;
             }
 
-            char buff[24];
-            pr_error(buff, sizeof(buff), uart->get_error());
-            PO_DEBUG("%d %s", fail_count, buff);
-            uart->send("AT\r\n", 4);
             continue;
         }
 
@@ -146,11 +124,9 @@ void ESP8266::run()
         const int n = rb->gets(buff, sizeof(buff)-1);
         ASSERT((n >= 0) && (n <= (int)sizeof(buff)));
 
-        if (n)
+        for (int i = 0; i < n; i++)
         {
-            buff[n] = '\0';
-            PO_DEBUG("%s", buff);
-            fail_count = 0;
+            process(buff[i]);
         }
     }
 }

@@ -13,8 +13,6 @@
 #include "../list.h"
 #include "../uart.h"
 
-extern panglos::GPIO *err_led;
-
 namespace panglos {
 
 static UART_HandleTypeDef uart1;
@@ -65,11 +63,74 @@ static IRQn_Type get_irq_num(panglos::UART::Id id)
     return (IRQn_Type) 0;
 }
 
-/**
-  * @brief UART2 Initialization Function
-  * @param None
-  * @retval None
-  */
+#if 0
+static void pr_error(char *buff, int size, uint32_t err)
+{
+    if (err == HAL_UART_ERROR_NONE)
+    {
+        buff[0] = '\0';
+    }
+
+    if (err & HAL_UART_ERROR_PE)
+    {
+        const int n = snprintf(buff, size, "PE ");
+        buff += n;
+        size -= n;
+        if (size <= 0)
+        {
+            return;
+        }
+    }
+
+    if (err & HAL_UART_ERROR_NE)
+    {
+        const int n = snprintf(buff, size, "NE ");
+        buff += n;
+        size -= n;
+        if (size <= 0)
+        {
+            return;
+        }
+    }
+
+    if (err & HAL_UART_ERROR_FE)
+    {
+        const int n = snprintf(buff, size, "FE ");
+        buff += n;
+        size -= n;
+        if (size <= 0)
+        {
+            return;
+        }
+    }
+
+    if (err & HAL_UART_ERROR_ORE)
+    {
+        const int n = snprintf(buff, size, "ORE ");
+        buff += n;
+        size -= n;
+        if (size <= 0)
+        {
+            return;
+        }
+    }
+
+    if (err & HAL_UART_ERROR_DMA)
+    {
+        const int n = snprintf(buff, size, "DMA ");
+        buff += n;
+        size -= n;
+        if (size <= 0)
+        {
+            return;
+        }
+    }
+}
+#endif
+
+    /*
+     *
+     */
 
 static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud)
 {
@@ -157,7 +218,8 @@ static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud)
 
     /* Peripheral interrupt init*/
     const IRQn_Type irq_num = get_irq_num(id);
-    HAL_NVIC_SetPriority(irq_num, 15, 0);
+    // Note :- priority should be >= configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
+    HAL_NVIC_SetPriority(irq_num, 5, 0);
     HAL_NVIC_EnableIRQ(irq_num);
 
     __HAL_UART_ENABLE_IT(uart, UART_IT_RXNE);
@@ -230,12 +292,9 @@ public:
     : id(_id), next(0), handle(_handle), buffer(b)
     {   
         ASSERT(buffer);
-
         mutex = Mutex::create();
 
         add_to_list();
-
-        //HAL_UART_Receive_IT(handle, & data, 1);
     }
 
     ~ArmUart()
@@ -283,18 +342,11 @@ public:
             const uint8_t data = handle->Instance->DR;
             /* Clear RXNE interrupt flag */
             //__HAL_UART_SEND_REQ(handle, UART_RXDATA_FLUSH_REQUEST);
-
-            err_led->toggle();
             buffer->add(data);
         }
     }
 
-    UART_HandleTypeDef *get_handle()
-    {
-        return handle;
-    }
-
-    void set_error(uint32_t e) { error = e; }
+    void set_error(uint32_t e) { error |= e; }
 };
 
     /*
@@ -358,7 +410,6 @@ using namespace panglos;
 
 extern "C" void USART1_IRQHandler(void)
 {
-    err_led->toggle();
     ArmUart *uart = ArmUart::find(USART1, 0);
     uart_rx_irq(uart);
 }
@@ -374,18 +425,5 @@ extern "C" void USART3_IRQHandler(void)
     ArmUart *uart = ArmUart::find(USART3, 0);
     uart_rx_irq(uart);
 }
-
-/* This callback is called by the HAL_UART_IRQHandler when the given number of bytes are received */
-//extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-//{
-//    uart_rx_irq(huart);
-//}
-
-//extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
-//{
-//    ArmUart *uart = ArmUart::find(huart, 0);
-//    ASSERT(uart);
-//    uart->set_error(huart->ErrorCode);
-//}
 
 //  FIN

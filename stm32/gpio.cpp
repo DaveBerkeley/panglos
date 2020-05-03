@@ -112,7 +112,7 @@ public:
         }
 
         // Note :- priority should be >= configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
-        HAL_NVIC_SetPriority(irq_type, 5, 0);
+        HAL_NVIC_SetPriority(irq_type, 6, 0);
         HAL_NVIC_EnableIRQ(irq_type);
 
         const int idx = pin_to_idx(pin);
