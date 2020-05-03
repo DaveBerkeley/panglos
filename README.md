@@ -109,7 +109,7 @@ or possibly from an interrupt to a task.
 Dispatch uses a panglos::Dispatch::Callback object, added to a MsgQueue, to be executed in the Dispatch task.
 This allows, for example, an interrupt to push a Callback to the dispatch task,
 where the action can be executed.
-An example would be were a SPI interrupt needs to be responded to, but we don't want
+An example would be where an SPI interrupt needs to be responded to, but we don't want
 to execute long-running operations in the interrupt context. These can be passed to the dispatch
 task for execution.
 It can be used to implement a simple event handler, which could be used at the heart of

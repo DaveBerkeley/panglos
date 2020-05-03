@@ -96,7 +96,7 @@ static void Timer5_Init(void)
     htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
     htim5.Init.Period = 0;
     htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    //htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
     {
         Error_Handler();
