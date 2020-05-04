@@ -10,7 +10,7 @@
 
 namespace panglos {
 
-ESP8266::ESP8266(UART *_uart, RingBuffer *b, Semaphore *_rd_sem, GPIO *_reset)
+ESP8266::ESP8266(Output *_uart, RingBuffer *b, Semaphore *_rd_sem, GPIO *_reset)
 : uart(_uart), rb(b), rd_sem(_rd_sem), gpio_reset(_reset), semaphore(0), buff(0), in(0), size(1024)
 {
     ASSERT(uart);
@@ -51,9 +51,9 @@ void ESP8266::reset()
 void ESP8266::send_at(const char *cmd)
 {
     PO_DEBUG("send AT%s", cmd);
-    uart->send("AT", 2);
-    uart->send(cmd, strlen(cmd));
-    uart->send("\r\n", 2);
+    uart->_puts("AT");
+    uart->_puts(cmd);
+    uart->_puts("\r\n");
 }
 
 void ESP8266::process(const uint8_t *cmd)

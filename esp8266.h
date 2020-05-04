@@ -11,7 +11,7 @@ namespace panglos {
 class ESP8266
 {
 private:
-    UART *uart;
+    Output *uart;
     RingBuffer *rb;
     Semaphore *rd_sem;
     GPIO *gpio_reset;
@@ -25,7 +25,7 @@ private:
     void process(uint8_t data);
 
 public:
-    ESP8266(UART *uart, RingBuffer *b, Semaphore *rd_sem, GPIO *reset);
+    ESP8266(Output *uart, RingBuffer *b, Semaphore *rd_sem, GPIO *reset);
     ~ESP8266();
 
     void connect(const char* ssid, const char *pw);
