@@ -16,7 +16,7 @@ private:
     Semaphore *rd_sem;
     Semaphore *wait_sem;
     GPIO *gpio_reset;
-    Semaphore *semaphore;
+    Semaphore *cmd_sem;
     uint8_t *buff;
     int in, size;
     bool dead;

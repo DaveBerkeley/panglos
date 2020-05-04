@@ -50,6 +50,8 @@ TEST(esp8266, Test)
     err = pthread_create(& thread, 0, runner, & radio);
     EXPECT_EQ(0, err);
 
+    sleep(2);
+
     put(& rb, "AT+CWMODE=1\r\nOK\r\n");
     put(& rb, "AT+CWJAP_DEF=\"*ssid*\",\"*pw*\"\r\nWIFI CONNECTED\r\nWIFI GOT IP\r\nOK\r\n");
 

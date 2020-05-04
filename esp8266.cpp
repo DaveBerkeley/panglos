@@ -13,12 +13,12 @@ namespace panglos {
 
 ESP8266::ESP8266(Output *_uart, RingBuffer *b, Semaphore *_rd_sem, GPIO *_reset)
 :   uart(_uart), rb(b), rd_sem(_rd_sem), wait_sem(0), 
-    gpio_reset(_reset), semaphore(0), buff(0), in(0), size(1024), dead(false)
+    gpio_reset(_reset), cmd_sem(0), buff(0), in(0), size(1024), dead(false)
 {
     ASSERT(uart);
     ASSERT(rb);
 
-    //semaphore = Semaphore::create(); // ?????
+    cmd_sem = Semaphore::create();
     wait_sem = Semaphore::create();
     buff = (uint8_t*) malloc(size);
 }
@@ -26,8 +26,8 @@ ESP8266::ESP8266(Output *_uart, RingBuffer *b, Semaphore *_rd_sem, GPIO *_reset)
 ESP8266::~ESP8266()
 {
     delete wait_sem;
-    delete semaphore;
-    delete buff;
+    delete cmd_sem;
+    free(buff);
 }
 
 void ESP8266::kill()
@@ -109,30 +109,23 @@ void ESP8266::process(uint8_t data)
 
 void ESP8266::run()
 {
-    //Select select;
+    Select select;
 
-    //select.add(rd_sem);
-    //select.add(wait_sem);
+    select.add(rd_sem);
+    select.add(wait_sem);
 
     reset();
 
-    //send_at("E0"); // echo off
     timer_t last_tx = timer_now();
-    //send_at("+GMR"); // echo off
 
     send_at("+CWMODE=1"); // station mode
     const char *cmd = "+CWJAP_DEF=\"" SSID "\",\"" PASSWORD "\"";
     send_at(cmd); // connect to wifi
 
-    // TODO : use wait_sem to wait on event timer
-    // Use Select to wait on multiple Semaphores
-
     while (!dead)
     {
-        const bool ready = rb->wait(& event_queue, 120000);
-        //Semaphore *s = select.wait(& event_queue, 120000);
-        //if (s) PO_DEBUG("%p", s);
-        //const bool ready = (s == rd_sem);
+        Semaphore *s = select.wait(& event_queue, 120000);
+        const bool ready = (s == rd_sem);
 
         if (!ready)
         {
