@@ -42,6 +42,7 @@ ESP8266::~ESP8266()
 {
     delete wait_sem;
     delete cmd_sem;
+    delete mutex;
     free(buff);
 }
 
@@ -99,10 +100,10 @@ bool ESP8266::connect(const char* ssid, const char *pw)
     char buff[64];
     snprintf(buff, sizeof(buff), "AT+CWJAP_DEF=\"%s\",\"%s\"\r\n", ssid, pw);
     cmd.cmd = buff;
-    cmd.done = Semaphore::create();
 
     push_command(& cmd);
     cmd.done->wait();
+    delete cmd.done;
     return cmd.result == Command::OK;
 }
 

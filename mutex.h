@@ -60,6 +60,9 @@ public:
 class Semaphore
 {
 public:
+    Semaphore *next;
+    Semaphore() : next(0) { }
+
     virtual ~Semaphore(){}
 
     virtual void post() = 0;
