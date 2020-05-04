@@ -45,9 +45,8 @@ TEST(esp8266, Test)
     err = pthread_create(& thread, 0, runner, & radio);
     EXPECT_EQ(0, err);
 
-    radio.run();
-
-    // TODO : kill
+    sleep(2);
+    radio.kill();
 
     err = pthread_join(thread, 0);
     EXPECT_EQ(0, err);

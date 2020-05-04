@@ -14,10 +14,12 @@ private:
     Output *uart;
     RingBuffer *rb;
     Semaphore *rd_sem;
+    Semaphore *wait_sem;
     GPIO *gpio_reset;
     Semaphore *semaphore;
     uint8_t *buff;
     int in, size;
+    bool dead;
 
     void reset();
     void send_at(const char *cmd);
@@ -29,6 +31,7 @@ public:
     ~ESP8266();
 
     void connect(const char* ssid, const char *pw);
+    void kill();
 
     void run();
 };
