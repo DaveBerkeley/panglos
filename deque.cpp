@@ -84,7 +84,11 @@ int deque_size(Deque *deque, pnext next_fn, Mutex *mutex)
     return count;
 }
 
-//void list_append(Deque *head, pList w, pnext next_fn, Mutex *mutex);
+bool deque_empty(Deque *deque)
+{
+    return !deque->head;
+}
+
 }   //  namespace panglos
 
 //  FIN

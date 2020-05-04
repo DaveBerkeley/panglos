@@ -26,6 +26,7 @@ TEST(Deque, Test)
 
     // empty deque
     EXPECT_EQ(0, deque_size(& deque, next_fn, 0));
+    EXPECT_TRUE(deque_empty(& deque));
 
     Item item1;
 
@@ -34,6 +35,7 @@ TEST(Deque, Test)
     EXPECT_EQ(1, deque_size(& deque, next_fn, 0));
     EXPECT_EQ((pList) & item1, deque.head);
     EXPECT_EQ((pList) & item1, deque.tail);
+    EXPECT_FALSE(deque_empty(& deque));
 
     Item item2;
 
@@ -42,6 +44,7 @@ TEST(Deque, Test)
     EXPECT_EQ(2, deque_size(& deque, next_fn, 0));
     EXPECT_EQ((pList) & item2, deque.head);
     EXPECT_EQ((pList) & item1, deque.tail);
+    EXPECT_FALSE(deque_empty(& deque));
 
     Item item3;
 
@@ -50,6 +53,7 @@ TEST(Deque, Test)
     EXPECT_EQ(3, deque_size(& deque, next_fn, 0));
     EXPECT_EQ((pList) & item3, deque.head);
     EXPECT_EQ((pList) & item1, deque.tail);
+    EXPECT_FALSE(deque_empty(& deque));
 
     Item item4;
 
@@ -58,6 +62,7 @@ TEST(Deque, Test)
     EXPECT_EQ(4, deque_size(& deque, next_fn, 0));
     EXPECT_EQ((pList) & item3, deque.head);
     EXPECT_EQ((pList) & item4, deque.tail);
+    EXPECT_FALSE(deque_empty(& deque));
 
     // the list is item3, item2, item1, item4
     pList p;
@@ -66,36 +71,43 @@ TEST(Deque, Test)
     p = deque_pop_head(& deque, next_fn, 0);
     EXPECT_EQ(& item3, (Item*) p);
     EXPECT_EQ(3, deque_size(& deque, next_fn, 0));
+    EXPECT_FALSE(deque_empty(& deque));
 
     // leaves : item1, item4
     p = deque_pop_head(& deque, next_fn, 0);
     EXPECT_EQ(& item2, (Item*) p);
     EXPECT_EQ(2, deque_size(& deque, next_fn, 0));
+    EXPECT_FALSE(deque_empty(& deque));
 
     // leaves : item4
     p = deque_pop_head(& deque, next_fn, 0);
     EXPECT_EQ(& item1, (Item*) p);
     EXPECT_EQ(1, deque_size(& deque, next_fn, 0));
+    EXPECT_FALSE(deque_empty(& deque));
 
     // leaves : (empty)
     p = deque_pop_head(& deque, next_fn, 0);
     EXPECT_EQ(& item4, (Item*) p);
     EXPECT_EQ(0, deque_size(& deque, next_fn, 0));
+    EXPECT_TRUE(deque_empty(& deque));
 
     // leaves : (empty)
     p = deque_pop_head(& deque, next_fn, 0);
     EXPECT_EQ(0, (Item*) p);
+    EXPECT_TRUE(deque_empty(& deque));
 
     // leaves : item1
     deque_push_tail(& deque, (pList) & item1, next_fn, 0);
     EXPECT_EQ(1, deque_size(& deque, next_fn, 0));
     EXPECT_EQ((pList) & item1, deque.head);
     EXPECT_EQ((pList) & item1, deque.tail);
+    EXPECT_FALSE(deque_empty(& deque));
  
     // leaves : (empty)
     p = deque_pop_head(& deque, next_fn, 0);
     EXPECT_EQ(& item1, (Item*) p);
     EXPECT_EQ(0, deque_size(& deque, next_fn, 0));
+    EXPECT_TRUE(deque_empty(& deque));
 }
 
 //  FIN
