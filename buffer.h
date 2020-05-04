@@ -30,8 +30,8 @@ public:
 
     bool empty();
     bool full();
-    int getc();
-    int gets(uint8_t *s, int n);
+    int _getc();
+    int _gets(uint8_t *s, int n);
 
     void reset();
 

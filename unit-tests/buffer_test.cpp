@@ -18,10 +18,10 @@ TEST(RingBuffer, EmptyTest)
     EXPECT_TRUE(buffer.empty());
     EXPECT_FALSE(buffer.full());
 
-    EXPECT_EQ(-1, buffer.getc());
+    EXPECT_EQ(-1, buffer._getc());
 
     uint8_t b[10];
-    EXPECT_EQ(0, buffer.gets(b, sizeof(b)));
+    EXPECT_EQ(0, buffer._gets(b, sizeof(b)));
 }
 
 TEST(RingBuffer, Add)
@@ -42,21 +42,21 @@ TEST(RingBuffer, Add)
     n = buffer.add('z');
     EXPECT_EQ(0, n);
 
-    n = buffer.getc();
+    n = buffer._getc();
     EXPECT_EQ('x', n);
     EXPECT_FALSE(buffer.full());
 
-    n = buffer.getc();
+    n = buffer._getc();
     EXPECT_EQ('a', n);
-    n = buffer.getc();
+    n = buffer._getc();
     EXPECT_EQ('b', n);
-    n = buffer.getc();
+    n = buffer._getc();
     EXPECT_EQ('c', n);
-    n = buffer.getc();
+    n = buffer._getc();
     EXPECT_EQ('d', n);
-    n = buffer.getc();
+    n = buffer._getc();
     EXPECT_EQ('e', n);
-    n = buffer.getc();
+    n = buffer._getc();
     EXPECT_EQ('f', n);
 
     EXPECT_TRUE(buffer.empty());
@@ -65,7 +65,7 @@ TEST(RingBuffer, Add)
     EXPECT_EQ(1, n);
     EXPECT_FALSE(buffer.empty());
 
-    n = buffer.getc();
+    n = buffer._getc();
     EXPECT_EQ('y', n);
     EXPECT_TRUE(buffer.empty());
 }
@@ -102,7 +102,7 @@ static void * get_fn(void *arg)
         }
 
         uint8_t buff[9];
-        int c = info->b->gets(buff, sizeof(buff)-1);
+        int c = info->b->_gets(buff, sizeof(buff)-1);
         buff[c] = '\0';
         EXPECT_STREQ(info->tx, (char*) buff);
     }

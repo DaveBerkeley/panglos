@@ -29,6 +29,11 @@ static void *runner(void *arg)
     return 0;
 }
 
+static void put(RingBuffer *rb, const char *s)
+{
+    rb->add((const uint8_t*) s, strlen(s));
+}
+
 TEST(esp8266, Test)
 {
     mock_setup(true);
@@ -44,6 +49,9 @@ TEST(esp8266, Test)
 
     err = pthread_create(& thread, 0, runner, & radio);
     EXPECT_EQ(0, err);
+
+    put(& rb, "AT+CWMODE=1\r\nOK\r\n");
+    put(& rb, "AT+CWJAP_DEF=\"*ssid*\",\"*pw*\"\r\nWIFI CONNECTED\r\nWIFI GOT IP\r\nOK\r\n");
 
     sleep(2);
     radio.kill();

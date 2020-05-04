@@ -149,7 +149,7 @@ void ESP8266::run()
 
         // read the data ..
         uint8_t buff[16];
-        const int n = rb->gets(buff, sizeof(buff)-1);
+        const int n = rb->_gets(buff, sizeof(buff)-1);
         ASSERT((n >= 0) && (n <= (int)sizeof(buff)));
 
         for (int i = 0; i < n; i++)

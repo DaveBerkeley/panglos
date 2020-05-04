@@ -108,7 +108,7 @@ bool RingBuffer::full()
     return next == out;
 }
 
-int RingBuffer::getc()
+int RingBuffer::_getc()
 {
     Lock lock(mutex);
 
@@ -130,7 +130,7 @@ int RingBuffer::getc()
     return c;
 }
 
-int RingBuffer::gets(uint8_t *s, int n)
+int RingBuffer::_gets(uint8_t *s, int n)
 {
     Lock lock(mutex);
 
