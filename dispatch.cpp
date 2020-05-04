@@ -5,38 +5,44 @@
 
 namespace panglos {
 
-Dispatch::Nowt Dispatch::nowt;
-
     /*
      *
      */
 
 Dispatch::Dispatch()
-: deque(0), mutex(0), semaphore(0), queue(0)
+: mutex(0), semaphore(0), dead(false)
 {
-    deque = new Queue::Deque;
     // needs to be irq_safe, not just thread safe
     mutex = Mutex::create_critical_section();
     semaphore = Semaphore::create();
-    queue = new Queue(deque, mutex, semaphore);
-
-    // kick the queue off with a nowt task.
-    // This avoids the deque being initialised (uses malloc()) in an interrupt.
-    put(& nowt);
+    deque_init(& deque);
 }
 
 Dispatch::~Dispatch()
 {
-    delete queue;
     delete semaphore;
     delete mutex;
-    delete deque;
 }
 
-/// called from within irq context
+static pList *next_fn(pList p)
+{
+    ASSERT(p);
+    Dispatch::Callback *item = (Dispatch::Callback*) p;
+    return (pList*) & item->next;
+}
+
+/// potentialy called from within irq context
 void Dispatch::put(Callback *cb)
 {
-    queue->put(cb);
+    ASSERT(cb);
+    deque_push_tail(& deque, (pList) cb, next_fn, mutex);
+    semaphore->post();
+}
+
+void Dispatch::kill()
+{
+    dead = true;
+    semaphore->post();
 }
 
 /// main dispatch loop
@@ -44,9 +50,11 @@ void Dispatch::run()
 {
     PO_DEBUG("");
 
-    while (true)
+    while (!dead)
     {
-        Callback *cb = queue->wait();
+        semaphore->wait();
+
+        Callback *cb = (Callback*) deque_pop_head(& deque, next_fn, mutex);
         if (!cb)
         {
             break;

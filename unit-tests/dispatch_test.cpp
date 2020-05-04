@@ -66,8 +66,7 @@ TEST(IrqTask, Test)
     cb.wait();
     EXPECT_STREQ("hello", cb.text);
 
-    // kill the task
-    task.put(0);
+    task.kill();
 
     err = pthread_join(thread, 0);
     EXPECT_EQ(0, err);

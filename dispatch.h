@@ -2,7 +2,7 @@
 #if !defined(__IRQ_TASK_H__)
 #define __IRQ_TASK_H__
 
-#include "msg_queue.h"
+#include "deque.h"
 
 namespace panglos {
 
@@ -13,8 +13,9 @@ public:
     class Callback {
     public:
         const char *debug;
+        Callback *next;
 
-        Callback(const char *_debug=0) : debug(_debug) { }
+        Callback(const char *_debug=0) : debug(_debug), next(0) { }
         virtual ~Callback() {}
 
         virtual void execute() = 0;
@@ -37,15 +38,12 @@ public:
         virtual void execute() { }
     };
 
-    static Nowt nowt;
-
 private:
-    typedef MsgQueue<Callback*> Queue;
 
-    Queue::Deque *deque;
+    Deque deque;
     Mutex *mutex;
     Semaphore *semaphore;
-    Queue *queue;
+    bool dead;
 
 public:
     Dispatch();
@@ -56,6 +54,8 @@ public:
 
     /// main dispatch loop
     void run();
+
+    void kill();
 };
 
 }   //  namespace panglos
