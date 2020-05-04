@@ -6,6 +6,10 @@
 
 namespace panglos {
 
+    /*
+     *
+     */
+
 void Select::post(Semaphore *s)
 {
     queue->put(s);
@@ -15,12 +19,22 @@ void Select::add(Semaphore *s)
 {
     ASSERT(s);
     s->set_hook(this);
+
+    {
+        Lock lock(mutex);
+        list->push_front(s);
+    }
 }
 
 void Select::remove(Semaphore *s)
 {
     ASSERT(s);
     s->set_hook(0);
+
+    {
+        Lock lock(mutex);
+        list->remove(s);
+    }
 }
 
 Semaphore *Select::wait()
@@ -29,13 +43,15 @@ Semaphore *Select::wait()
 }
 
 Select::Select()
-: deque(0), mutex(0), semaphore(0)
+: deque(0), mutex(0), semaphore(0), list(0)
 {
     deque = new Queue::Deque;
     // Semaphores may be posted in an interrupt, so use critical section
     mutex = Mutex::create_critical_section();
     semaphore = Semaphore::create();
     queue = new Queue(deque, mutex, semaphore);
+
+    list = new List;
 
     // send a null message through now, to ensure that
     // the deque is initialised (by the first message)
@@ -45,6 +61,14 @@ Select::Select()
 
 Select::~Select()
 {
+    // remove all semaphores in the list
+    while (!list->empty())
+    {
+        Semaphore *s = list->front();
+        remove(s);
+    }
+
+    delete list;
     delete queue;
     delete semaphore;
     delete mutex;
