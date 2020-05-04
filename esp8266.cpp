@@ -21,10 +21,12 @@ static pList* next_fn(pList item)
     /*
      *
      */
-    
+ 
 ESP8266::ESP8266(Output *_uart, RingBuffer *b, Semaphore *_rd_sem, GPIO *_reset)
 :   uart(_uart), rb(b), rd_sem(_rd_sem), wait_sem(0), 
-    gpio_reset(_reset), cmd_sem(0), buff(0), in(0), size(1024), dead(false), 
+    gpio_reset(_reset), cmd_sem(0), 
+    buff(0), in(0), size(1024), 
+    dead(false), is_running(false),
     mutex(0), hook(0), commands(0), command(0)
 {
     ASSERT(uart);
@@ -51,12 +53,11 @@ void ESP8266::set_hook(Hook *h)
 void ESP8266::push_command(Command *cmd)
 {
     PO_DEBUG("");
-    if (cmd)
-    {
-        ASSERT(cmd->next == 0);
-        ASSERT(cmd->cmd);
-        ASSERT(cmd->done);
-    }
+    ASSERT(cmd);
+    ASSERT(cmd->next == 0);
+    ASSERT(cmd->cmd);
+    ASSERT(cmd->done);
+
     list_append((pList *) & commands, (pList) cmd, next_fn, mutex);
     cmd_sem->post();
 }
@@ -115,6 +116,8 @@ void ESP8266::reset()
 {
     if (!gpio_reset)
     {
+        // TODO : try software reset of device?
+        // See "AT+RST\r\n"
         return;
     }
 
@@ -156,13 +159,16 @@ void ESP8266::process(const uint8_t *text)
         return;
     }
 
+    // Check for completion of the command
     if (!strcmp((const char*) text, "OK"))
     {
-        // cmd needs to hook the rx data and decode it ...
         command->result = Command::OK;
         command->done->post();
         command = 0; // done
+        return;
     }
+
+    // cmd needs to hook the rx data and decode it ...
 }
 
 void ESP8266::process(uint8_t data)
@@ -202,6 +208,8 @@ void ESP8266::run()
     select.add(wait_sem);
     select.add(cmd_sem);
 
+    is_running = true;
+
     reset();
 
     timer_t last_tx = timer_now();
@@ -214,6 +222,7 @@ void ESP8266::run()
         if (s == cmd_sem)
         {
             run_command();
+            continue;
         }
 
         if (!ready)

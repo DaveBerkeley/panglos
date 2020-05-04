@@ -19,7 +19,7 @@ private:
     Semaphore *cmd_sem;
     uint8_t *buff;
     int in, size;
-    bool dead;
+    bool dead, is_running;
     Mutex *mutex;
     
     void reset();
@@ -64,6 +64,7 @@ public:
     void kill();
 
     void set_hook(Hook *);
+    bool running() { return is_running; };
 
     void run();
 };

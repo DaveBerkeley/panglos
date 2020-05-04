@@ -46,11 +46,13 @@ class Hook : public ESP8266::Hook
         if (!strncmp(cmd->cmd, "AT+CWMODE=1", strlen("AT+CWMODE=1")))
         {
             put(rb, "AT+CWMODE=1\r\nOK\r\n");
+            return;
         }
  
         if (!strncmp(cmd->cmd, "AT+CWJAP_DEF", strlen("AT+CWJAP_DEF")))
         {
             put(rb, "AT+CWJAP_DEF=\"ssid\",\"pw\"\r\nWIFI CONNECTED\r\nWIFI GOT IP\r\nOK\r\n");
+            return;
         }
     }
 
@@ -80,13 +82,33 @@ TEST(esp8266, Test)
     err = pthread_create(& thread, 0, runner, & radio);
     EXPECT_EQ(0, err);
 
-    sleep(1);
+    // wait for radio to be running and hooking semaphores ..
+    while (!radio.running())
+    {
+        usleep(1000);
+    }
 
-    radio.connect("ssid", "pw");
+    bool okay;
 
-    sleep(2);
+    okay = radio.connect("ssid", "pw");
+    EXPECT_TRUE(okay);
+
+    // "AT+CIFSR" // query ip/mac addresses
+    // "AT+CIPMUX=0" // open a single link
+    // "AT+CIPSTART="TCP","192.168.0.12",333" // connect to TCP server
+    // "AT+CIPSEND=10" // send 10 bytes of data
+    // send "+++" to end sending?
+    // "AT+CIPSENDEX=10" // send 10 bytes of data (may include '\0')
+    // "AT+CIPMODE" // config transmission mode
+    // "AT+CIPRECVDATA"
+    // "AT+CIPDNS" // config DNS
+    // "AT+CIPDOMAIN" // make DNS request
+    // "AT+CWLAP" // list access points
+    // "AT+CWQAP" // disconnect from ap
+    // "AT+CWDHCP" // enable / disable DHCP
+    // "AT+CWAUTOCONN=<enable>" // auto-connect to the ap
+
     radio.kill();
-
     err = pthread_join(thread, 0);
     EXPECT_EQ(0, err);
 
