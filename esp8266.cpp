@@ -6,10 +6,12 @@
 
 #include "esp8266.h"
 
+#include "secret.h"
+
 namespace panglos {
 
-ESP8266::ESP8266(UART *_uart, RingBuffer *b, GPIO *_reset)
-: uart(_uart), rb(b), gpio_reset(_reset), semaphore(0), buff(0), in(0), size(1024)
+ESP8266::ESP8266(UART *_uart, RingBuffer *b, Semaphore *_rd_sem, GPIO *_reset)
+: uart(_uart), rb(b), rd_sem(_rd_sem), gpio_reset(_reset), semaphore(0), buff(0), in(0), size(1024)
 {
     ASSERT(uart);
     ASSERT(rb);
@@ -78,10 +80,10 @@ void ESP8266::process(uint8_t data)
         return;
     }
 
-    if ((data == '\n') && (in > 0) && (buff[in-1] == '\r'))
+    if ((data == '\r') || (data == '\n'))
     {
         // command received
-        buff[in-1] = '\0';
+        buff[in] = '\0';
         process(buff);
         in = 0;
         return;
@@ -99,8 +101,13 @@ void ESP8266::run()
 {
     reset();
 
-    send_at("E0"); // echo off
+    //send_at("E0"); // echo off
     timer_t last_tx = timer_now();
+    //send_at("+GMR"); // echo off
+
+    send_at("+CWMODE=1"); // station mode
+    const char *cmd = "+CWJAP_DEF=\"" SSID "\",\"" PASSWORD "\"";
+    send_at(cmd); // connect to wifi
 
     while (true)
     {

@@ -13,6 +13,7 @@ class ESP8266
 private:
     UART *uart;
     RingBuffer *rb;
+    Semaphore *rd_sem;
     GPIO *gpio_reset;
     Semaphore *semaphore;
     uint8_t *buff;
@@ -24,8 +25,10 @@ private:
     void process(uint8_t data);
 
 public:
-    ESP8266(UART *uart, RingBuffer *b, GPIO *reset);
+    ESP8266(UART *uart, RingBuffer *b, Semaphore *rd_sem, GPIO *reset);
     ~ESP8266();
+
+    void connect(const char* ssid, const char *pw);
 
     void run();
 };
