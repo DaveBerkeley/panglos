@@ -4,6 +4,7 @@
 
 #include "debug.h"
 #include "select.h"
+#include "list.h"
 
 #include "esp8266.h"
 
@@ -11,15 +12,27 @@
 
 namespace panglos {
 
+static pList* next_fn(pList item)
+{
+    ESP8266::Command *cmd = ( ESP8266::Command *) item;
+    return (pList*) & cmd->next;
+}
+
+    /*
+     *
+     */
+    
 ESP8266::ESP8266(Output *_uart, RingBuffer *b, Semaphore *_rd_sem, GPIO *_reset)
 :   uart(_uart), rb(b), rd_sem(_rd_sem), wait_sem(0), 
-    gpio_reset(_reset), cmd_sem(0), buff(0), in(0), size(1024), dead(false)
+    gpio_reset(_reset), cmd_sem(0), buff(0), in(0), size(1024), dead(false), 
+    mutex(0), hook(0), commands(0), command(0)
 {
     ASSERT(uart);
     ASSERT(rb);
 
     cmd_sem = Semaphore::create();
     wait_sem = Semaphore::create();
+    mutex = Mutex::create();
     buff = (uint8_t*) malloc(size);
 }
 
@@ -28,6 +41,68 @@ ESP8266::~ESP8266()
     delete wait_sem;
     delete cmd_sem;
     free(buff);
+}
+
+void ESP8266::set_hook(Hook *h)
+{
+    hook = h;
+}
+
+void ESP8266::push_command(Command *cmd)
+{
+    PO_DEBUG("");
+    if (cmd)
+    {
+        ASSERT(cmd->next == 0);
+        ASSERT(cmd->cmd);
+        ASSERT(cmd->done);
+    }
+    list_append((pList *) & commands, (pList) cmd, next_fn, mutex);
+    cmd_sem->post();
+}
+
+void ESP8266::run_command()
+{
+    PO_DEBUG("");
+    Command *cmd = (Command*) list_pop((pList *) & commands, next_fn, mutex);
+    ASSERT(cmd);
+    ASSERT(cmd->done);
+
+    if (hook)
+    {
+        hook->on_command(cmd);
+    }
+
+    send_at(cmd->cmd);
+
+    // set the current command
+    command = cmd;
+}
+
+bool ESP8266::connect(const char* ssid, const char *pw)
+{
+    // Set the unit in WiFi client mode
+    Command cmd;
+    cmd.cmd = "AT+CWMODE=1\r\n";
+    cmd.done = Semaphore::create();
+    cmd.next = 0;
+
+    push_command(& cmd);
+    cmd.done->wait();
+    if (cmd.result != Command::OK)
+    {
+        return false;
+    }
+
+    // Set the access point's ssid and password
+    char buff[64];
+    snprintf(buff, sizeof(buff), "AT+CWJAP_DEF=\"%s\",\"%s\"\r\n", ssid, pw);
+    cmd.cmd = buff;
+    cmd.done = Semaphore::create();
+
+    push_command(& cmd);
+    cmd.done->wait();
+    return cmd.result == Command::OK;
 }
 
 void ESP8266::kill()
@@ -61,21 +136,33 @@ void ESP8266::reset()
 void ESP8266::send_at(const char *cmd)
 {
     PO_DEBUG("send AT%s", cmd);
-    uart->_puts("AT");
     uart->_puts(cmd);
-    uart->_puts("\r\n");
 }
 
-void ESP8266::process(const uint8_t *cmd)
+void ESP8266::process(const uint8_t *text)
 {
-    ASSERT(cmd);
-    if (!strlen((const char*) cmd))
+    ASSERT(text);
+
+    if (!strlen((const char*) text))
     {
         return;
     }
 
-    // TODO
-    PO_DEBUG("'%s'", cmd);
+    PO_DEBUG("'%s'", text);
+
+    if (!command)
+    {
+        // no command currently executing
+        return;
+    }
+
+    if (!strcmp((const char*) text, "OK"))
+    {
+        // cmd needs to hook the rx data and decode it ...
+        command->result = Command::OK;
+        command->done->post();
+        command = 0; // done
+    }
 }
 
 void ESP8266::process(uint8_t data)
@@ -113,19 +200,21 @@ void ESP8266::run()
 
     select.add(rd_sem);
     select.add(wait_sem);
+    select.add(cmd_sem);
 
     reset();
 
     timer_t last_tx = timer_now();
 
-    send_at("+CWMODE=1"); // station mode
-    const char *cmd = "+CWJAP_DEF=\"" SSID "\",\"" PASSWORD "\"";
-    send_at(cmd); // connect to wifi
-
     while (!dead)
     {
         Semaphore *s = select.wait(& event_queue, 120000);
         const bool ready = (s == rd_sem);
+
+        if (s == cmd_sem)
+        {
+            run_command();
+        }
 
         if (!ready)
         {
@@ -133,7 +222,7 @@ void ESP8266::run()
 
             if ((now - last_tx) > (120000 * 10))
             {
-                send_at("");
+                //send_at("AT\r\n");
                 last_tx = now;
             }
 

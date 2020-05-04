@@ -20,18 +20,50 @@ private:
     uint8_t *buff;
     int in, size;
     bool dead;
-
+    Mutex *mutex;
+    
     void reset();
     void send_at(const char *cmd);
     void process(const uint8_t *cmd);
     void process(uint8_t data);
+    void run_command();
 
 public:
+    class Command
+    {
+    public:
+
+        enum Result {
+            OK = 0,
+            ERR,
+        };
+
+        Command *next;
+        const char *cmd;
+        Result result;
+        Semaphore *done;
+    };
+
+    class Hook {
+    public:
+        virtual void on_command(Command *) = 0;
+    };
+
+    Hook *hook;
+private:
+    Command *commands;
+    Command *command;
+public:
+
     ESP8266(Output *uart, RingBuffer *b, Semaphore *rd_sem, GPIO *reset);
     ~ESP8266();
 
-    void connect(const char* ssid, const char *pw);
+    void push_command(Command *cmd);
+
+    bool connect(const char* ssid, const char *pw);
     void kill();
+
+    void set_hook(Hook *);
 
     void run();
 };
