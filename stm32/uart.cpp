@@ -250,7 +250,7 @@ class ArmUart : public UART
 
 
     UART_HandleTypeDef *handle;
-    RingBuffer *buffer;
+    RingBuffer<uint8_t> *buffer;
     //uint8_t data;
     uint32_t error;
 
@@ -288,7 +288,7 @@ private:
     }
 
 public:
-    ArmUart(Id _id, UART_HandleTypeDef *_handle, RingBuffer *b)
+    ArmUart(Id _id, UART_HandleTypeDef *_handle, RingBuffer<uint8_t> *b)
     : id(_id), next(0), handle(_handle), buffer(b)
     {   
         ASSERT(buffer);
@@ -379,7 +379,7 @@ int ArmUart::send(const char* data, int n)
      *
      */
 
-UART *UART::create(UART::Id id, int baud, RingBuffer *b)
+UART *UART::create(UART::Id id, int baud, RingBuffer<uint8_t> *b)
 {
     UART_HandleTypeDef *uart = MX_UART_Init(id, baud);
     return new ArmUart(id, uart, b);

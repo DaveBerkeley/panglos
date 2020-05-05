@@ -12,7 +12,7 @@ class ESP8266
 {
 private:
     Output *uart;
-    RingBuffer *rb;
+    RingBuffer<uint8_t> *rb;
     Semaphore *rd_sem;
     Semaphore *wait_sem;
     GPIO *gpio_reset;
@@ -55,7 +55,7 @@ private:
     Command *command;
 public:
 
-    ESP8266(Output *uart, RingBuffer *b, Semaphore *rd_sem, GPIO *reset);
+    ESP8266(Output *uart, RingBuffer<uint8_t> *b, Semaphore *rd_sem, GPIO *reset);
     ~ESP8266();
 
     void push_command(Command *cmd);

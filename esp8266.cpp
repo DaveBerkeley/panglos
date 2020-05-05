@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "debug.h"
 #include "select.h"
@@ -22,7 +23,7 @@ static pList* next_fn(pList item)
      *
      */
  
-ESP8266::ESP8266(Output *_uart, RingBuffer *b, Semaphore *_rd_sem, GPIO *_reset)
+ESP8266::ESP8266(Output *_uart, RingBuffer<uint8_t> *b, Semaphore *_rd_sem, GPIO *_reset)
 :   uart(_uart), rb(b), rd_sem(_rd_sem), wait_sem(0), 
     gpio_reset(_reset), cmd_sem(0), 
     buff(0), in(0), size(1024), 
@@ -126,9 +127,9 @@ void ESP8266::reset()
     Semaphore *s = Semaphore::create();
 
     gpio_reset->set(false);
-    event_queue.wait(s, 120000);
-    gpio_reset->set(true);
     event_queue.wait(s, 50000);
+    gpio_reset->set(true);
+    event_queue.wait(s, 10000);
 
     rb->reset();
     in = 0;
@@ -203,20 +204,22 @@ void ESP8266::process(uint8_t data)
 
 void ESP8266::run()
 {
+    PO_DEBUG("");
     Select select;
 
     select.add(rd_sem);
     select.add(wait_sem);
     select.add(cmd_sem);
 
-    is_running = true;
-
     reset();
+
+    is_running = true;
 
     timer_t last_tx = timer_now();
 
     while (!dead)
     {
+        PO_DEBUG("");
         Semaphore *s = select.wait(& event_queue, 120000);
         const bool ready = (s == rd_sem);
 

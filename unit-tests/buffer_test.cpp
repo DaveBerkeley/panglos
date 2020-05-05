@@ -13,12 +13,13 @@ using namespace panglos;
 
 TEST(RingBuffer, EmptyTest)
 {
-    RingBuffer buffer(128, 0);
+    RingBuffer<uint8_t> buffer(128, 0, 0);
 
     EXPECT_TRUE(buffer.empty());
     EXPECT_FALSE(buffer.full());
 
-    EXPECT_EQ(-1, buffer._getc());
+    uint8_t data;
+    EXPECT_EQ(false, buffer._getc(& data));
 
     uint8_t b[10];
     EXPECT_EQ(0, buffer._gets(b, sizeof(b)));
@@ -26,7 +27,7 @@ TEST(RingBuffer, EmptyTest)
 
 TEST(RingBuffer, Add)
 {
-    RingBuffer buffer(8, 0);
+    RingBuffer<uint8_t> buffer(8, 0, 0);
 
     EXPECT_TRUE(buffer.empty());
 
@@ -42,22 +43,31 @@ TEST(RingBuffer, Add)
     n = buffer.add('z');
     EXPECT_EQ(0, n);
 
-    n = buffer._getc();
-    EXPECT_EQ('x', n);
+    bool okay;
+    uint8_t data;
+    okay = buffer._getc(& data);
+    EXPECT_TRUE(okay);
+    EXPECT_EQ('x', data);
     EXPECT_FALSE(buffer.full());
 
-    n = buffer._getc();
-    EXPECT_EQ('a', n);
-    n = buffer._getc();
-    EXPECT_EQ('b', n);
-    n = buffer._getc();
-    EXPECT_EQ('c', n);
-    n = buffer._getc();
-    EXPECT_EQ('d', n);
-    n = buffer._getc();
-    EXPECT_EQ('e', n);
-    n = buffer._getc();
-    EXPECT_EQ('f', n);
+    okay = buffer._getc(& data);
+    EXPECT_TRUE(okay);
+    EXPECT_EQ('a', data);
+    okay = buffer._getc(& data);
+    EXPECT_TRUE(okay);
+    EXPECT_EQ('b', data);
+    okay = buffer._getc(& data);
+    EXPECT_TRUE(okay);
+    EXPECT_EQ('c', data);
+    okay = buffer._getc(& data);
+    EXPECT_TRUE(okay);
+    EXPECT_EQ('d', data);
+    okay = buffer._getc(& data);
+    EXPECT_TRUE(okay);
+    EXPECT_EQ('e', data);
+    okay = buffer._getc(& data);
+    EXPECT_TRUE(okay);
+    EXPECT_EQ('f', data);
 
     EXPECT_TRUE(buffer.empty());
 
@@ -65,8 +75,9 @@ TEST(RingBuffer, Add)
     EXPECT_EQ(1, n);
     EXPECT_FALSE(buffer.empty());
 
-    n = buffer._getc();
-    EXPECT_EQ('y', n);
+    okay = buffer._getc(& data);
+    EXPECT_TRUE(okay);
+    EXPECT_EQ('y', data);
     EXPECT_TRUE(buffer.empty());
 }
 
@@ -78,7 +89,7 @@ typedef struct
 {
     EventQueue *q;
     Semaphore *s;
-    RingBuffer *b;
+    RingBuffer<uint8_t> *b;
     const char *tx;
     bool dead;
     bool running;
@@ -159,7 +170,7 @@ TEST(RingBuffer, Wait)
 
     EventQueue q(0);
     Semaphore *s = Semaphore::create();
-    RingBuffer buffer(1024, s);
+    RingBuffer<uint8_t> buffer(1024, s, 0);
     Info info = {
         .q = & q,
         .s = s,
@@ -208,7 +219,7 @@ TEST(RingBuffer, Timeout)
 
     EventQueue q(0);
     Semaphore *s = Semaphore::create();
-    RingBuffer buffer(1024, s);
+    RingBuffer<uint8_t> buffer(1024, s, 0);
     Info info = {
         .q = & q,
         .s = s,

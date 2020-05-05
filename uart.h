@@ -28,7 +28,7 @@ public:
 
     virtual uint32_t get_error() { return 0; }
 
-    static UART *create(Id id, int baud, RingBuffer *b);
+    static UART *create(Id id, int baud, RingBuffer<uint8_t> *b);
 };
 
 }   //  namespace panglos

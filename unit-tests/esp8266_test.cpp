@@ -30,14 +30,14 @@ static void *runner(void *arg)
     return 0;
 }
 
-void put(RingBuffer *rb, const char *rx)
+void put(RingBuffer<uint8_t> *rb, const char *rx)
 {
     rb->add((const uint8_t*) rx, strlen(rx));
 }
 
 class Hook : public ESP8266::Hook
 {
-    RingBuffer *rb;
+    RingBuffer<uint8_t> *rb;
 
     virtual void on_command(ESP8266::Command *cmd)
     {
@@ -57,7 +57,7 @@ class Hook : public ESP8266::Hook
     }
 
 public:
-    Hook(RingBuffer *_rb)
+    Hook(RingBuffer<uint8_t> *_rb)
     : rb(_rb)
     {
     }
@@ -69,7 +69,7 @@ TEST(esp8266, Test)
 
     _Output output;
     Semaphore *s = Semaphore::create();
-    RingBuffer *rb = new RingBuffer(128, s);
+    RingBuffer<uint8_t> *rb = new RingBuffer<uint8_t>(128, s, 0);
 
     ESP8266 radio(& output, rb, s, 0);
 
