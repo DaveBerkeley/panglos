@@ -6,19 +6,22 @@
 
 namespace panglos {
 
-typedef struct {
+class Deque
+{
+private:
+public:
     pList head;
     pList tail;
-}   Deque;
-
-void deque_init(Deque *);
-
-void deque_push_head(Deque *deque, pList w, pnext next_fn, Mutex *mutex);
-void deque_push_tail(Deque *deque, pList w, pnext next_fn, Mutex *mutex);
-int deque_size(Deque *deque, pnext next_fn, Mutex *mutex);
-bool deque_empty(Deque *deque);
-
-pList deque_pop_head(Deque *deque, pnext next_fn, Mutex *mutex);
+    pnext next_fn;
+public:
+    Deque(pnext next_fn);
+    
+    void push_head(pList w, Mutex *mutex);
+    void push_tail(pList w, Mutex *mutex);
+    int size(Mutex *mutex);
+    bool empty();
+    pList pop_head(Mutex *mutex);
+};
 
 }   //  namespace panglos
 

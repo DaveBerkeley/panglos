@@ -5,28 +5,27 @@
 
 namespace panglos {
 
-void deque_init(Deque *deque)
+Deque::Deque(pnext fn)
+: head(0), tail(0), next_fn(fn)
 {
-    ASSERT(deque);
-    deque->head = deque->tail = 0;
 }
-
-void deque_push_head(Deque *deque, pList w, pnext next_fn, Mutex *mutex)
+    
+void Deque::push_head(pList w, Mutex *mutex)
 {
     Lock lock(mutex);
 
     // list empty case ..
-    if (deque->tail == 0)
+    if (tail == 0)
     {
-        deque->tail = w;
+        tail = w;
     }
 
     pList *next = next_fn(w);
-    *next = deque->head;
-    deque->head = w;
+    *next = head;
+    head = w;
 }
 
-void deque_push_tail(Deque *deque, pList w, pnext next_fn, Mutex *mutex)
+void Deque::push_tail(pList w, Mutex *mutex)
 {
     Lock lock(mutex);
 
@@ -34,25 +33,25 @@ void deque_push_tail(Deque *deque, pList w, pnext next_fn, Mutex *mutex)
     * next_fn(w) = 0;
 
     // list empty case
-    if (deque->head == 0)
+    if (head == 0)
     {
-        deque->head = w;
-        deque->tail = w;
+        head = w;
+        tail = w;
         return;
     }
 
     // point old last-in-list to the new entry
-    pList prev = deque->tail;
+    pList prev = tail;
     * next_fn(prev) = w;
 
-    deque->tail = w;
+    tail = w;
 }
 
-pList deque_pop_head(Deque *deque, pnext next_fn, Mutex *mutex)
+pList Deque:: pop_head(Mutex *mutex)
 {
     Lock lock(mutex);
 
-    pList item = deque->head;
+    pList item = head;
 
     if (!item)
     {
@@ -60,33 +59,33 @@ pList deque_pop_head(Deque *deque, pnext next_fn, Mutex *mutex)
         return 0;
     }
 
-    if (deque->tail == item)
+    if (tail == item)
     {
         // last item in deque
-        deque->head = deque->tail = 0;
+        head = tail = 0;
         return item;
     }
 
     pList *next = next_fn(item);
-    deque->head = *next;
+    head = *next;
     return item;
 }
 
-int deque_size(Deque *deque, pnext next_fn, Mutex *mutex)
+int Deque::size(Mutex *mutex)
 {
     Lock lock(mutex);
 
     int count = 0;
-    for (pList *next = & deque->head; *next; next = next_fn(*next))
+    for (pList *next = & head; *next; next = next_fn(*next))
     {
         count += 1;
     }
     return count;
 }
 
-bool deque_empty(Deque *deque)
+bool Deque::empty()
 {
-    return !deque->head;
+    return !head;
 }
 
 }   //  namespace panglos

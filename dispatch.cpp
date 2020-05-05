@@ -5,17 +5,23 @@
 
 namespace panglos {
 
+static pList *next_fn(pList p)
+{
+    ASSERT(p);
+    Dispatch::Callback *item = (Dispatch::Callback*) p;
+    return (pList*) & item->next;
+}
+
     /*
      *
      */
 
 Dispatch::Dispatch()
-: mutex(0), semaphore(0), dead(false)
+: deque(next_fn), mutex(0), semaphore(0), dead(false)
 {
     // needs to be irq_safe, not just thread safe
     mutex = Mutex::create_critical_section();
     semaphore = Semaphore::create();
-    deque_init(& deque);
 }
 
 Dispatch::~Dispatch()
@@ -24,18 +30,11 @@ Dispatch::~Dispatch()
     delete mutex;
 }
 
-static pList *next_fn(pList p)
-{
-    ASSERT(p);
-    Dispatch::Callback *item = (Dispatch::Callback*) p;
-    return (pList*) & item->next;
-}
-
 /// potentialy called from within irq context
 void Dispatch::put(Callback *cb)
 {
     ASSERT(cb);
-    deque_push_tail(& deque, (pList) cb, next_fn, mutex);
+    deque.push_tail((pList) cb, mutex);
     semaphore->post();
 }
 
@@ -54,7 +53,7 @@ void Dispatch::run()
     {
         semaphore->wait();
 
-        Callback *cb = (Callback*) deque_pop_head(& deque, next_fn, mutex);
+        Callback *cb = (Callback*) deque.pop_head(mutex);
         if (!cb)
         {
             break;
