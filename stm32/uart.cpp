@@ -19,6 +19,10 @@ static UART_HandleTypeDef uart1;
 static UART_HandleTypeDef uart2;
 static UART_HandleTypeDef uart3;
 
+class ArmUart;
+
+static ArmUart *uarts[3];
+
 static UART_HandleTypeDef *get_uart(panglos::UART::Id id)
 {
     switch (id)
@@ -62,71 +66,6 @@ static IRQn_Type get_irq_num(panglos::UART::Id id)
     ASSERT(0);
     return (IRQn_Type) 0;
 }
-
-#if 0
-static void pr_error(char *buff, int size, uint32_t err)
-{
-    if (err == HAL_UART_ERROR_NONE)
-    {
-        buff[0] = '\0';
-    }
-
-    if (err & HAL_UART_ERROR_PE)
-    {
-        const int n = snprintf(buff, size, "PE ");
-        buff += n;
-        size -= n;
-        if (size <= 0)
-        {
-            return;
-        }
-    }
-
-    if (err & HAL_UART_ERROR_NE)
-    {
-        const int n = snprintf(buff, size, "NE ");
-        buff += n;
-        size -= n;
-        if (size <= 0)
-        {
-            return;
-        }
-    }
-
-    if (err & HAL_UART_ERROR_FE)
-    {
-        const int n = snprintf(buff, size, "FE ");
-        buff += n;
-        size -= n;
-        if (size <= 0)
-        {
-            return;
-        }
-    }
-
-    if (err & HAL_UART_ERROR_ORE)
-    {
-        const int n = snprintf(buff, size, "ORE ");
-        buff += n;
-        size -= n;
-        if (size <= 0)
-        {
-            return;
-        }
-    }
-
-    if (err & HAL_UART_ERROR_DMA)
-    {
-        const int n = snprintf(buff, size, "DMA ");
-        buff += n;
-        size -= n;
-        if (size <= 0)
-        {
-            return;
-        }
-    }
-}
-#endif
 
     /*
      *
@@ -243,74 +182,26 @@ static void MX_UART_Deinit(panglos::UART::Id id)
 class ArmUart : public UART
 {
     Id id;
-    // Linked list of UARTS
-    ArmUart *next;
-    static ArmUart *head;
-    static Mutex *list_mutex;
-
 
     UART_HandleTypeDef *handle;
     RingBuffer<uint8_t> *buffer;
-    //uint8_t data;
     uint32_t error;
 
     virtual uint32_t get_error() { uint32_t e = error; error = 0; return e; }
 
-private:
-    static pList* next_fn(pList item)
-    {
-        ArmUart *uart = (ArmUart*) item;
-        return (pList*) & uart->next;
-    }
-
-    void add_to_list()
-    {
-        list_push((pList*) & head, (pList) this, next_fn, list_mutex);
-    }
-
-    void remove_from_list()
-    {
-        list_remove((pList*) & head, (pList) this, next_fn, list_mutex);
-    }
-
-    static int match_handle(pList item, void *arg)
-    {
-        ASSERT(item);
-        ArmUart *uart = (ArmUart*) item;
-        return uart->handle == (UART_HandleTypeDef*) arg;
-    }
-
-    static int match_instance(pList item, void *arg)
-    {
-        ASSERT(item);
-        ArmUart *uart = (ArmUart*) item;
-        return uart->handle->Instance == (USART_TypeDef*) arg;
-    }
-
 public:
     ArmUart(Id _id, UART_HandleTypeDef *_handle, RingBuffer<uint8_t> *b)
-    : id(_id), next(0), handle(_handle), buffer(b)
+    : id(_id), handle(_handle), buffer(b)
     {   
         ASSERT(buffer);
         mutex = Mutex::create();
-
-        add_to_list();
+        uarts[id] = this;
     }
 
     ~ArmUart()
     {
         MX_UART_Deinit(id);
-        remove_from_list();
-    }
-
-    static ArmUart* find(UART_HandleTypeDef *_handle, Mutex *mutex)
-    {
-        return (ArmUart*) list_find((pList*) & head, next_fn, match_handle, _handle, mutex);
-    }
-
-    static ArmUart* find(USART_TypeDef* instance, Mutex *mutex)
-    {
-        return (ArmUart*) list_find((pList*) & head, next_fn, match_instance, instance, mutex);
+        uarts[id] = 0;
     }
 
     // Implement Output class
@@ -348,15 +239,6 @@ public:
 
     void set_error(uint32_t e) { error |= e; }
 };
-
-    /*
-     *
-     */
-
-// Linked list of UARTs
-ArmUart *ArmUart::head = 0;
-// Mutex to protect the list
-Mutex *ArmUart::list_mutex = Mutex::create();
 
     /*
      *
@@ -410,20 +292,17 @@ using namespace panglos;
 
 extern "C" void USART1_IRQHandler(void)
 {
-    ArmUart *uart = ArmUart::find(USART1, 0);
-    uart_rx_irq(uart);
+    uart_rx_irq(uarts[0]);
 }
 
 extern "C" void USART2_IRQHandler(void)
 {
-    ArmUart *uart = ArmUart::find(USART2, 0);
-    uart_rx_irq(uart);
+    uart_rx_irq(uarts[1]);
 }
 
 extern "C" void USART3_IRQHandler(void)
 {
-    ArmUart *uart = ArmUart::find(USART3, 0);
-    uart_rx_irq(uart);
+    uart_rx_irq(uarts[2]);
 }
 
 //  FIN
