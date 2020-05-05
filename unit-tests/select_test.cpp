@@ -43,7 +43,7 @@ TEST(Select, Test)
     Semaphore *sems[num];
 
     {
-        Select sel;
+        Select sel(10);
 
         for (int i = 0; i < num; i++)
         {
@@ -83,7 +83,7 @@ TEST(Select, Timeout)
 {
     mock_setup(true);
 
-    Select select;
+    Select select(10);
 
     // ensure that the event_queue prevents the wait() from blocking
     select.wait(& event_queue, 1000);
@@ -97,7 +97,7 @@ TEST(Select, Timeout)
 
 TEST(Select, Remove)
 {
-    Select select;
+    Select select(100);
 
     Semaphore *s = Semaphore::create();
 
@@ -145,7 +145,7 @@ TEST(Select, Dtor)
     EXPECT_EQ(0, semc.hook);
 
     {
-        Select select;
+        Select select(100);
 
         select.add(& sema);
         select.add(& semb);

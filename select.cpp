@@ -18,7 +18,7 @@ static Semaphore** next_fn(Semaphore *semaphore)
 
 void Select::post(Semaphore *s)
 {
-    queue->put(s);
+    queue->add(s);
 }
 
 void Select::add(Semaphore *s)
@@ -39,22 +39,20 @@ void Select::remove(Semaphore *s)
 
 Semaphore *Select::wait()
 {
-    return queue->wait();
+    semaphore->wait();
+
+    Semaphore *s = 0;
+    queue->get(& s);
+    return s;
 }
 
-Select::Select()
-: deque(0), mutex(0), semaphore(0), semaphores(next_fn)
+Select::Select(int size)
+: mutex(0), semaphore(0), semaphores(next_fn)
 {
-    deque = new Queue::Deque;
     // Semaphores may be posted in an interrupt, so use critical section
     mutex = Mutex::create_critical_section();
     semaphore = Semaphore::create();
-    queue = new Queue(deque, mutex, semaphore);
-
-    // send a null message through now, to ensure that
-    // the deque is initialised (by the first message)
-    queue->put(0);
-    queue->wait();
+    queue = new Queue(size, semaphore, mutex);
 }
 
 Select::~Select()
@@ -70,7 +68,6 @@ Select::~Select()
     delete queue;
     delete semaphore;
     delete mutex;
-    delete deque;
 }
 
 Semaphore *Select::wait(EventQueue *eq, timer_t timeout)

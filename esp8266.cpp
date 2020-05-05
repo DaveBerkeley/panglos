@@ -205,7 +205,7 @@ void ESP8266::process(uint8_t data)
 void ESP8266::run()
 {
     PO_DEBUG("");
-    Select select;
+    Select select(100);
 
     select.add(rd_sem);
     select.add(wait_sem);

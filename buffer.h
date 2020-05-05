@@ -58,7 +58,7 @@ public:
             delete_mutex = mutex = Mutex::create();
         }
 
-        data = (T*) malloc(_size);
+        data = (T*) malloc(_size * sizeof(T));
     }
 
     ~RingBuffer()

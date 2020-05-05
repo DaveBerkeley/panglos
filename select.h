@@ -2,7 +2,7 @@
 #if !defined(__SELECT_H__)
 #define __SELECT_H__
 
-#include "msg_queue.h"
+#include "buffer.h"
 #include "list.h"
 #include "event.h"
 
@@ -14,16 +14,15 @@ namespace panglos {
 
 class Select : public PostHook
 {
-    typedef MsgQueue<Semaphore*> Queue;
+    typedef RingBuffer<Semaphore*> Queue;
 
-    Queue::Deque *deque;
     Mutex *mutex;
     Semaphore *semaphore;
     Queue *queue;
     List<Semaphore*> semaphores;
 
 public:
-    Select();
+    Select(int size);
     ~Select();
 
     virtual void post(Semaphore *s);
