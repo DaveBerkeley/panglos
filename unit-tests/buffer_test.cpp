@@ -19,10 +19,10 @@ TEST(RingBuffer, EmptyTest)
     EXPECT_FALSE(buffer.full());
 
     uint8_t data;
-    EXPECT_EQ(false, buffer._getc(& data));
+    EXPECT_EQ(false, buffer.get(& data));
 
     uint8_t b[10];
-    EXPECT_EQ(0, buffer._gets(b, sizeof(b)));
+    EXPECT_EQ(0, buffer.get(b, sizeof(b)));
 }
 
 TEST(RingBuffer, Add)
@@ -45,27 +45,27 @@ TEST(RingBuffer, Add)
 
     bool okay;
     uint8_t data;
-    okay = buffer._getc(& data);
+    okay = buffer.get(& data);
     EXPECT_TRUE(okay);
     EXPECT_EQ('x', data);
     EXPECT_FALSE(buffer.full());
 
-    okay = buffer._getc(& data);
+    okay = buffer.get(& data);
     EXPECT_TRUE(okay);
     EXPECT_EQ('a', data);
-    okay = buffer._getc(& data);
+    okay = buffer.get(& data);
     EXPECT_TRUE(okay);
     EXPECT_EQ('b', data);
-    okay = buffer._getc(& data);
+    okay = buffer.get(& data);
     EXPECT_TRUE(okay);
     EXPECT_EQ('c', data);
-    okay = buffer._getc(& data);
+    okay = buffer.get(& data);
     EXPECT_TRUE(okay);
     EXPECT_EQ('d', data);
-    okay = buffer._getc(& data);
+    okay = buffer.get(& data);
     EXPECT_TRUE(okay);
     EXPECT_EQ('e', data);
-    okay = buffer._getc(& data);
+    okay = buffer.get(& data);
     EXPECT_TRUE(okay);
     EXPECT_EQ('f', data);
 
@@ -75,7 +75,7 @@ TEST(RingBuffer, Add)
     EXPECT_EQ(1, n);
     EXPECT_FALSE(buffer.empty());
 
-    okay = buffer._getc(& data);
+    okay = buffer.get(& data);
     EXPECT_TRUE(okay);
     EXPECT_EQ('y', data);
     EXPECT_TRUE(buffer.empty());
@@ -113,7 +113,7 @@ static void * get_fn(void *arg)
         }
 
         uint8_t buff[9];
-        int c = info->b->_gets(buff, sizeof(buff)-1);
+        int c = info->b->get(buff, sizeof(buff)-1);
         buff[c] = '\0';
         EXPECT_STREQ(info->tx, (char*) buff);
     }

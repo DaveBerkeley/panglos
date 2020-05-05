@@ -120,30 +120,7 @@ public:
         return next == out;
     }
 
-    bool _getc(T *t)
-    {
-        Lock lock(mutex);
-
-        if (empty())
-        {
-            // no data
-            return false;
-        }
-
-        int next = out + 1;
-        if (next >= size)
-        {
-            next = 0;
-        }
-
-        const int c = data[out];
-        out = next;
-
-        *t = c;
-        return true;
-    }
-
-    int _gets(T *s, int n)
+    int get(T *s, int n=1)
     {
         Lock lock(mutex);
 
