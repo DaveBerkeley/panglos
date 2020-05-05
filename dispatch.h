@@ -40,7 +40,7 @@ public:
 
 private:
 
-    Deque deque;
+    Deque<Dispatch::Callback*> deque;
     Mutex *mutex;
     Semaphore *semaphore;
     bool dead;

@@ -5,11 +5,10 @@
 
 namespace panglos {
 
-static pList *next_fn(pList p)
+static Dispatch::Callback **next_fn(Dispatch::Callback * item)
 {
-    ASSERT(p);
-    Dispatch::Callback *item = (Dispatch::Callback*) p;
-    return (pList*) & item->next;
+    ASSERT(item);
+    return & item->next;
 }
 
     /*
@@ -34,7 +33,7 @@ Dispatch::~Dispatch()
 void Dispatch::put(Callback *cb)
 {
     ASSERT(cb);
-    deque.push_tail((pList) cb, mutex);
+    deque.push_tail(cb, mutex);
     semaphore->post();
 }
 
