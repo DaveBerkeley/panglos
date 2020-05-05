@@ -3,6 +3,7 @@
 #define __SELECT_H__
 
 #include "msg_queue.h"
+#include "list.h"
 #include "event.h"
 
 namespace panglos {
@@ -19,7 +20,7 @@ class Select : public PostHook
     Mutex *mutex;
     Semaphore *semaphore;
     Queue *queue;
-    Semaphore *semaphores;
+    List<Semaphore*> semaphores;
 
 public:
     Select();

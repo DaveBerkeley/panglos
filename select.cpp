@@ -7,10 +7,9 @@
 
 namespace panglos {
 
-static pList* next_fn(pList item)
+static Semaphore** next_fn(Semaphore *semaphore)
 {
-    Semaphore *semaphore = (Semaphore *) item;
-    return (pList*) & semaphore->next;
+    return & semaphore->next;
 }
 
     /*
@@ -27,7 +26,7 @@ void Select::add(Semaphore *s)
     ASSERT(s);
     s->set_hook(this);
 
-    list_append((pList *) & semaphores, (pList) s, next_fn, mutex);
+    semaphores.push(s, mutex);
 }
 
 void Select::remove(Semaphore *s)
@@ -35,7 +34,7 @@ void Select::remove(Semaphore *s)
     ASSERT(s);
     s->set_hook(0);
 
-    list_remove((pList *) & semaphores, (pList) s, next_fn, mutex);
+    semaphores.remove(s, mutex);
 }
 
 Semaphore *Select::wait()
@@ -44,7 +43,7 @@ Semaphore *Select::wait()
 }
 
 Select::Select()
-: deque(0), mutex(0), semaphore(0), semaphores(0)
+: deque(0), mutex(0), semaphore(0), semaphores(next_fn)
 {
     deque = new Queue::Deque;
     // Semaphores may be posted in an interrupt, so use critical section
@@ -61,9 +60,11 @@ Select::Select()
 Select::~Select()
 {
     // remove all semaphores in the list
-    while (semaphores)
+    while (!semaphores.empty())
     {
-        remove(semaphores);
+        Semaphore *s = semaphores.pop(0);
+        ASSERT(s);
+        remove(s);
     }
 
     delete queue;
