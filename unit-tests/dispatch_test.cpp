@@ -48,7 +48,7 @@ public:
     }
 };
 
-TEST(IrqTask, Test)
+TEST(Dispatch, Test)
 {
     Dispatch task;
 

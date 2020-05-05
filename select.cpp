@@ -16,6 +16,30 @@ static Semaphore** next_fn(Semaphore *semaphore)
      *
      */
 
+Select::Select(int size)
+: mutex(0), semaphore(0), semaphores(next_fn)
+{
+    // Semaphores may be posted in an interrupt, so use critical section
+    mutex = Mutex::create_critical_section();
+    semaphore = Semaphore::create();
+    queue = new Queue(size, semaphore, mutex);
+}
+
+Select::~Select()
+{
+    // remove all semaphores in the list
+    while (!semaphores.empty())
+    {
+        Semaphore *s = semaphores.pop(0);
+        ASSERT(s);
+        remove(s);
+    }
+
+    delete queue;
+    delete semaphore;
+    delete mutex;
+}
+
 void Select::post(Semaphore *s)
 {
     queue->add(s);
@@ -39,35 +63,14 @@ void Select::remove(Semaphore *s)
 
 Semaphore *Select::wait()
 {
-    semaphore->wait();
+    if (queue->empty())
+    {
+        semaphore->wait();
+    }
 
     Semaphore *s = 0;
     queue->get(& s);
     return s;
-}
-
-Select::Select(int size)
-: mutex(0), semaphore(0), semaphores(next_fn)
-{
-    // Semaphores may be posted in an interrupt, so use critical section
-    mutex = Mutex::create_critical_section();
-    semaphore = Semaphore::create();
-    queue = new Queue(size, semaphore, mutex);
-}
-
-Select::~Select()
-{
-    // remove all semaphores in the list
-    while (!semaphores.empty())
-    {
-        Semaphore *s = semaphores.pop(0);
-        ASSERT(s);
-        remove(s);
-    }
-
-    delete queue;
-    delete semaphore;
-    delete mutex;
 }
 
 Semaphore *Select::wait(EventQueue *eq, timer_t timeout)

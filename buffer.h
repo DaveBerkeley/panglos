@@ -32,18 +32,12 @@ class RingBuffer
 
         if (next == out)
         {
+            // buffer full
             return 0;
         }
 
         data[in] = c;
         in = next;
-
-        // post the semaphore, if a task is waiting on us
-        panglos::Semaphore *s = semaphore;
-        if (s)
-        {
-            s->post();
-        }
 
         return 1;
     }

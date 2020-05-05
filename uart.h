@@ -15,9 +15,9 @@ class UART : public Output
 {
 public:
     enum Id {
-        UART_1,
-        UART_2,
-        UART_3,
+        UART_1 = 0,
+        UART_2 = 1,
+        UART_3 = 2,
     };
 
     virtual ~UART() { }
@@ -28,7 +28,9 @@ public:
 
     virtual uint32_t get_error() { return 0; }
 
-    static UART *create(Id id, int baud, RingBuffer<uint8_t> *b);
+    typedef RingBuffer<uint8_t> Buffer;
+
+    static UART *create(Id id, int baud, Buffer *b);
 };
 
 }   //  namespace panglos

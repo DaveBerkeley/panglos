@@ -13,22 +13,21 @@
 
 namespace panglos {
 
-static pList* next_fn(pList item)
+static ESP8266::Command **next_fn(ESP8266::Command *cmd)
 {
-    ESP8266::Command *cmd = ( ESP8266::Command *) item;
-    return (pList*) & cmd->next;
+    return & cmd->next;
 }
 
     /*
      *
      */
  
-ESP8266::ESP8266(Output *_uart, RingBuffer<uint8_t> *b, Semaphore *_rd_sem, GPIO *_reset)
+ESP8266::ESP8266(Output *_uart, UART::Buffer *b, Semaphore *_rd_sem, GPIO *_reset)
 :   uart(_uart), rb(b), rd_sem(_rd_sem), wait_sem(0), 
     gpio_reset(_reset), cmd_sem(0), 
     buff(0), in(0), size(1024), 
     dead(false), is_running(false),
-    mutex(0), hook(0), commands(0), command(0)
+    mutex(0), hook(0), commands(next_fn), command(0)
 {
     ASSERT(uart);
     ASSERT(rb);
@@ -56,20 +55,19 @@ void ESP8266::push_command(Command *cmd)
 {
     PO_DEBUG("");
     ASSERT(cmd);
-    ASSERT(cmd->next == 0);
     ASSERT(cmd->cmd);
     ASSERT(cmd->done);
 
-    list_append((pList *) & commands, (pList) cmd, next_fn, mutex);
+    commands.append(cmd, mutex);
     cmd_sem->post();
 }
 
 void ESP8266::run_command()
 {
-    PO_DEBUG("");
-    Command *cmd = (Command*) list_pop((pList *) & commands, next_fn, mutex);
+    Command *cmd = commands.pop(mutex);
     ASSERT(cmd);
     ASSERT(cmd->done);
+    PO_DEBUG("%s", cmd->cmd);
 
     if (hook)
     {
@@ -219,7 +217,6 @@ void ESP8266::run()
 
     while (!dead)
     {
-        PO_DEBUG("");
         Semaphore *s = select.wait(& event_queue, 120000);
         const bool ready = (s == rd_sem);
 
@@ -243,7 +240,7 @@ void ESP8266::run()
         }
 
         // read the data ..
-        uint8_t buff[16];
+        uint8_t buff[128];
         const int n = rb->get(buff, sizeof(buff)-1);
         ASSERT((n >= 0) && (n <= (int)sizeof(buff)));
 
