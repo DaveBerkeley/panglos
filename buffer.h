@@ -163,6 +163,69 @@ public:
 
 };
 
+    /*
+     *
+     */
+
+class Buffer {
+    Buffer *next;
+    int size;
+    int in;
+    int out;
+    uint8_t *data;
+
+public:
+    Buffer(int _size)
+    : next(0), size(_size), in(0), out(0)
+    {
+        data = (uint8_t*) malloc(size);
+    }
+
+    ~Buffer()
+    {
+        free(data);
+    }
+
+    bool add(uint8_t c)
+    {
+        int next = in + 1;
+        if (next > size)
+        {
+            return false;
+        }
+
+        data[in] = c;
+        in = next;
+        return true;
+    }
+
+    int read(uint8_t *buffer, int n)
+    {
+        int count = 0;
+        for (int i = out; i < in; i++)
+        {
+            *buffer++ = data[i];
+            out += 1;
+            count += 1;
+            if (count >= n)
+            {
+                break;
+            }
+        }
+        return count;
+    }
+
+    bool full()
+    {
+        return in == size;
+    }
+
+    bool spent()
+    {
+        return out == size;
+    }
+};
+
 }   //  namespace panglos
 
 #endif // __BUFFER_H__

@@ -248,4 +248,77 @@ TEST(RingBuffer, Timeout)
     mock_teardown();
 }
 
+    /*
+     *
+     */
+
+TEST(Buffer, Test)
+{
+    Buffer b(8);
+
+    bool okay;
+    okay = b.add('a');
+    EXPECT_TRUE(okay);
+    okay = b.add('b');
+    EXPECT_TRUE(okay);
+    okay = b.add('c');
+    EXPECT_TRUE(okay);
+    EXPECT_FALSE(b.full());
+
+    // read part of the buffer
+    uint8_t buff[64];
+    int n = b.read(buff, 4);
+    EXPECT_EQ(3, n);
+    EXPECT_EQ('a', buff[0]);
+    EXPECT_EQ('b', buff[1]);
+    EXPECT_EQ('c', buff[2]);
+    EXPECT_FALSE(b.spent());
+
+    okay = b.add('a');
+    EXPECT_TRUE(okay);
+    okay = b.add('b');
+    EXPECT_TRUE(okay);
+    okay = b.add('c');
+    EXPECT_TRUE(okay);
+    EXPECT_FALSE(b.full());
+
+    // read all requested data
+    n = b.read(buff, 2);
+    EXPECT_EQ(2, n);
+    EXPECT_EQ('a', buff[0]);
+    EXPECT_EQ('b', buff[1]);
+    EXPECT_FALSE(b.spent());
+
+    // read the rest
+    n = b.read(buff, 1);
+    EXPECT_EQ(1, n);
+    EXPECT_EQ('c', buff[0]);
+    EXPECT_FALSE(b.spent());
+
+    // try to read empty buffer
+    n = b.read(buff, 1);
+    EXPECT_EQ(0, n);
+    EXPECT_FALSE(b.spent());
+
+    // buffer should fill up
+    okay = b.add('x');
+    EXPECT_TRUE(okay);
+    EXPECT_FALSE(b.full());
+    okay = b.add('y');
+    EXPECT_TRUE(okay);
+    EXPECT_TRUE(b.full());
+    okay = b.add('z');
+    EXPECT_FALSE(okay);
+    EXPECT_TRUE(b.full());
+
+    EXPECT_FALSE(b.spent());
+
+    // only 2 more available
+    n = b.read(buff, 4);
+    EXPECT_EQ(2, n);
+    EXPECT_EQ('x', buff[0]);
+    EXPECT_EQ('y', buff[1]);
+    EXPECT_TRUE(b.spent());
+}
+
 //  FIN
