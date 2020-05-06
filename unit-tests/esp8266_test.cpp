@@ -93,7 +93,7 @@ TEST(esp8266, Test)
 
     bool okay;
 
-    okay = radio.connect("ssid", "pw");
+    okay = radio.connect_to_ap("ssid", "pw");
     EXPECT_TRUE(okay);
 
     // "AT+CIFSR" // query ip/mac addresses

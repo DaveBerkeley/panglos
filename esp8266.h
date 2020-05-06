@@ -24,10 +24,10 @@ private:
     Mutex *mutex;
     
     void reset();
-    void send_at(const char *cmd);
     void process(const uint8_t *cmd);
     void process(uint8_t data);
     void run_command();
+    void send_at(const char *cmd);
 
 public:
     class Command
@@ -39,6 +39,8 @@ public:
             ERR,
         };
 
+        // TODO : add timeout for command
+
         Command *next;
         const char *cmd;
         Result result;
@@ -48,6 +50,9 @@ public:
         : next(0), cmd(at), result(ERR), done(s)
         {
         }
+
+        virtual bool process(const uint8_t *line) = 0;
+        virtual bool process(uint8_t c) { return false; };
     };
 
     class Hook {
@@ -65,9 +70,13 @@ public:
     ~ESP8266();
 
     void push_command(Command *cmd);
+    int send(const uint8_t *cmd, int size);
 
     bool start();
-    bool connect(const char* ssid, const char *pw);
+    bool connect_to_ap(const char* ssid, const char *pw);
+    int connect(const char *ip, int port);
+    int socket_send(int sock, const uint8_t *d, int size);
+
     void kill();
 
     void set_hook(Hook *);
