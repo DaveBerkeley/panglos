@@ -31,6 +31,9 @@ public:
 
     Semaphore *wait();
     Semaphore *wait(EventQueue *eq, timer_t timeout);
+
+    // for test only
+    void visit(int (*fn)(Semaphore*, void*), void*);
 };
 
 }   //  namespace

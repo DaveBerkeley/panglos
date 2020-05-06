@@ -53,10 +53,10 @@ void ESP8266::set_hook(Hook *h)
 
 void ESP8266::push_command(Command *cmd)
 {
-    PO_DEBUG("");
     ASSERT(cmd);
     ASSERT(cmd->cmd);
     ASSERT(cmd->done);
+    PO_DEBUG("cmd=%p at='%s'", cmd, cmd->cmd);
 
     commands.append(cmd, mutex);
     cmd_sem->post();
@@ -67,7 +67,7 @@ void ESP8266::run_command()
     Command *cmd = commands.pop(mutex);
     ASSERT(cmd);
     ASSERT(cmd->done);
-    PO_DEBUG("%s", cmd->cmd);
+    PO_DEBUG("cmd=%p at=%s", cmd, cmd->cmd);
 
     if (hook)
     {
@@ -80,30 +80,59 @@ void ESP8266::run_command()
     command = cmd;
 }
 
-bool ESP8266::connect(const char* ssid, const char *pw)
+bool ESP8266::start()
 {
-    // Set the unit in WiFi client mode
-    Command cmd;
-    cmd.cmd = "AT+CWMODE=1\r\n";
-    cmd.done = Semaphore::create();
-    cmd.next = 0;
-
+    // Factory settings
+    Semaphore *s = Semaphore::create();
+    Command cmd(s, "AT\r\n");
     push_command(& cmd);
     cmd.done->wait();
+    delete s;
     if (cmd.result != Command::OK)
     {
+        PO_ERROR("failed to start");
         return false;
     }
+    return true;
+}
 
-    // Set the access point's ssid and password
-    char buff[64];
-    snprintf(buff, sizeof(buff), "AT+CWJAP_DEF=\"%s\",\"%s\"\r\n", ssid, pw);
-    cmd.cmd = buff;
+bool ESP8266::connect(const char* ssid, const char *pw)
+{
+    {
+        Semaphore *s = Semaphore::create();
+        // Set the unit in WiFi client mode
+        Command cmd(s, "AT+CWMODE=1\r\n");
+        push_command(& cmd);
+        cmd.done->wait();
+        PO_DEBUG("got CWMODE");
+        delete s;
+        if (cmd.result != Command::OK)
+        {
+            PO_ERROR("failed to place in Client mode");
+            return false;
+        }
+    }
 
-    push_command(& cmd);
-    cmd.done->wait();
-    delete cmd.done;
-    return cmd.result == Command::OK;
+    {
+        Semaphore *s = Semaphore::create();
+        // Set the access point's ssid and password
+        char buff[64];
+        snprintf(buff, sizeof(buff), "AT+CWJAP_DEF=\"%s\",\"%s\"\r\n", ssid, pw);
+        Command cmd(s, buff);
+        push_command(& cmd);
+
+        cmd.done->wait();
+        PO_DEBUG("got CWJAP_DEF");
+        delete s;
+        if (cmd.result != Command::OK)
+        {
+            PO_ERROR("failed to connect to AP");
+            return false;
+        }
+    }
+
+    PO_DEBUG("done");
+    return true;
 }
 
 void ESP8266::kill()
@@ -138,7 +167,7 @@ void ESP8266::reset()
 
 void ESP8266::send_at(const char *cmd)
 {
-    PO_DEBUG("send AT%s", cmd);
+    PO_DEBUG("send '%s'", cmd);
     uart->_puts(cmd);
 }
 
@@ -151,7 +180,7 @@ void ESP8266::process(const uint8_t *text)
         return;
     }
 
-    PO_DEBUG("'%s'", text);
+    PO_DEBUG("cmd=%p at='%s'", command, text);
 
     if (!command)
     {
@@ -162,6 +191,7 @@ void ESP8266::process(const uint8_t *text)
     // Check for completion of the command
     if (!strcmp((const char*) text, "OK"))
     {
+        PO_DEBUG("OK cmd=%p end command", command);
         command->result = Command::OK;
         command->done->post();
         command = 0; // done
@@ -192,6 +222,7 @@ void ESP8266::process(uint8_t data)
         return;
     }
 
+    //PO_DEBUG("%#02x", data)
     buff[in] = data;
     in = next;
 }
@@ -200,16 +231,25 @@ void ESP8266::process(uint8_t data)
      *
      */
 
+static int show(Semaphore *s, void *arg)
+{
+    ASSERT(arg);
+    const char* t = (const char*) arg;
+    PO_DEBUG("s=%p %s", s, t);
+    return 0;
+}
+
 void ESP8266::run()
 {
     PO_DEBUG("");
+
+    reset();
+
     Select select(100);
 
     select.add(rd_sem);
     select.add(wait_sem);
     select.add(cmd_sem);
-
-    reset();
 
     is_running = true;
 
@@ -218,7 +258,19 @@ void ESP8266::run()
     while (!dead)
     {
         Semaphore *s = select.wait(& event_queue, 120000);
-        const bool ready = (s == rd_sem);
+
+        const char *t = "";
+        if (s == rd_sem)
+            t = "rd";
+        else if (s == wait_sem)
+            t = "wait";
+        else if (s == cmd_sem)
+            t = "cmd";
+        if (s)
+        {
+            PO_DEBUG("loop s=%p %s", s, t);
+        }
+        select.visit(show, (void*) t);
 
         if (s == cmd_sem)
         {
@@ -226,14 +278,17 @@ void ESP8266::run()
             continue;
         }
 
-        if (!ready)
+        if (s != rd_sem)
         {
             timer_t now = timer_now();
 
             if ((now - last_tx) > (120000 * 10))
             {
-                //send_at("AT\r\n");
-                last_tx = now;
+                //if (!command)
+                {
+                    //send_at("AT\r\n");
+                    last_tx = now;
+                }
             }
 
             continue;
@@ -246,6 +301,7 @@ void ESP8266::run()
 
         for (int i = 0; i < n; i++)
         {
+            //PO_DEBUG("%d %#02x", i, buff[i]);
             process(buff[i]);
         }
     }

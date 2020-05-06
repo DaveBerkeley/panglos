@@ -105,6 +105,11 @@ Semaphore *Select::wait()
     return s;
 }
 
+void Select::visit(int (*fn)(Semaphore*, void*), void *arg)
+{
+    queue.visit(fn, arg, mutex);    
+}
+
 Semaphore *Select::wait(EventQueue *eq, timer_t timeout)
 {
     ASSERT(eq);

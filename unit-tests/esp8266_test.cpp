@@ -54,6 +54,9 @@ class Hook : public ESP8266::Hook
             put(rb, "AT+CWJAP_DEF=\"ssid\",\"pw\"\r\nWIFI CONNECTED\r\nWIFI GOT IP\r\nOK\r\n");
             return;
         }
+        
+        // default : "we don't know what to do" case
+        put(rb, "OK\r\n");
     }
 
 public:

@@ -43,6 +43,11 @@ public:
         const char *cmd;
         Result result;
         Semaphore *done;
+
+        Command(Semaphore *s, const char* at)
+        : next(0), cmd(at), result(ERR), done(s)
+        {
+        }
     };
 
     class Hook {
@@ -61,6 +66,7 @@ public:
 
     void push_command(Command *cmd);
 
+    bool start();
     bool connect(const char* ssid, const char *pw);
     void kill();
 
