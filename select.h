@@ -2,8 +2,7 @@
 #if !defined(__SELECT_H__)
 #define __SELECT_H__
 
-#include "buffer.h"
-#include "list.h"
+#include "deque.h"
 #include "event.h"
 
 namespace panglos {
@@ -14,12 +13,13 @@ namespace panglos {
 
 class Select : public PostHook
 {
-    typedef RingBuffer<Semaphore*> Queue;
+    typedef Deque<Semaphore*> Queue;
 
     Mutex *mutex;
     Semaphore *semaphore;
-    Queue *queue;
-    List<Semaphore*> semaphores;
+    Queue queue;
+    Semaphore **captured;
+    int size;
 
 public:
     Select(int size);

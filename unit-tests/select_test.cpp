@@ -14,6 +14,8 @@ typedef std::map<Semaphore*, bool> Map;
 
 static Map map;
 
+static Semaphore *dead = 0;
+
 static void *task(void *arg)
 {
     ASSERT(arg);
@@ -24,7 +26,7 @@ static void *task(void *arg)
     while (true)
     {
         sem = sel->wait();
-        if (!sem)
+        if (sem == dead)
         {
             break;
         }
@@ -41,6 +43,7 @@ TEST(Select, Test)
 
     const int num = 4;
     Semaphore *sems[num];
+    dead = Semaphore::create();
 
     {
         Select sel(10);
@@ -53,6 +56,8 @@ TEST(Select, Test)
             map[s] = false;
         }
 
+        sel.add(dead);
+
         err = pthread_create(& thread, 0, task, & sel);
         EXPECT_EQ(0, err);
 
@@ -60,9 +65,9 @@ TEST(Select, Test)
         sems[0]->post();
         sems[3]->post();
         //sems[2]->post();
-
-        // terminate the thread
-        sel.post(0);
+        
+        // terminate
+        dead->post();
 
         err = pthread_join(thread, 0);
         EXPECT_EQ(0, err);
@@ -77,6 +82,9 @@ TEST(Select, Test)
     {
         delete sems[i];
     }
+
+    delete dead;
+    dead = 0;
 }
 
 TEST(Select, Timeout)

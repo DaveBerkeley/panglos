@@ -1,4 +1,7 @@
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "debug.h"
 
 #include "list.h"
@@ -16,33 +19,45 @@ static Semaphore** next_fn(Semaphore *semaphore)
      *
      */
 
-Select::Select(int size)
-: mutex(0), semaphore(0), semaphores(next_fn)
+Select::Select(int _size)
+: mutex(0), semaphore(0), queue(next_fn), captured(0), size(_size) // semaphores(next_fn)
 {
     // Semaphores may be posted in an interrupt, so use critical section
     mutex = Mutex::create_critical_section();
     semaphore = Semaphore::create();
-    queue = new Queue(size, semaphore, mutex);
+
+    captured = (Semaphore**) malloc(sizeof(Semaphore*) * size);
+    memset(captured, 0, sizeof(Semaphore*) * size);
 }
 
 Select::~Select()
 {
     // remove all semaphores in the list
-    while (!semaphores.empty())
+    for (int i = 0; i < size; i++)
     {
-        Semaphore *s = semaphores.pop(0);
-        ASSERT(s);
-        remove(s);
+        if (captured[i])
+        {
+            remove(captured[i]);
+        }
     }
 
-    delete queue;
     delete semaphore;
     delete mutex;
+    free(captured);
 }
 
 void Select::post(Semaphore *s)
 {
-    queue->add(s);
+    Lock lock(mutex);
+
+    if (queue.find(s, 0))
+    {
+        // Sem is already notified
+        return;
+    }
+ 
+    queue.push_tail(s, 0);
+    semaphore->post();
 }
 
 void Select::add(Semaphore *s)
@@ -50,7 +65,16 @@ void Select::add(Semaphore *s)
     ASSERT(s);
     s->set_hook(this);
 
-    semaphores.push(s, mutex);
+    for (int i = 0; i < size; i++)
+    {
+        if (!captured[i])
+        {
+            captured[i] = s;
+            return;
+        }
+    }
+
+    ASSERT(0);
 }
 
 void Select::remove(Semaphore *s)
@@ -58,18 +82,26 @@ void Select::remove(Semaphore *s)
     ASSERT(s);
     s->set_hook(0);
 
-    semaphores.remove(s, mutex);
+    for (int i = 0; i < size; i++)
+    {
+        if (captured[i] == s)
+        {
+            captured[i] = 0;
+            return;
+        }
+    }
+
+    ASSERT(0);
 }
 
 Semaphore *Select::wait()
 {
-    if (queue->empty())
+    if (queue.empty())
     {
         semaphore->wait();
     }
 
-    Semaphore *s = 0;
-    queue->get(& s);
+    Semaphore *s = queue.pop_head(mutex);
     return s;
 }
 
