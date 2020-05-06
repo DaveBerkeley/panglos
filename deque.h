@@ -83,6 +83,33 @@ public:
         return item;
     }
 
+    bool find(T w, Mutex *mutex)
+    {
+        Lock lock(mutex);
+
+        for (T *next = & head; *next; next = next_fn(*next))
+        {
+            if (w == *next)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void visit(int (*fn)(T,void*), void *arg, Mutex *mutex)
+    {
+        Lock lock(mutex);
+
+        for (T *next = & head; *next; next = next_fn(*next))
+        {
+            if (fn(*next, arg))
+            {
+                return;
+            }
+        }
+    }
+
     int size(Mutex *mutex)
     {
         Lock lock(mutex);
