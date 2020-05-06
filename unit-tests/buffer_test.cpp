@@ -343,24 +343,31 @@ TEST(Buffers, Test)
     EXPECT_TRUE(okay);
     okay = b.add('c');
     EXPECT_TRUE(okay);
+    EXPECT_FALSE(b.full());
     okay = b.add('d');
     EXPECT_TRUE(okay);
+    EXPECT_TRUE(b.full());
     okay = b.add('e');
     EXPECT_FALSE(okay);
+    EXPECT_TRUE(b.full());
 
     // b1 = 'abcd'
 
     b.add_buffer(4);
+    EXPECT_FALSE(b.full());
     okay = b.add('e');
     EXPECT_TRUE(okay);
     okay = b.add('f');
     EXPECT_TRUE(okay);
     okay = b.add('g');
     EXPECT_TRUE(okay);
+    EXPECT_FALSE(b.full());
     okay = b.add('h');
     EXPECT_TRUE(okay);
+    EXPECT_TRUE(b.full());
     okay = b.add('i');
     EXPECT_FALSE(okay);
+    EXPECT_TRUE(b.full());
 
     // b1 = 'abcd'
     // b2 = 'efgh'

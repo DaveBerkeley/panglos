@@ -28,6 +28,7 @@ private:
     void process(uint8_t data);
     void run_command();
     void send_at(const char *cmd);
+    void create_rx_buffer(uint8_t *ipd);
 
 public:
     class Command
@@ -52,7 +53,7 @@ public:
         }
 
         virtual bool process(const uint8_t *line) = 0;
-        virtual bool process(uint8_t c) { return false; };
+        virtual bool process(uint8_t c) { IGNORE(c); return false; };
     };
 
     class Hook {
@@ -64,6 +65,8 @@ public:
 private:
     List<Command*> commands;
     Command *command;
+    Buffers buffers;
+    bool reading;
 public:
 
     ESP8266(Output *uart, UART::Buffer *b, Semaphore *rd_sem, GPIO *reset);
@@ -76,6 +79,8 @@ public:
     bool connect_to_ap(const char* ssid, const char *pw);
     int connect(const char *ip, int port);
     int socket_send(int sock, const uint8_t *d, int size);
+
+    void read(Semaphore *s, uint8_t *buffer, int len, int *count);
 
     void kill();
 

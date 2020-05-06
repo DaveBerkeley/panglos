@@ -279,6 +279,21 @@ public:
         return b->add(c);
     }
 
+    bool full()
+    {
+        Lock lock(mutex);
+
+        Buffer *b = deque.tail;
+
+        if (!b)
+        {
+            // no buffer, therefore full
+            return true;
+        }
+
+        return b->full();        
+    }
+
     int read(uint8_t *buff, int len)
     {
         int count = 0;

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "debug.h"
 #include "select.h"
@@ -25,7 +26,7 @@ ESP8266::ESP8266(Output *_uart, UART::Buffer *b, Semaphore *_rd_sem, GPIO *_rese
     gpio_reset(_reset), cmd_sem(0), 
     buff(0), in(0), size(1024), 
     dead(false), is_running(false),
-    mutex(0), hook(0), commands(next_fn), command(0)
+    mutex(0), hook(0), commands(next_fn), command(0), reading(false)
 {
     ASSERT(uart);
     ASSERT(rb);
@@ -170,7 +171,6 @@ int ESP8266::connect(const char *ip, int port)
 
     /*
      *
-     *
      */
 
 class Send : public AtCommand
@@ -191,7 +191,7 @@ public:
 
     virtual bool process(const uint8_t *text)
     {
-        // need to overide "OK" response, as that is not the end ..
+        // need to override "OK" response, as that is not the end ..
         if (!strcmp((const char*) text, "OK"))
         {
             okay = true;
@@ -205,8 +205,10 @@ public:
 
         if (!strcmp((const char*) text, "SEND OK"))
         {
+            // TODO : tell radio that we are rxing. capture any rx data ...
             result = Command::OK;
             done->post();
+
             return true;
         }
 
@@ -227,6 +229,7 @@ public:
             return false;
         }
 
+        // wait for '> ' to before sending data
         if ((prompt == 0) && (c == '>'))
         {
             prompt = 1;
@@ -235,12 +238,12 @@ public:
         if ((prompt == 1) && (c == ' '))
         {
             prompt = 2;
-            PO_DEBUG("send data ..");
             radio->send(data, size);
             return true;
         }
 
         PO_ERROR("%02x", c);
+        prompt = 0;
         return false;
     }
 };
@@ -345,11 +348,31 @@ bool ESP8266::connect_to_ap(const char* ssid, const char *pw)
     return cwjap.connected && cwjap.ip;
 }
 
+    /*
+     *
+     */
+
+void ESP8266::read(Semaphore *s, uint8_t *buffer, int len, int *count)
+{
+    IGNORE(s);
+    IGNORE(buffer);
+    IGNORE(count);
+    PO_DEBUG("len=%d", len);
+}
+
+    /*
+     *
+     */
+
 void ESP8266::kill()
 {
     dead = true;
     wait_sem->post();
 }
+
+    /*
+     *
+     */
 
 void ESP8266::reset()
 {
@@ -375,9 +398,13 @@ void ESP8266::reset()
     delete s;
 }
 
+    /*
+     *
+     */
+
 int ESP8266::send(const uint8_t *data, int size)
 {
-    PO_DEBUG("");
+    PO_DEBUG("%p size=%d", data, size);
 
     int count = 0;
 
@@ -422,6 +449,14 @@ void ESP8266::process(const uint8_t *text)
 
 void ESP8266::process(uint8_t data)
 {
+    if (reading)
+    {
+        buffers.add(data);
+        reading = !buffers.full();
+        PO_DEBUG("reading %#02x %c reading=%d", data, isprint(data) ? data : '.', reading);
+        return;
+    }
+
     int next = in;
     next += 1;
     if (next >= size)
@@ -446,14 +481,63 @@ void ESP8266::process(uint8_t data)
         if (command->process(data))
         {
             // command wants to consume this char
-            PO_DEBUG("consume %02x", data);
+            PO_DEBUG("consume %#02x", data);
             return;
         }
     }
 
-    //PO_DEBUG("%02x", data);
+    PO_DEBUG("%02x %c", data, isprint(data) ? data : '.');
     buff[in] = data;
     in = next;
+
+    // Check for the "+IPD," read data string
+    if (!strncmp("+IPD,", (const char*) buff, 5))
+    {
+        if (data == ':')
+        {
+            buff[next] = '\0';
+            create_rx_buffer(buff);
+            in = 0;
+            return;
+        }
+    }
+}
+
+    /*
+     *
+     */
+
+void ESP8266::create_rx_buffer(uint8_t *ipd)
+{
+    // should have "+IPD,<length>:"
+    PO_DEBUG("got %s", ipd);
+
+    int size = 0;
+    for (const char *s = (const char *) & ipd[5]; *s != ':'; s++)
+    {
+        size *= 10;
+        if (!isdigit(*s))
+        {
+            PO_ERROR("bad length '%s'", ipd);
+            return;
+        }
+        size += *s - '0';
+    }
+
+    PO_DEBUG("size=%d", size);
+
+    // rationality check
+    if ((size < 0) || (size > 1024))
+    {
+        PO_ERROR("bad buffer size=%d", size);
+        return;
+    }
+
+    // Allocate read buff
+    buffers.add_buffer(size);
+    // redirect reads until done
+    reading = true;
+    PO_DEBUG("reading=%d", reading);
 }
 
     /*
