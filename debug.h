@@ -43,9 +43,9 @@ inline const char *err_lookup(const Code *codes, int err, const char *def="unkno
 
 #define ASSERT(x) assert(x)
 
-#define PO_DEBUG(x, ...)    fprintf(stderr, "DEBUG %p %s %d %s " x "\r\n", panglos::get_task_id(), __FILE__, __LINE__, __FUNCTION__,  ## __VA_ARGS__ )
-#define PO_ERROR(x, ...)    fprintf(stderr, "ERROR %p %s %d %s " x "\r\n", panglos::get_task_id(), __FILE__, __LINE__, __FUNCTION__,  ## __VA_ARGS__ )
-#define PO_REPORT(x, ...)   fprintf(stderr, "REPORT %p %s %d %s " x "\r\n", panglos::get_task_id(), __FILE__, __LINE__, __FUNCTION__,  ## __VA_ARGS__ )
+#define PO_DEBUG(x, ...)    fprintf(stderr, "DEBUG %p %s %d %s " x "\r\n", panglos::get_task_id(), __FILE__, __LINE__, __PRETTY_FUNCTION__,  ## __VA_ARGS__ )
+#define PO_ERROR(x, ...)    fprintf(stderr, "ERROR %p %s %d %s " x "\r\n", panglos::get_task_id(), __FILE__, __LINE__, __PRETTY_FUNCTION__,  ## __VA_ARGS__ )
+#define PO_REPORT(x, ...)   fprintf(stderr, "REPORT %p %s %d %s " x "\r\n", panglos::get_task_id(), __FILE__, __LINE__, __PRETTY_FUNCTION__,  ## __VA_ARGS__ )
 
 #else // GTEST
 
