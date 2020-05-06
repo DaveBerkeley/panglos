@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "mutex.h"
 #include "event.h"
+#include "deque.h"
 
 namespace panglos {
 
@@ -223,6 +224,88 @@ public:
     bool spent()
     {
         return out == size;
+    }
+
+    static Buffer **next_fn(Buffer *b)
+    {
+        return & b->next;
+    }
+};
+
+    /*
+     *
+     */
+
+class Buffers
+{
+    Deque<Buffer*> deque;
+    Mutex *mutex;
+public:
+
+    Buffers()
+    : deque(Buffer::next_fn), mutex(0)
+    {
+        mutex = Mutex::create();
+    }
+
+    ~Buffers()
+    {
+        while (!deque.empty())
+        {
+            Buffer *b = deque.pop_head(0);
+            delete b;
+        }
+
+        delete mutex;
+    }
+
+    void add_buffer(int size)
+    {
+        Buffer *b = new Buffer(size);
+        deque.push_tail(b, mutex);
+    }
+
+    bool add(uint8_t c)
+    {
+        Lock lock(mutex);
+
+        Buffer *b = deque.tail;
+        if (!b)
+        {
+            // no buffer allocated
+            return false;
+        }
+
+        return b->add(c);
+    }
+
+    int read(uint8_t *buff, int len)
+    {
+        int count = 0;
+        int more = len;
+
+        Lock lock(mutex);
+
+        while (more)
+        {
+            Buffer *b = deque.head;
+            if (!b)
+            {
+                break;
+            }
+
+            const int n = b->read(buff, more);
+            count += n;
+            buff += n;
+            more -= n;
+            if (b->spent())
+            {
+                deque.pop_head(0);
+                delete b;
+            }
+        }
+
+        return count;
     }
 };
 

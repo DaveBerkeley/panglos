@@ -321,4 +321,72 @@ TEST(Buffer, Test)
     EXPECT_TRUE(b.spent());
 }
 
+    /*
+     *
+     */
+
+TEST(Buffers, Test)
+{
+    Buffers b;
+
+    bool okay;
+
+    okay = b.add('a');
+    EXPECT_FALSE(okay);
+
+    b.add_buffer(4);
+
+    // can only add 4 chars
+    okay = b.add('a');
+    EXPECT_TRUE(okay);
+    okay = b.add('b');
+    EXPECT_TRUE(okay);
+    okay = b.add('c');
+    EXPECT_TRUE(okay);
+    okay = b.add('d');
+    EXPECT_TRUE(okay);
+    okay = b.add('e');
+    EXPECT_FALSE(okay);
+
+    // b1 = 'abcd'
+
+    b.add_buffer(4);
+    okay = b.add('e');
+    EXPECT_TRUE(okay);
+    okay = b.add('f');
+    EXPECT_TRUE(okay);
+    okay = b.add('g');
+    EXPECT_TRUE(okay);
+    okay = b.add('h');
+    EXPECT_TRUE(okay);
+    okay = b.add('i');
+    EXPECT_FALSE(okay);
+
+    // b1 = 'abcd'
+    // b2 = 'efgh'
+
+    uint8_t buff[64];
+    int n;
+    n = b.read(buff, 2);
+    EXPECT_EQ(2, n);
+    EXPECT_EQ('a', buff[0]);
+    EXPECT_EQ('b', buff[1]);
+
+    // b1 'cd'
+    // b2 'efgh'
+
+    n = b.read(buff, 4);
+    EXPECT_EQ(4, n);
+    EXPECT_EQ('c', buff[0]);
+    EXPECT_EQ('d', buff[1]);
+    EXPECT_EQ('e', buff[2]);
+    EXPECT_EQ('f', buff[3]);
+
+    // b2 'gh'
+    n = b.read(buff, 4);
+    EXPECT_EQ(2, n);
+    EXPECT_EQ('g', buff[0]);
+    EXPECT_EQ('h', buff[1]);
+}
+
 //  FIN
