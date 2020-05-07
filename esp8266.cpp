@@ -9,6 +9,7 @@
 #include "list.h"
 
 #include "esp8266.h"
+#include "esp8266_cmd.h"
 
 namespace panglos {
 
@@ -53,26 +54,23 @@ void ESP8266::set_hook(Hook *h)
 void ESP8266::push_command(Command *cmd)
 {
     ASSERT(cmd);
-    ASSERT(cmd->done);
     //PO_DEBUG("cmd=%p at='%s'", cmd, cmd->cmd);
 
     commands.append(cmd, mutex);
     cmd_sem->post();
 }
 
-void ESP8266::push_delete(Command *cmd)
-{
-    ASSERT(cmd);
-    //PO_DEBUG("cmd=%s %p", cmd->name, cmd);
-    delete_queue.append(cmd, mutex);
-}
-
 void ESP8266::run_command()
 {
     Command *cmd = commands.pop(mutex);
-    ASSERT(cmd);
-    ASSERT(cmd->done);
-    //PO_DEBUG("cmd=%p at=%s", cmd, cmd->cmd);
+
+    if (!cmd)
+    {
+        // command may have been cancelled?
+        return;
+    }
+
+    PO_DEBUG("cmd=%p name=%s at=%s", cmd, cmd->name, cmd->at);
 
     // set the current command
     command = cmd;
@@ -84,58 +82,15 @@ void ESP8266::run_command()
         hook->on_command(cmd);
     }
 
-    if (cmd->cmd)
+    if (cmd->at)
     {
-        send_at(cmd->cmd);
+        send_at(cmd->at);
     }
 }
 
     /*
      *
      */
-
-class AtCommand : public ESP8266::Command
-{
-protected:
-    ESP8266 *radio;
-public:
-    AtCommand(ESP8266 *_radio, const char *at, const char *name)
-    : ESP8266::Command(0, at, name), radio(_radio)
-    {
-        done = Semaphore::create();
-    }
-    virtual ~AtCommand()
-    {
-        delete done;
-    }
-
-    void run()
-    {
-        radio->push_command(this);
-        done->wait();
-    }
-
-    virtual bool process(const uint8_t *text)
-    {
-        // Check for completion of the command
-        if (!strcmp((const char*) text, "OK"))
-        {
-            PO_DEBUG("OK cmd=%s %p", name, this);
-            result = Command::OK;
-            done->post();
-            return true;
-        }
-
-        // TODO : handle ERR cases
-        if (!strcmp((const char*) text, "ERROR"))
-        {
-            PO_ERROR("failed");
-            return true;
-        }
-
-        return false;
-    }
-};
 
 bool ESP8266::start()
 {
@@ -154,19 +109,6 @@ bool ESP8266::start()
      *
      */
 
-class Connect : public AtCommand
-{
-    char buff[64];
-public:
-
-    Connect(ESP8266 *radio, const char *ip, int port)
-    : AtCommand(radio, 0, "Connect")
-    {
-        snprintf(buff, sizeof(buff), "AT+CIPSTART=\"TCP\",\"%s\",%d\r\n", ip, port);
-        cmd = buff;
-    }
-};
-
 int ESP8266::connect(const char *ip, int port)
 {
     Connect cmd(this, ip, port);
@@ -184,79 +126,6 @@ int ESP8266::connect(const char *ip, int port)
      *
      */
 
-class Send : public AtCommand
-{
-    char buff[32];
-    const uint8_t *data;
-    int size;
-    bool okay;
-    int prompt;
-public:
-
-    Send(ESP8266 *radio, const uint8_t *_data, int _size)
-    : AtCommand(radio, 0, "Send"), data(_data), size(_size), okay(false), prompt(0)
-    {
-        snprintf(buff, sizeof(buff), "AT+CIPSEND=%d\r\n", size);
-        cmd = buff;
-    }
-
-    virtual bool process(const uint8_t *text)
-    {
-        // need to override "OK" response, as that is not the end ..
-        if (!strcmp((const char*) text, "OK"))
-        {
-            okay = true;
-            return false;
-        }
-
-        if (AtCommand::process(text))
-        {
-            return true;
-        }
-
-        if (!strcmp((const char*) text, "SEND OK"))
-        {
-            result = Command::OK;
-            done->post();
-
-            return true;
-        }
-
-        return false;
-    }
-
-    virtual bool process(uint8_t c)
-    {
-        if (!okay)
-        {
-            // still waiting for 'OK'
-            return false;
-        }
-
-        if (prompt > 1)
-        {
-            return false;
-        }
-
-        // wait for '> ' to before sending data
-        if ((prompt == 0) && (c == '>'))
-        {
-            prompt = 1;
-            return true;
-        }
-        if ((prompt == 1) && (c == ' '))
-        {
-            prompt = 2;
-            radio->send(data, size);
-            return true;
-        }
-
-        PO_ERROR("%02x", c);
-        prompt = 0;
-        return false;
-    }
-};
-
 int ESP8266::socket_send(int sock, const uint8_t *d, int size)
 {
     PO_DEBUG("sock=%d d=%p s=%d", sock, d, size);
@@ -270,54 +139,6 @@ int ESP8266::socket_send(int sock, const uint8_t *d, int size)
     /*
      *
      */
-
-class CWJAP : public AtCommand
-{
-public:
-
-    char buff[64];
-    bool connected, ip;
-
-    CWJAP(ESP8266 *radio, const char *ssid, const char *pw)
-    : AtCommand(radio, 0, "CWJAP"), connected(false), ip(false)
-    {
-        snprintf(buff, sizeof(buff), "AT+CWJAP_DEF=\"%s\",\"%s\"\r\n", ssid, pw);
-        cmd = buff;
-    }
-
-    virtual bool process(const uint8_t *text)
-    {
-        if (AtCommand::process(text))
-        {
-            return true;
-        }
-
-        PO_DEBUG("%s", text);
-
-        if (!strcmp((const char*) text, "WIFI CONNECTED"))
-        {
-            connected = true;
-            return false;
-        }
-        if (!strcmp((const char*) text, "WIFI DISCONNECT"))
-        {
-            connected = false;
-            return false;
-        }
-        if (!strcmp((const char*) text, "WIFI GOT IP"))
-        {
-            ip = true;
-            return false;
-        }
-        if (!strcmp((const char*) text, "FAIL"))
-        {
-            PO_ERROR("Failed");
-            return true;
-        }
-
-        return false;
-    }
-};
 
     /*
      *
@@ -361,49 +182,6 @@ bool ESP8266::connect_to_ap(const char* ssid, const char *pw)
      *
      */
 
-class Read : public AtCommand
-{
-    Semaphore *semaphore;
-    uint8_t *buffer;
-    int len, *count;
-public:
-
-    Read(ESP8266 *radio, Semaphore *s, uint8_t *_buffer, int _len, int *_count)
-    : AtCommand(radio, 0, "Read"), semaphore(s), buffer(_buffer), len(_len), count(_count)
-    {
-    }
-
-    virtual void start()
-    {
-        //  read the data ...
-        const int n = radio->buffers.read(buffer, len);
-        *count += n;
-        len -= n;
-        buffer += n;
-        if (len == 0)
-        {
-            radio->end_command();
-            semaphore->post();
-            //radio->push_delete(this);
-        }
-    }
-
-    virtual bool process(uint8_t c)
-    {
-        ASSERT(len);
-        //still some more data to read
-        *buffer++ = c;
-        len -= 1;
-        if (len == 0)
-        {
-            radio->end_command();
-            semaphore->post();
-            //radio->push_delete(this);
-        }
-        return true;
-    }
-};
-
 ESP8266::Command *ESP8266::read(Semaphore *s, uint8_t *buffer, int len, int *count)
 {
     Read *read = new Read(this, s, buffer, len, count);
@@ -413,13 +191,19 @@ ESP8266::Command *ESP8266::read(Semaphore *s, uint8_t *buffer, int len, int *cou
 
 void ESP8266::cancel(Command *cmd)
 {
+    ASSERT(cmd);
     //PO_DEBUG("%s %p", cmd->name, cmd);
+
+    commands.remove(cmd, mutex);
+
     if (command == cmd)
     {
         //PO_DEBUG("end command");
         command = 0;
     }
-    push_delete(cmd);
+
+    PO_DEBUG("cmd=%s %p", cmd->name, cmd);
+    delete_queue.push(cmd, mutex);
 }
 
     /*
@@ -449,9 +233,9 @@ void ESP8266::reset()
     Semaphore *s = Semaphore::create();
 
     gpio_reset->set(false);
-    event_queue.wait(s, 50000);
+    event_queue.wait(s, 120000);
     gpio_reset->set(true);
-    event_queue.wait(s, 10000);
+    event_queue.wait(s, 50000);
 
     rb->reset();
     in = 0;

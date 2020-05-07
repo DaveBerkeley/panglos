@@ -31,31 +31,7 @@ private:
     void create_rx_buffer(uint8_t *ipd);
 
 public:
-    class Command
-    {
-    public:
-
-        enum Result {
-            OK = 0,
-            ERR,
-        };
-
-        Command *next;
-        const char *cmd;
-        Result result;
-        Semaphore *done;
-        const char *name;
-
-        Command(Semaphore *s, const char* at, const char *name)
-        : next(0), cmd(at), result(ERR), done(s), name(name)
-        {
-        }
-        virtual ~Command() { }
-
-        virtual void start() { }
-        virtual bool process(const uint8_t *line) = 0;
-        virtual bool process(uint8_t c) { IGNORE(c); return false; };
-    };
+    class Command;
 
     class Hook {
     public:
@@ -75,7 +51,6 @@ public:
     ~ESP8266();
 
     void push_command(Command *cmd);
-    void push_delete(Command *cmd);
     void end_command();
     int send(const uint8_t *cmd, int size);
 
