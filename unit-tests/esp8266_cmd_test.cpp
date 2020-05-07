@@ -114,6 +114,8 @@ TEST(esp8266_CMD, AP)
 
     cmd.run();
     EXPECT_EQ(ESP8266::Command::OK, cmd.result);
+    EXPECT_TRUE(cmd.connected);
+    EXPECT_TRUE(cmd.ip);
 
     uint8_t buff[64];
     int n = radio.wr.read(buff, sizeof(buff));

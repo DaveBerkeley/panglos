@@ -14,10 +14,14 @@ using namespace panglos;
 
 class _Output : public Output
 {
+public:
+    Buffer buffer;
+
+    _Output() : buffer(1024) { }
+
     virtual int _putc(char c)
     {
-        IGNORE(c);
-        return 1;
+        return buffer.add(c);
     }
 };
 
@@ -44,18 +48,34 @@ class Hook : public ESP8266::Hook
     {
         PO_DEBUG("%s", cmd->at);
 
-        if (!strncmp(cmd->at, "AT+CWMODE=1", strlen("AT+CWMODE=1")))
+        const char *t = "AT+CWMODE=1";
+        if (!strncmp(cmd->at, t, strlen(t)))
         {
             put(rb, "AT+CWMODE=1\r\nOK\r\n");
             return;
         }
  
-        if (!strncmp(cmd->at, "AT+CWJAP_DEF", strlen("AT+CWJAP_DEF")))
+        t = "AT+CWJAP_DEF";
+        if (!strncmp(cmd->at, t, strlen(t)))
         {
             put(rb, "AT+CWJAP_DEF=\"ssid\",\"pw\"\r\nWIFI CONNECTED\r\nWIFI GOT IP\r\nOK\r\n");
             return;
         }
-        
+ 
+        t = "AT+CIPSTART=\"TCP\",\"hostname\",1234";
+        if (!strncmp(cmd->at, t, strlen(t)))
+        {
+            put(rb, "AT+CIPSTART=\"TCP\",\"hostname\",1234\r\nCONNECT\r\nOK\r\n");
+            return;
+        }
+
+        t = "AT+CIPSEND=4";
+        if (!strncmp(cmd->at, t, strlen(t)))
+        {
+            put(rb, "AT+CIPSEND=4\r\nOK\r\n> Recv 4 bytes\r\nSEND OK\r\n");
+            return;
+        }
+
         // default : "we don't know what to do" case
         put(rb, "OK\r\n");
     }
@@ -93,15 +113,50 @@ TEST(esp8266, Test)
     }
 
     bool okay;
+    char buff[64];
+    int n;
+
+    //  Start
+
+    radio.start();
+
+    n = output.buffer.read((uint8_t*) buff, sizeof(buff));
+    buff[n] = '\0';
+    EXPECT_STREQ("AT\r\n", buff);
+
+    // AP Connect
 
     okay = radio.connect_to_ap("ssid", "pw");
     EXPECT_TRUE(okay);
 
+    n = output.buffer.read((uint8_t*) buff, sizeof(buff));
+    buff[n] = '\0';
+    EXPECT_STREQ("AT+CWMODE=1\r\nAT+CWJAP_DEF=\"ssid\",\"pw\"\r\n", buff);
+
+    //  Socket connect
+
+    int file = radio.connect("hostname", 1234);
+    EXPECT_EQ(1, file);
+
+    n = output.buffer.read((uint8_t*) buff, sizeof(buff));
+    buff[n] = '\0';
+    EXPECT_STREQ("AT+CIPSTART=\"TCP\",\"hostname\",1234\r\n", buff);
+
+    //  data send
+
+    const uint8_t data[] = { 'a', 'b', 'c', 'd' };
+    n = radio.socket_send(0, data, sizeof(data));
+    EXPECT_EQ(4, n);
+
+    n = output.buffer.read((uint8_t*) buff, sizeof(buff));
+    buff[n] = '\0';
+    EXPECT_STREQ("AT+CIPSEND=4\r\nabcd", buff);
+
+    //  data read
+
     // "AT+CIFSR" // query ip/mac addresses
     // "AT+CIPMUX=0" // open a single link
-    // "AT+CIPSTART="TCP","192.168.0.12",333" // connect to TCP server
     // "AT+CIPSEND=10" // send 10 bytes of data
-    // send "+++" to end sending?
     // "AT+CIPSENDEX=10" // send 10 bytes of data (may include '\0')
     // "AT+CIPMODE" // config transmission mode
     // "AT+CIPRECVDATA"
@@ -110,7 +165,6 @@ TEST(esp8266, Test)
     // "AT+CWLAP" // list access points
     // "AT+CWQAP" // disconnect from ap
     // "AT+CWDHCP" // enable / disable DHCP
-    // "AT+CWAUTOCONN=<enable>" // auto-connect to the ap
 
     radio.kill();
     err = pthread_join(thread, 0);

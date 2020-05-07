@@ -9,7 +9,9 @@
 
 namespace panglos {
 
-class ESP8266;
+    /*
+     *
+     */
 
 class Radio
 {
@@ -21,6 +23,10 @@ public:
     virtual int write(const uint8_t *data, int size) = 0;
     virtual int read(uint8_t *data, int size) = 0;
 };
+
+    /*
+     *
+     */
 
 class ESP8266 : public Radio
 {
