@@ -31,7 +31,7 @@ public:
 
     virtual void start() { }
     virtual bool process(const uint8_t *line) = 0;
-    virtual bool process(uint8_t c) { IGNORE(c); return false; };
+    virtual bool consume(uint8_t c) { IGNORE(c); return false; };
 };
 
     /*
@@ -144,7 +144,7 @@ public:
         return false;
     }
 
-    virtual bool process(uint8_t c)
+    virtual bool consume(uint8_t c)
     {
         if (!okay)
         {
@@ -258,7 +258,7 @@ public:
         }
     }
 
-    virtual bool process(uint8_t c)
+    virtual bool consume(uint8_t c)
     {
         ASSERT(len);
         //still some more data to read

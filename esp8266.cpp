@@ -70,7 +70,7 @@ void ESP8266::run_command()
         return;
     }
 
-    PO_DEBUG("cmd=%p name=%s at=%s", cmd, cmd->name, cmd->at);
+    PO_DEBUG("cmd=%p name=%s at='%s'", cmd, cmd->name, cmd->at);
 
     // set the current command
     command = cmd;
@@ -302,7 +302,7 @@ void ESP8266::process(uint8_t data)
 {
     if (command)
     {
-        if (command->process(data))
+        if (command->consume(data))
         {
             // command wants to consume this char
             //PO_DEBUG("consume %#02x", data);
