@@ -8,13 +8,14 @@ namespace panglos {
      *
      */
 
-class ESP8266::Command
+class Radio::Command
 {
 public:
 
     enum Result {
         OK = 0,
         ERR,
+        INIT,
     };
 
     Command *next;
@@ -23,7 +24,7 @@ public:
     const char *name;
 
     Command(const char* _at, const char *name)
-    : next(0), at(_at), result(ERR), name(name)
+    : next(0), at(_at), result(INIT), name(name)
     {
     }
 
@@ -38,14 +39,14 @@ public:
      *
      */
 
-class AtCommand : public ESP8266::Command
+class AtCommand : public Radio::Command
 {
 protected:
-    ESP8266 *radio;
+    Radio *radio;
     Semaphore *done;
 public:
-    AtCommand(ESP8266 *_radio, const char *at, const char *name)
-    : ESP8266::Command(at, name), radio(_radio), done(0)
+    AtCommand(Radio *_radio, const char *at, const char *name)
+    : Radio::Command(at, name), radio(_radio), done(0)
     {
         done = Semaphore::create();
     }
@@ -56,7 +57,7 @@ public:
 
     void run()
     {
-        radio->push_command(this);
+        radio->request_command(this);
         done->wait();
     }
 
@@ -67,7 +68,7 @@ public:
         {
             PO_DEBUG("OK cmd=%s %p", name, this);
             result = Command::OK;
-            done->post();
+            radio->end_command(this, done);
             return true;
         }
 
@@ -75,6 +76,8 @@ public:
         if (!strcmp((const char*) text, "ERROR"))
         {
             PO_ERROR("failed");
+            result = Command::ERR;
+            radio->end_command(this, done);
             return true;
         }
 
@@ -90,12 +93,26 @@ class Connect : public AtCommand
 {
     char buff[64];
 public:
+    bool connected;
 
-    Connect(ESP8266 *radio, const char *ip, int port)
-    : AtCommand(radio, 0, "Connect")
+    Connect(Radio *radio, const char *ip, int port)
+    : AtCommand(radio, 0, "Connect"), connected(false)
     {
         snprintf(buff, sizeof(buff), "AT+CIPSTART=\"TCP\",\"%s\",%d\r\n", ip, port);
         at = buff;
+    }
+
+    virtual bool process(const uint8_t *text)
+    {
+        if (AtCommand::process(text))
+        {
+            return true;
+        }
+        if (!strcmp((const char*) text, "CONNECT"))
+        {
+            connected = true;
+        }
+        return false;
     }
 };
 
@@ -112,7 +129,7 @@ class Send : public AtCommand
     int prompt;
 public:
 
-    Send(ESP8266 *radio, const uint8_t *_data, int _size)
+    Send(Radio *radio, const uint8_t *_data, int _size)
     : AtCommand(radio, 0, "Send"), data(_data), size(_size), okay(false), prompt(0)
     {
         snprintf(buff, sizeof(buff), "AT+CIPSEND=%d\r\n", size);
@@ -136,8 +153,7 @@ public:
         if (!strcmp((const char*) text, "SEND OK"))
         {
             result = Command::OK;
-            done->post();
-
+            radio->end_command(this, done);
             return true;
         }
 
@@ -166,7 +182,7 @@ public:
         if ((prompt == 1) && (c == ' '))
         {
             prompt = 2;
-            radio->send(data, size);
+            radio->write(data, size);
             return true;
         }
 
@@ -180,15 +196,15 @@ public:
      *
      */
 
-class CWJAP : public AtCommand
+class ConnectAp : public AtCommand
 {
 public:
 
     char buff[64];
     bool connected, ip;
 
-    CWJAP(ESP8266 *radio, const char *ssid, const char *pw)
-    : AtCommand(radio, 0, "CWJAP"), connected(false), ip(false)
+    ConnectAp(Radio *radio, const char *ssid, const char *pw)
+    : AtCommand(radio, 0, "ConnectAp"), connected(false), ip(false)
     {
         snprintf(buff, sizeof(buff), "AT+CWJAP_DEF=\"%s\",\"%s\"\r\n", ssid, pw);
         at = buff;
@@ -201,7 +217,7 @@ public:
             return true;
         }
 
-        PO_DEBUG("%s", text);
+        //PO_DEBUG("%s", text);
 
         if (!strcmp((const char*) text, "WIFI CONNECTED"))
         {
@@ -221,6 +237,7 @@ public:
         if (!strcmp((const char*) text, "FAIL"))
         {
             PO_ERROR("Failed");
+            radio->end_command(this, done);
             return true;
         }
 
@@ -239,7 +256,7 @@ class Read : public AtCommand
     int len, *count;
 public:
 
-    Read(ESP8266 *radio, Semaphore *s, uint8_t *_buffer, int _len, int *_count)
+    Read(Radio *radio, Semaphore *s, uint8_t *_buffer, int _len, int *_count)
     : AtCommand(radio, 0, "Read"), semaphore(s), buffer(_buffer), len(_len), count(_count)
     {
     }
@@ -247,14 +264,14 @@ public:
     virtual void start()
     {
         //  read the data ...
-        const int n = radio->buffers.read(buffer, len);
+        const int n = radio->read(buffer, len);
         *count += n;
         len -= n;
         buffer += n;
         if (len == 0)
         {
-            radio->end_command();
-            semaphore->post();
+            result = Command::OK;
+            radio->end_command(this, semaphore);
         }
     }
 
@@ -266,8 +283,8 @@ public:
         len -= 1;
         if (len == 0)
         {
-            radio->end_command();
-            semaphore->post();
+            result = Command::OK;
+            radio->end_command(this, semaphore);
         }
         return true;
     }

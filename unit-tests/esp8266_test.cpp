@@ -8,7 +8,9 @@
 #include "../debug.h"
 #include "../dispatch.h"
 #include "../esp8266.h"
+#include "../esp8266_cmd.h"
 
+#if 0
 using namespace panglos;
 
 class _Output : public Output
@@ -35,44 +37,157 @@ void put(RingBuffer<uint8_t> *rb, const char *rx)
     rb->add((const uint8_t*) rx, strlen(rx));
 }
 
+static bool assume_ok = false;
+
+    // "AT+CIPMUX=0" // open a single link
+    // "AT+CIPSEND=10" // send 10 bytes of data
+    // "AT+CIPMODE" // config transmission mode
+ 
 class Hook : public ESP8266::Hook
 {
-    RingBuffer<uint8_t> *rb;
+    UART::Buffer *rb;
 
     virtual void on_command(ESP8266::Command *cmd)
     {
-        PO_DEBUG("%s", cmd->cmd);
+        PO_DEBUG("%s", cmd->at);
+        const char *t = 0;
 
-        if (!strncmp(cmd->cmd, "AT+CWMODE=1", strlen("AT+CWMODE=1")))
+        t = "AT+CWMODE=1";
+        if (!strncmp(cmd->at, t, strlen(t)))
         {
-            put(rb, "AT+CWMODE=1\r\nOK\r\n");
+            put(rb, t);
+            put(rb, "\r\nOK\r\n");
             return;
         }
  
-        if (!strncmp(cmd->cmd, "AT+CWJAP_DEF", strlen("AT+CWJAP_DEF")))
+        t = "AT+CWJAP_DEF=\"ssid\",\"pw\"";
+        if (!strncmp(cmd->at, t, strlen(t)))
         {
-            put(rb, "AT+CWJAP_DEF=\"ssid\",\"pw\"\r\nWIFI CONNECTED\r\nWIFI GOT IP\r\nOK\r\n");
+            put(rb, t);
+            put(rb, "\r\nWIFI DISCONNECTED\r\nWIFI CONNECTED\r\nWIFI GOT IP\r\nOK\r\n");
             return;
         }
-        
+ 
+        t = "AT+CIPSTART=\"TCP\",\"hostname\",1234";
+        if (!strncmp(cmd->at, t, strlen(t)))
+        {
+            put(rb, t);
+            put(rb, "\r\nCONNECT\r\nOK\r\n");
+            return;
+        }
+ 
         // default : "we don't know what to do" case
-        put(rb, "OK\r\n");
+        if (assume_ok)
+        {
+            put(rb, "OK\r\n");
+        }
     }
 
 public:
-    Hook(RingBuffer<uint8_t> *_rb)
+    Hook(UART::Buffer *_rb)
     : rb(_rb)
     {
     }
 };
 
-TEST(esp8266, Test)
+    /*
+     *
+     */
+
+class Context {
+public:
+    _Output output;
+    Semaphore *s;
+    UART::Buffer *rb;
+    ESP8266 *radio;
+    pthread_t thread;
+    Hook *hook;
+
+    Context()
+    : s(0), rb(0), radio(0), hook(0)
+    {
+        s = Semaphore::create();
+        rb = new UART::Buffer(128, s, 0);
+        radio = new ESP8266(& output, rb, s, 0);
+        hook = new Hook(rb);
+    }
+
+    ~Context()
+    {
+        delete rb;
+        delete s;
+        delete radio;
+        delete hook;
+    }
+};
+
+ void setup(Context *ctx)
+{
+    mock_setup(true);
+
+    ctx->radio->set_hook(ctx->hook);
+
+    int err = pthread_create(& ctx->thread, 0, runner, ctx->radio);
+    EXPECT_EQ(0, err);
+
+    // wait for radio to be running and hooking semaphores ..
+    while (!ctx->radio->running())
+    {
+        usleep(1000);
+    }
+
+    assume_ok = true;
+    ctx->radio->start();
+}
+
+ void teardown(Context *ctx)
+{
+    sleep(1);
+
+    ctx->radio->kill();
+    int err = pthread_join(ctx->thread, 0);
+    EXPECT_EQ(0, err);
+
+    mock_teardown();
+}
+
+    /*
+     *
+     */
+
+#if 0
+TEST(esp8266, ApConnect)
+{
+    Context ctx;
+    setup(& ctx);
+
+    ESP8266 *radio = ctx.radio;
+    bool okay;
+
+    assume_ok = false;
+    okay = radio->connect_to_ap("ssid", "pw");
+    EXPECT_TRUE(okay);
+
+    // "AT+CIPMUX=0" // open a single link
+    // "AT+CIPSTART="TCP","192.168.0.12",333" // connect to TCP server
+    // "AT+CIPSEND=10" // send 10 bytes of data
+    // "AT+CIPMODE" // config transmission mode
+ 
+    teardown(& ctx);
+}
+#endif
+
+    /*
+     *
+     */
+
+TEST(esp8266, Open)
 {
     mock_setup(true);
 
     _Output output;
     Semaphore *s = Semaphore::create();
-    RingBuffer<uint8_t> *rb = new RingBuffer<uint8_t>(128, s, 0);
+    UART::Buffer *rb = new UART::Buffer(128, s, 0);
 
     ESP8266 radio(& output, rb, s, 0);
 
@@ -91,25 +206,14 @@ TEST(esp8266, Test)
         usleep(1000);
     }
 
-    bool okay;
+    assume_ok = true;
+    radio.start();
 
-    okay = radio.connect_to_ap("ssid", "pw");
-    EXPECT_TRUE(okay);
+    assume_ok = false;
+    int file = radio.connect("hostname", 1234);
+    EXPECT_EQ(1, file);
 
-    // "AT+CIFSR" // query ip/mac addresses
-    // "AT+CIPMUX=0" // open a single link
-    // "AT+CIPSTART="TCP","192.168.0.12",333" // connect to TCP server
-    // "AT+CIPSEND=10" // send 10 bytes of data
-    // send "+++" to end sending?
-    // "AT+CIPSENDEX=10" // send 10 bytes of data (may include '\0')
-    // "AT+CIPMODE" // config transmission mode
-    // "AT+CIPRECVDATA"
-    // "AT+CIPDNS" // config DNS
-    // "AT+CIPDOMAIN" // make DNS request
-    // "AT+CWLAP" // list access points
-    // "AT+CWQAP" // disconnect from ap
-    // "AT+CWDHCP" // enable / disable DHCP
-    // "AT+CWAUTOCONN=<enable>" // auto-connect to the ap
+    sleep(1);
 
     radio.kill();
     err = pthread_join(thread, 0);
@@ -119,5 +223,5 @@ TEST(esp8266, Test)
     delete s;
     mock_teardown();
 }
-
+#endif
 // FIN

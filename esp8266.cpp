@@ -24,7 +24,7 @@ static ESP8266::Command **next_fn(ESP8266::Command *cmd)
  
 ESP8266::ESP8266(Output *_uart, UART::Buffer *b, Semaphore *_rd_sem, GPIO *_reset)
 :   uart(_uart), rb(b), rd_sem(_rd_sem), wait_sem(0), 
-    gpio_reset(_reset), cmd_sem(0), 
+    cmd_sem(0), gpio_reset(_reset),
     buff(0), in(0), size(1024), 
     dead(false), is_running(false),
     mutex(0), hook(0), commands(next_fn), delete_queue(next_fn), command(0), reading(false)
@@ -46,12 +46,7 @@ ESP8266::~ESP8266()
     free(buff);
 }
 
-void ESP8266::set_hook(Hook *h)
-{
-    hook = h;
-}
-
-void ESP8266::push_command(Command *cmd)
+void ESP8266::request_command(Command *cmd)
 {
     ASSERT(cmd);
     //PO_DEBUG("cmd=%p at='%s'", cmd, cmd->cmd);
@@ -75,12 +70,12 @@ void ESP8266::run_command()
     // set the current command
     command = cmd;
 
-    cmd->start();
-
     if (hook)
     {
         hook->on_command(cmd);
     }
+
+    cmd->start();
 
     if (cmd->at)
     {
@@ -119,7 +114,7 @@ int ESP8266::connect(const char *ip, int port)
         return 0;
     }
 
-    return 1;
+    return cmd.connected ? 1 : 0;
 }
 
     /*
@@ -157,25 +152,25 @@ bool ESP8266::connect_to_ap(const char* ssid, const char *pw)
     }
 
     // Set the access point's ssid and password
-    CWJAP cwjap(this, ssid, pw);
+    ConnectAp connect_ap(this, ssid, pw);
 
-    cwjap.run();
-    if (cwjap.result != Command::OK)
+    connect_ap.run();
+    if (connect_ap.result != Command::OK)
     {
         PO_ERROR("failed to connect to AP");
         return false;
     }
 
-    if (cwjap.connected)
+    if (connect_ap.connected)
     {
         PO_REPORT("wifi connected");
     }
-    if (cwjap.ip)
+    if (connect_ap.ip)
     {
         PO_REPORT("wifi has ip address");
     }
 
-    return cwjap.connected && cwjap.ip;
+    return connect_ap.connected && connect_ap.ip;
 }
 
     /*
@@ -185,7 +180,7 @@ bool ESP8266::connect_to_ap(const char* ssid, const char *pw)
 ESP8266::Command *ESP8266::read(Semaphore *s, uint8_t *buffer, int len, int *count)
 {
     Read *read = new Read(this, s, buffer, len, count);
-    push_command(read);
+    request_command(read);
     return read;
 }
 
@@ -248,7 +243,7 @@ void ESP8266::reset()
      *
      */
 
-int ESP8266::send(const uint8_t *data, int size)
+int ESP8266::write(const uint8_t *data, int size)
 {
     PO_DEBUG("%p size=%d", data, size);
 
@@ -272,10 +267,20 @@ void ESP8266::send_at(const char *cmd)
     uart->_puts(cmd);
 }
 
-void ESP8266::end_command()
+void ESP8266::end_command(Command *cmd, Semaphore *s)
 {
-    PO_DEBUG("end command %s %p", command->name, command);
+    // TODO : if pending, remove from queue
+    // if not == command, don't zero it.
+    IGNORE(cmd);
+    //PO_DEBUG("end command %s %p", command->name, command);
     command = 0;
+
+    // Note :- once the command is posted, it is invalid
+    // as the Command may go out of scope in the caller.
+    if (s)
+    {
+        s->post();
+    }
 }
 
 void ESP8266::process(const uint8_t *text)
@@ -291,10 +296,7 @@ void ESP8266::process(const uint8_t *text)
 
     if (command)
     {
-        if (command->process(text))
-        {
-            end_command();
-        }
+        command->process(text);
     }
 }
 
@@ -358,11 +360,12 @@ void ESP8266::process(uint8_t data)
      *
      */
 
-void ESP8266::create_rx_buffer(uint8_t *ipd)
+void ESP8266::create_rx_buffer(const uint8_t *ipd)
 {
     // should have "+IPD,<length>:"
     //PO_DEBUG("got %s", ipd);
 
+    // read the length field.
     int size = 0;
     for (const char *s = (const char *) & ipd[5]; *s != ':'; s++)
     {
@@ -375,8 +378,6 @@ void ESP8266::create_rx_buffer(uint8_t *ipd)
         size += *s - '0';
     }
 
-    //PO_DEBUG("size=%d", size);
-
     // rationality check
     if ((size < 0) || (size > 1024))
     {
@@ -388,7 +389,11 @@ void ESP8266::create_rx_buffer(uint8_t *ipd)
     buffers.add_buffer(size);
     // redirect reads until done
     reading = true;
-    //PO_DEBUG("reading=%d", reading);
+}
+
+int ESP8266::read(uint8_t *data, int size)
+{
+    return buffers.read(data, size);
 }
 
     /*
@@ -427,7 +432,7 @@ void ESP8266::run()
             delete c;
         }
 
-        // read the data ..
+        // read the rx data ..
         uint8_t buff[128];
         const int n = rb->get(buff, sizeof(buff)-1);
         ASSERT((n >= 0) && (n <= (int)sizeof(buff)));

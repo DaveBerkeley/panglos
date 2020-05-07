@@ -19,7 +19,8 @@ XSRC = $(TESTDIR)/motor_test.cpp $(TESTDIR)/mock.cpp $(TESTDIR)/hal.cpp \
 	   $(TESTDIR)/msg_queue_test.cpp $(TESTDIR)/event_test.cpp \
 	   $(TESTDIR)/dispatch_test.cpp $(TESTDIR)/select_test.cpp \
 	   $(TESTDIR)/mcp23s17_test.cpp $(TESTDIR)/list_test.cpp \
-	   $(TESTDIR)/esp8266_test.cpp $(TESTDIR)/deque_test.cpp \
+	   $(TESTDIR)/esp8266_test.cpp $(TESTDIR)/esp8266_cmd_test.cpp \
+	   $(TESTDIR)/deque_test.cpp \
 	   $(PANGLOS)/motor.cpp $(PANGLOS)/event.cpp $(PANGLOS)/list.cpp \
 	   $(PANGLOS)/cli.cpp $(PANGLOS)/sprintf.cpp \
 	   $(PANGLOS)/mcp23s17.cpp $(PANGLOS)/spi.cpp \
