@@ -40,18 +40,19 @@ public:
             ERR,
         };
 
-        // TODO : add timeout for command
-
         Command *next;
         const char *cmd;
         Result result;
         Semaphore *done;
+        const char *name;
 
-        Command(Semaphore *s, const char* at)
-        : next(0), cmd(at), result(ERR), done(s)
+        Command(Semaphore *s, const char* at, const char *name)
+        : next(0), cmd(at), result(ERR), done(s), name(name)
         {
         }
+        virtual ~Command() { }
 
+        virtual void start() { }
         virtual bool process(const uint8_t *line) = 0;
         virtual bool process(uint8_t c) { IGNORE(c); return false; };
     };
@@ -64,15 +65,18 @@ public:
     Hook *hook;
 private:
     List<Command*> commands;
+    List<Command*> delete_queue;
     Command *command;
+public:
     Buffers buffers;
     bool reading;
-public:
 
     ESP8266(Output *uart, UART::Buffer *b, Semaphore *rd_sem, GPIO *reset);
     ~ESP8266();
 
     void push_command(Command *cmd);
+    void push_delete(Command *cmd);
+    void end_command();
     int send(const uint8_t *cmd, int size);
 
     bool start();
@@ -80,7 +84,8 @@ public:
     int connect(const char *ip, int port);
     int socket_send(int sock, const uint8_t *d, int size);
 
-    void read(Semaphore *s, uint8_t *buffer, int len, int *count);
+    Command *read(Semaphore *s, uint8_t *buffer, int len, int *count);
+    void cancel(Command *cmd);
 
     void kill();
 
