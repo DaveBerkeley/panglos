@@ -396,4 +396,35 @@ TEST(Buffers, Test)
     EXPECT_EQ('h', buff[1]);
 }
 
+TEST(Buffers, Spent)
+{
+    Buffers b;
+
+    bool okay;
+
+    okay = b.add('a');
+    EXPECT_FALSE(okay);
+
+    b.add_buffer(4);
+
+    // add 3 chars
+    okay = b.add('a');
+    EXPECT_TRUE(okay);
+    okay = b.add('b');
+    EXPECT_TRUE(okay);
+    okay = b.add('c');
+    EXPECT_TRUE(okay);
+    EXPECT_FALSE(b.full());
+
+    // b1 = 'abc'
+
+    uint8_t buff[64];
+    int n;
+    n = b.read(buff, 4);
+    EXPECT_EQ(3, n);
+    EXPECT_EQ('a', buff[0]);
+    EXPECT_EQ('b', buff[1]);
+    EXPECT_EQ('c', buff[2]);
+}
+
 //  FIN

@@ -310,6 +310,10 @@ public:
             }
 
             const int n = b->read(buff, more);
+            if (n == 0)
+            {
+                break;
+            }
             count += n;
             buff += n;
             more -= n;
