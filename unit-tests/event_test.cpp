@@ -22,7 +22,7 @@ TEST(Event, AddRemove)
     EventQueue eq(0);
     Semaphore *s = Semaphore::create();
 
-    EXPECT_EQ(0, eq.events);
+    EXPECT_TRUE(eq.events.empty());
 
     const int num = 1000;
 
@@ -32,18 +32,18 @@ TEST(Event, AddRemove)
         Event *ev = new Event(s, i);
 
         eq.add(ev);
-        EXPECT_EQ(ev, eq.events);
+        EXPECT_EQ(ev, eq.events.head);
     }
 
     for (int i = 0; i < num; i++)
     {
-        Event *ev = eq.events;
+        Event *ev = eq.events.head;
         Event *e = eq.remove(ev);
         EXPECT_TRUE(e);
         delete e;
     }
 
-    EXPECT_EQ(0, eq.events);
+    EXPECT_TRUE(eq.events.empty());
     delete s;
 
     mock_teardown();
@@ -163,7 +163,7 @@ TEST(Event, Wrap)
     eq.add(ev3);
 
     // Check the list order is correct
-    Event *ev = eq.events;
+    Event *ev = eq.events.head;
     EXPECT_EQ(ev->time, 0xFFFFFF00);
     ev = ev->next;
     EXPECT_EQ(ev->time, 0xFFFFFFFF);
@@ -205,7 +205,7 @@ TEST(Event, Wrap)
     EXPECT_EQ(true, ms2->set);
     EXPECT_EQ(true, ms3->set);
     // the events should have all been removed from the queue
-    EXPECT_EQ(0, (void*)eq.events);
+    EXPECT_TRUE(eq.events.empty());
 
     delete ev1->semaphore;
     delete ev1;

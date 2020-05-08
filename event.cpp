@@ -10,12 +10,6 @@ namespace panglos {
     *   Event list manipulation
     */
 
-static pList* pnext_event(pList v)
-{
-    Event *event = (Event*) v;
-    return (pList*) & event->next;
-}
-
 static inline int timer_cmp(timer_t t1, timer_t t2)
 {
     // use signed arithmetic, to allow the time to wrap
@@ -24,11 +18,8 @@ static inline int timer_cmp(timer_t t1, timer_t t2)
     return s2 - s1;
 }
 
-static int event_cmp(const pList ev1, const pList ev2)
+static int event_cmp(Event* event1, Event* event2)
 {
-    Event *event1 = (Event*) ev1;
-    Event *event2 = (Event*) ev2;
-
     return timer_cmp(event1->time, event2->time);
 }
 
@@ -37,7 +28,7 @@ static int event_cmp(const pList ev1, const pList ev2)
      */
 
 EventQueue::EventQueue(Rescheduler *r, Mutex *m)
-: mutex(m), delete_mutex(0), rescheduler(r), events(0)
+: mutex(m), delete_mutex(0), rescheduler(r), events(Event::next_fn)
 {
     if (!mutex)
     {
@@ -62,15 +53,15 @@ bool EventQueue::add(Event *ev)
 {
     Lock lock(mutex);
 
-    list_add_sorted((pList*) & events, (pList) ev, pnext_event, event_cmp, 0);
+    events.add_sorted(ev, event_cmp, 0);
     // return true if the new event is now at the head of the queue
-    const bool first = (ev == events);
+    const bool first = (ev == events.head);
     return first;
 }
 
 Event* EventQueue::_remove(Event *ev, Mutex *mutex)
 {
-    return list_remove((pList*) & events, (pList) ev, pnext_event, mutex) ? ev : 0;
+    return events.remove(ev, mutex) ? ev : 0;
 }
 
 Event* EventQueue::remove(Event *ev)
@@ -88,9 +79,9 @@ d_timer_t EventQueue::check()
 
     Lock lock(mutex);
 
-    while (events)
+    while (events.head)
     {
-        Event *event = events;
+        Event *event = events.head;
         const int diff = timer_cmp(now, event->time);
 
         if (diff > 0)

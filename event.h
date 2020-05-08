@@ -6,6 +6,7 @@
 
 #include "mutex.h"
 #include "timer.h"
+#include "list.h"
 
 namespace panglos {
 
@@ -20,6 +21,8 @@ public:
     : next(0), semaphore(s), time(t)
     {
     }
+
+    static Event **next_fn(Event *ev) { return & ev->next; }
 };
 
     /*
@@ -42,7 +45,7 @@ private:
     Mutex *delete_mutex;
     Rescheduler *rescheduler;
 public:
-    Event *events;
+    List<Event*> events;
 
 private:
     Event* _remove(Event *ev, Mutex *mutex);
