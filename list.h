@@ -26,6 +26,8 @@ typedef int (*cmp_fn)(const pList w1, const pList w2);
 
 void list_add_sorted(pList *head, pList w, pnext next_fn, cmp_fn cmp, Mutex *mutex);
 
+bool list_has(pList *head, pList w, pnext next_fn, Mutex *mutex);
+
 typedef int (*visitor)(pList w, void *arg);
 
 pList  list_find(pList *head, pnext next_fn, visitor fn, void *arg, Mutex *mutex);
@@ -84,6 +86,11 @@ public:
     T find(int (*fn)(T a, void *arg), void *arg, Mutex *mutex)
     {
         return (T) list_find((pList *) & head, (pnext) next_fn, (visitor) fn, arg, mutex);
+    }
+
+    bool has(T w, Mutex *mutex)
+    {
+        return list_has((pList *) & head, (pList) w, (pnext) next_fn, mutex);
     }
 
     void visit(int (*fn)(T a, void *arg), void *arg, Mutex *mutex)

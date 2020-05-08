@@ -185,6 +185,36 @@ bool list_remove(pList *head, pList w, pnext next_fn, Mutex *mutex)
  *
  * @param head pointer to the head of the list
  * @param next_fn
+ * @param w item to check
+ * @param mutex optional
+ *
+ * @return true if item found
+ */
+
+bool list_has(pList *head, pList w, pnext next_fn, Mutex *mutex)
+{
+    ASSERT(head);
+    ASSERT(next_fn);
+    ASSERT(w);
+
+    Lock lock(mutex);
+
+    for (; *head; head = next_fn(*head))
+    {
+        if (w == *head)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * @brief find an item in the list
+ *
+ * @param head pointer to the head of the list
+ * @param next_fn
  * @param fn function used to match each item
  * @param arg arg passed to the match function
  * @param mutex optional

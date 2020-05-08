@@ -63,27 +63,40 @@ TEST(List, AddRemove)
 
     // i1
     Item i1;
+    EXPECT_FALSE(list.has(& i1, 0));
     list.push(& i1, 0);
     EXPECT_EQ(1, list.size(0));
     EXPECT_FALSE(list.empty());
+    EXPECT_TRUE(list.has(& i1, 0));
 
     // i2, i1
     Item i2;
+    EXPECT_FALSE(list.has(& i2, 0));
     list.push(& i2, 0);
     EXPECT_EQ(2, list.size(0));
     EXPECT_FALSE(list.empty());
+    EXPECT_TRUE(list.has(& i2, 0));
 
     // i3, i2, i1
     Item i3;
+    EXPECT_FALSE(list.has(& i3, 0));
     list.push(& i3, 0);
     EXPECT_EQ(3, list.size(0));
     EXPECT_FALSE(list.empty());
+    EXPECT_TRUE(list.has(& i3, 0));
 
     // i3, i2, i1, i4
     Item i4 = { & i3, 0, 0 }; // check bad data in next doesn't cause harm
+    EXPECT_FALSE(list.has(& i4, 0));
     list.append(& i4, 0);
     EXPECT_EQ(4, list.size(0));
     EXPECT_FALSE(list.empty());
+    EXPECT_TRUE(list.has(& i4, 0));
+
+    EXPECT_TRUE(list.has(& i1, 0));
+    EXPECT_TRUE(list.has(& i2, 0));
+    EXPECT_TRUE(list.has(& i3, 0));
+    EXPECT_TRUE(list.has(& i4, 0));
 
     Item *item;
     bool okay;
@@ -94,11 +107,21 @@ TEST(List, AddRemove)
     EXPECT_EQ(3, list.size(0));
     EXPECT_FALSE(list.empty());
 
+    EXPECT_TRUE(list.has(& i1, 0));
+    EXPECT_TRUE(list.has(& i2, 0));
+    EXPECT_FALSE(list.has(& i3, 0));
+    EXPECT_TRUE(list.has(& i4, 0));
+
     // i1, i4
     item = list.pop(0);
     EXPECT_EQ(& i2, item);
     EXPECT_EQ(2, list.size(0));
     EXPECT_FALSE(list.empty());
+
+    EXPECT_TRUE(list.has(& i1, 0));
+    EXPECT_FALSE(list.has(& i2, 0));
+    EXPECT_FALSE(list.has(& i3, 0));
+    EXPECT_TRUE(list.has(& i4, 0));
 
     // i1
     okay = list.remove(& i4, 0);
@@ -106,11 +129,21 @@ TEST(List, AddRemove)
     EXPECT_EQ(1, list.size(0));
     EXPECT_FALSE(list.empty());
 
+    EXPECT_TRUE(list.has(& i1, 0));
+    EXPECT_FALSE(list.has(& i2, 0));
+    EXPECT_FALSE(list.has(& i3, 0));
+    EXPECT_FALSE(list.has(& i4, 0));
+
     // empty
     okay = list.remove(& i1, 0);
     EXPECT_TRUE(okay);
     EXPECT_EQ(0, list.size(0));
     EXPECT_TRUE(list.empty());
+
+    EXPECT_FALSE(list.has(& i1, 0));
+    EXPECT_FALSE(list.has(& i2, 0));
+    EXPECT_FALSE(list.has(& i3, 0));
+    EXPECT_FALSE(list.has(& i4, 0));
 
     Item i5;
     
