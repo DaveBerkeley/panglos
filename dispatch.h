@@ -19,6 +19,8 @@ public:
         virtual ~Callback() {}
 
         virtual void execute() = 0;
+
+        static Callback **next_fn(Callback* cb) { return & cb->next; }
     };
 
     class FnArg : public Callback

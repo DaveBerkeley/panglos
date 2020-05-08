@@ -5,18 +5,12 @@
 
 namespace panglos {
 
-static Dispatch::Callback **next_fn(Dispatch::Callback * item)
-{
-    ASSERT(item);
-    return & item->next;
-}
-
     /*
      *
      */
 
 Dispatch::Dispatch()
-: deque(next_fn), mutex(0), semaphore(0), dead(false)
+: deque(Callback::next_fn), mutex(0), semaphore(0), dead(false)
 {
     // needs to be irq_safe, not just thread safe
     mutex = Mutex::create_critical_section();
