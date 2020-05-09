@@ -71,6 +71,8 @@ public:
     virtual void set_hook(PostHook *hook) = 0;
 
     static Semaphore *create();
+
+    static Semaphore **next_fn(Semaphore *s) { return & s->next; }
 };
 
 }   //  namespace
