@@ -71,7 +71,7 @@ static IRQn_Type get_irq_num(panglos::UART::Id id)
      *
      */
 
-static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud)
+static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud, int irq_level)
 {
 
     UART_HandleTypeDef *uart = get_uart(id);
@@ -158,7 +158,7 @@ static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud)
     /* Peripheral interrupt init*/
     const IRQn_Type irq_num = get_irq_num(id);
     // Note :- priority should be >= configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
-    HAL_NVIC_SetPriority(irq_num, 5, 0);
+    HAL_NVIC_SetPriority(irq_num, irq_level, 0);
     HAL_NVIC_EnableIRQ(irq_num);
 
     __HAL_UART_ENABLE_IT(uart, UART_IT_RXNE);
@@ -261,9 +261,9 @@ int ArmUart::send(const char* data, int n)
      *
      */
 
-UART *UART::create(UART::Id id, int baud, RingBuffer<uint8_t> *b)
+UART *UART::create(UART::Id id, int baud, Buffer *b, int irq_level)
 {
-    UART_HandleTypeDef *uart = MX_UART_Init(id, baud);
+    UART_HandleTypeDef *uart = MX_UART_Init(id, baud, irq_level);
     return new ArmUart(id, uart, b);
 }
 

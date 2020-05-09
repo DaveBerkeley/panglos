@@ -30,7 +30,7 @@ public:
 
     typedef RingBuffer<uint8_t> Buffer;
 
-    static UART *create(Id id, int baud, Buffer *b);
+    static UART *create(Id id, int baud, Buffer *b, int irq_level=5);
 };
 
 }   //  namespace panglos
