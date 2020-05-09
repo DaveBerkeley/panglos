@@ -66,6 +66,11 @@ public:
         //PO_DEBUG("");
         return rd.read(data, size);
     }
+
+    virtual void check(Command *c)
+    {
+        IGNORE(c);
+    }
 };
 
     /*
@@ -125,19 +130,36 @@ TEST(esp8266_CMD, AP)
 
 TEST(esp8266_CMD, Connect)
 {
-    const char *at[] = { "ATxxxx", "CONNECT", "OK", 0 };
-    MockRadio radio(at);
+    {
+        const char *at[] = { "ATxxxx", "CONNECT", "OK", 0 };
+        MockRadio radio(at);
 
-    Connect cmd(& radio, "hostname", 1234);
-    EXPECT_EQ(ESP8266::Command::INIT, cmd.result);
+        Connect cmd(& radio, "any", 456, Radio::UDP);
+        EXPECT_EQ(ESP8266::Command::INIT, cmd.result);
 
-    cmd.run();
-    EXPECT_EQ(ESP8266::Command::OK, cmd.result);
+        cmd.run();
+        EXPECT_EQ(ESP8266::Command::OK, cmd.result);
 
-    uint8_t buff[64];
-    int n = radio.wr.read(buff, sizeof(buff));
-    buff[n] = '\0';
-    EXPECT_STREQ("AT+CIPSTART=\"TCP\",\"hostname\",1234\r\n", (const char*) buff);
+        uint8_t buff[64];
+        int n = radio.wr.read(buff, sizeof(buff));
+        buff[n] = '\0';
+        EXPECT_STREQ("AT+CIPSTART=\"UDP\",\"any\",456\r\n", (const char*) buff);
+    }
+    {
+        const char *at[] = { "ATxxxx", "CONNECT", "OK", 0 };
+        MockRadio radio(at);
+
+        Connect cmd(& radio, "hostname", 1234, Radio::TCP);
+        EXPECT_EQ(ESP8266::Command::INIT, cmd.result);
+
+        cmd.run();
+        EXPECT_EQ(ESP8266::Command::OK, cmd.result);
+
+        uint8_t buff[64];
+        int n = radio.wr.read(buff, sizeof(buff));
+        buff[n] = '\0';
+        EXPECT_STREQ("AT+CIPSTART=\"TCP\",\"hostname\",1234\r\n", (const char*) buff);
+    }
 }
 
 TEST(esp8266_CMD, Send)

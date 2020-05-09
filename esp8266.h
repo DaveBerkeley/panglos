@@ -16,12 +16,17 @@ namespace panglos {
 class Radio
 {
 public:
+    enum Transport { TCP, UDP };
+
     class Command;
 
     virtual void request_command(Command *) = 0;
     virtual void end_command(Command *, Semaphore *) = 0;
     virtual int write(const uint8_t *data, int size) = 0;
     virtual int read(uint8_t *data, int size) = 0;
+
+    // run time check to ensure Command is not active / queued
+    virtual void check(Command *cmd) = 0;
 };
 
     /*
@@ -37,6 +42,7 @@ private:
     Semaphore *rd_sem;
     Semaphore *wait_sem;
     Semaphore *cmd_sem;
+    Semaphore *cancel_sem;
 
     GPIO *gpio_reset;
 
@@ -52,6 +58,8 @@ private:
     void run_command();
     void send_at(const char *cmd);
     void create_rx_buffer(const uint8_t *ipd);
+    void set_command(Command *cmd, const char *debug);
+    void delete_command(Command *cmd);
 
 public:
     typedef Radio::Command Command;
@@ -83,11 +91,14 @@ public:
     virtual void end_command(Command *, Semaphore *);
     virtual int write(const uint8_t *data, int size);
     virtual int read(uint8_t *data, int size);
+    virtual void check(Command *cmd);
 
     bool start();
-    bool connect_to_ap(const char* ssid, const char *pw);
-    int connect(const char *ip, int port);
+    bool connect(const char* ssid, const char *pw);
+
+    int socket_open(const char *ip, int port, Radio::Transport t);
     int socket_send(int sock, const uint8_t *d, int size);
+    int socket_close(int fileno);
 
     Command *read(Semaphore *s, uint8_t *buffer, int len, int *count);
     void cancel(Command *cmd);

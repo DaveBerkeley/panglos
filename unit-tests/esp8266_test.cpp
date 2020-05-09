@@ -46,6 +46,11 @@ class Hook : public ESP8266::Hook
 
     virtual void on_command(ESP8266::Command *cmd)
     {
+        ASSERT(cmd);
+        if (!cmd->at)
+        {
+            return;
+        }
         PO_DEBUG("%s", cmd->at);
 
         const char *t = "AT+CWMODE=1";
@@ -87,6 +92,10 @@ public:
     }
 };
 
+    /*
+     *
+     */
+
 TEST(esp8266, Test)
 {
     mock_setup(true);
@@ -126,16 +135,16 @@ TEST(esp8266, Test)
 
     // AP Connect
 
-    okay = radio.connect_to_ap("ssid", "pw");
+    okay = radio.connect("ssid", "pw");
     EXPECT_TRUE(okay);
 
     n = output.buffer.read((uint8_t*) buff, sizeof(buff));
     buff[n] = '\0';
     EXPECT_STREQ("AT+CWMODE=1\r\nAT+CWJAP_DEF=\"ssid\",\"pw\"\r\n", buff);
 
-    //  Socket connect
+    //  Socket Open
 
-    int file = radio.connect("hostname", 1234);
+    int file = radio.socket_open("hostname", 1234, Radio::TCP);
     EXPECT_EQ(1, file);
 
     n = output.buffer.read((uint8_t*) buff, sizeof(buff));
@@ -165,6 +174,107 @@ TEST(esp8266, Test)
     // "AT+CWLAP" // list access points
     // "AT+CWQAP" // disconnect from ap
     // "AT+CWDHCP" // enable / disable DHCP
+
+    radio.kill();
+    err = pthread_join(thread, 0);
+    EXPECT_EQ(0, err);
+
+    delete rb;
+    delete s;
+    mock_teardown();
+}
+
+    /*
+     *
+     */
+
+typedef struct {
+    UART::Buffer *rb;
+    const char *text;
+    int num;
+    int run;
+}   PushInfo;
+
+static void *push_data(void *arg)
+{
+    ASSERT(arg);
+    PushInfo *pi = (PushInfo*) arg;
+    for (int i = 0; i < pi->num; i++)
+    {
+        pi->rb->add((const uint8_t *) pi->text, strlen(pi->text));
+        pi->run += 1;
+    }
+    return 0;
+}
+
+TEST(esp8266, Rx)
+{
+    mock_setup(true);
+
+    _Output output;
+    Semaphore *s = Semaphore::create();
+    UART::Buffer *rb = new UART::Buffer(1024, s, 0);
+
+    ESP8266 radio(& output, rb, s, 0);
+
+    Hook hook(rb);
+    radio.set_hook(& hook);
+
+    pthread_t thread;
+    int err;
+
+    err = pthread_create(& thread, 0, runner, & radio);
+    EXPECT_EQ(0, err);
+
+    // wait for radio to be running and hooking semaphores ..
+    while (!radio.running())
+    {
+        usleep(1000);
+    }
+
+    char buff[64];
+    int n;
+
+    //  Start
+
+    radio.start();
+
+    n = output.buffer.read((uint8_t*) buff, sizeof(buff));
+    buff[n] = '\0';
+    EXPECT_STREQ("AT\r\n", buff);
+
+    //  send data with no command active
+    int num = 10;
+    pthread_t wr_thread; 
+
+    PushInfo pi = { rb, "+IPD,8:abcdefgh", num, 0 };
+
+    err = pthread_create(& wr_thread, 0, push_data, & pi);
+    EXPECT_EQ(0, err);
+
+    // wait for at least some loops to complete
+    while (pi.run < (num/2))
+    {
+        usleep(1000);
+    }
+
+    for (int i = 0; i < num; i++)
+    {
+        Semaphore *wait = Semaphore::create();
+        int count = 0;
+        Radio::Command *cmd = radio.read(wait, (uint8_t*) & buff, 8, & count);
+        wait->wait();
+        radio.cancel(cmd);
+        buff[count] = '\0';
+        EXPECT_STREQ("abcdefgh", buff);
+
+        delete wait;
+    }
+
+    err = pthread_join(wr_thread, 0);
+    EXPECT_EQ(0, err);
+
+    //sleep(1);
 
     radio.kill();
     err = pthread_join(thread, 0);

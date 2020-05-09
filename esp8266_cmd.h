@@ -22,17 +22,22 @@ public:
     const char *at;
     Result result;
     const char *name;
+    bool cancelled;
+    bool active;
 
     Command(const char* _at, const char *name)
-    : next(0), at(_at), result(INIT), name(name)
+    : next(0), at(_at), result(INIT), name(name), cancelled(false), active(true)
     {
+        PO_DEBUG("cmd=%p at='%s' %s", this, at, name);
     }
 
-    virtual ~Command() { }
+    virtual ~Command() { PO_DEBUG("cmd=%p", this); }
 
     virtual void start() { }
     virtual bool process(const uint8_t *line) = 0;
     virtual bool consume(uint8_t c) { IGNORE(c); return false; };
+
+    static Command **next_fn(Command *cmd) { return & cmd->next; }
 };
 
     /*
@@ -52,6 +57,7 @@ public:
     }
     virtual ~AtCommand()
     {
+        radio->check(this);
         delete done;
     }
 
@@ -95,10 +101,11 @@ class Connect : public AtCommand
 public:
     bool connected;
 
-    Connect(Radio *radio, const char *ip, int port)
+    Connect(Radio *radio, const char *ip, int port, Radio::Transport transport)
     : AtCommand(radio, 0, "Connect"), connected(false)
     {
-        snprintf(buff, sizeof(buff), "AT+CIPSTART=\"TCP\",\"%s\",%d\r\n", ip, port);
+        const char *tcp = (transport == Radio::TCP) ? "TCP" : "UDP";
+        snprintf(buff, sizeof(buff), "AT+CIPSTART=\"%s\",\"%s\",%d\r\n", tcp, ip, port);
         at = buff;
     }
 

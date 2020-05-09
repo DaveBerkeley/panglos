@@ -13,33 +13,31 @@
 
 namespace panglos {
 
-static ESP8266::Command **next_fn(ESP8266::Command *cmd)
-{
-    return & cmd->next;
-}
-
     /*
      *
      */
- 
+
 ESP8266::ESP8266(Output *_uart, UART::Buffer *b, Semaphore *_rd_sem, GPIO *_reset)
-:   uart(_uart), rb(b), rd_sem(_rd_sem), wait_sem(0), 
-    cmd_sem(0), gpio_reset(_reset),
+:   uart(_uart), rb(b),
+    rd_sem(_rd_sem), wait_sem(0), cmd_sem(0), cancel_sem(0),
+    gpio_reset(_reset),
     buff(0), in(0), size(1024), 
     dead(false), is_running(false),
-    mutex(0), hook(0), commands(next_fn), delete_queue(next_fn), command(0), reading(false)
+    mutex(0), hook(0), commands(Command::next_fn), delete_queue(Command::next_fn), command(0), reading(false)
 {
     ASSERT(uart);
     ASSERT(rb);
 
     cmd_sem = Semaphore::create();
     wait_sem = Semaphore::create();
+    cancel_sem = Semaphore::create();
     mutex = Mutex::create();
     buff = (uint8_t*) malloc(size);
 }
 
 ESP8266::~ESP8266()
 {
+    delete cancel_sem;
     delete wait_sem;
     delete cmd_sem;
     delete mutex;
@@ -49,14 +47,25 @@ ESP8266::~ESP8266()
 void ESP8266::request_command(Command *cmd)
 {
     ASSERT(cmd);
-    //PO_DEBUG("cmd=%p at='%s'", cmd, cmd->cmd);
+    PO_DEBUG("cmd=%p %s at='%s'", cmd, cmd ? cmd->name : "??", cmd->at);
 
     commands.append(cmd, mutex);
     cmd_sem->post();
 }
 
+void ESP8266::delete_command(Command *cmd)
+{
+    PO_DEBUG("cmd=%p", cmd);
+    delete_queue.push(cmd, mutex);
+    cmd->active = false;
+    cmd_sem->post();
+    cancel_sem->post();
+}
+
+
 void ESP8266::run_command()
 {
+    ASSERT(command == 0);
     Command *cmd = commands.pop(mutex);
 
     if (!cmd)
@@ -65,10 +74,16 @@ void ESP8266::run_command()
         return;
     }
 
-    PO_DEBUG("cmd=%p name=%s at='%s'", cmd, cmd->name, cmd->at);
+    if (cmd->cancelled)
+    {
+        delete_command(cmd);
+        return;
+    }
+
+    PO_DEBUG("cmd=%p name=%s at='%s'", cmd, cmd->name , cmd->at? cmd->at : "(null)");
 
     // set the current command
-    command = cmd;
+    set_command(cmd, __FUNCTION__);
 
     if (hook)
     {
@@ -104,9 +119,9 @@ bool ESP8266::start()
      *
      */
 
-int ESP8266::connect(const char *ip, int port)
+int ESP8266::socket_open(const char *ip, int port, Radio::Transport transport)
 {
-    Connect cmd(this, ip, port);
+    Connect cmd(this, ip, port, transport);
     cmd.run();
     if (cmd.result != Command::OK)
     {
@@ -115,6 +130,17 @@ int ESP8266::connect(const char *ip, int port)
     }
 
     return cmd.connected ? 1 : 0;
+}
+
+    /*
+     *
+     */
+
+int ESP8266::socket_close(int fileno)
+{
+    IGNORE(fileno);
+    ASSERT(0); // not yet implemented
+    return -1;
 }
 
     /*
@@ -135,11 +161,7 @@ int ESP8266::socket_send(int sock, const uint8_t *d, int size)
      *
      */
 
-    /*
-     *
-     */
-
-bool ESP8266::connect_to_ap(const char* ssid, const char *pw)
+bool ESP8266::connect(const char* ssid, const char *pw)
 {
     // Set the unit in WiFi client mode
     AtCommand cwmode(this, "AT+CWMODE=1\r\n", "CWMODE");
@@ -187,18 +209,14 @@ ESP8266::Command *ESP8266::read(Semaphore *s, uint8_t *buffer, int len, int *cou
 void ESP8266::cancel(Command *cmd)
 {
     ASSERT(cmd);
-    //PO_DEBUG("%s %p", cmd->name, cmd);
-
-    commands.remove(cmd, mutex);
-
-    if (command == cmd)
+    PO_DEBUG("%s %p", cmd->name, cmd);
+    cmd->cancelled = true;
+    // if command active, wait for it to be removed
+    if (cmd->active)
     {
-        //PO_DEBUG("end command");
-        command = 0;
+        cancel_sem->wait();
     }
-
-    PO_DEBUG("cmd=%s %p", cmd->name, cmd);
-    delete_queue.push(cmd, mutex);
+    cmd_sem->post();
 }
 
     /*
@@ -265,15 +283,49 @@ void ESP8266::send_at(const char *cmd)
 {
     PO_DEBUG("send '%s'", cmd);
     uart->_puts(cmd);
+    // TODO : remove me
+    if (cmd[0] != 'A')
+    {
+        ASSERT(0);
+    }
+}
+
+void ESP8266::set_command(Command *cmd, const char *debug)
+{
+    PO_DEBUG("old=%p new=%p %s", command, cmd, debug);
+
+    if (command && command->cancelled)
+    {
+        PO_DEBUG("delete push %p", command);
+        delete_queue.push(command, mutex);
+        cancel_sem->post();
+    }
+    if (command)
+    {
+        command->active = false;
+    }
+
+    command = cmd;
+    if (cmd == 0)
+    {
+        // fetch the next command ..
+        cmd_sem->post();
+    }
 }
 
 void ESP8266::end_command(Command *cmd, Semaphore *s)
 {
-    // TODO : if pending, remove from queue
-    // if not == command, don't zero it.
-    IGNORE(cmd);
-    //PO_DEBUG("end command %s %p", command->name, command);
-    command = 0;
+    if (commands.remove(cmd, mutex))
+    {
+        // if pending, removed from queue
+        PO_DEBUG("remove pending cmd %s %p", cmd ? cmd->name : "??", cmd);
+    }
+
+    if (command == cmd)
+    {
+        // if active, stop handling it
+        set_command(0, __FUNCTION__);
+    }
 
     // Note :- once the command is posted, it is invalid
     // as the Command may go out of scope in the caller.
@@ -282,6 +334,27 @@ void ESP8266::end_command(Command *cmd, Semaphore *s)
         s->post();
     }
 }
+
+void ESP8266::check(Command *cmd)
+{
+    // called when ~Command() is called.
+    // sanity check that it is not active
+
+    if (cmd == command)
+    {
+        PO_ERROR("cmd=%p", cmd);
+        ASSERT(0);
+    }
+    if (commands.has(cmd, mutex))
+    {
+        PO_ERROR("cmd=%p", cmd);
+        ASSERT(0);
+    }
+}
+
+    /*
+     *
+     */
 
 void ESP8266::process(const uint8_t *text)
 {
@@ -292,10 +365,9 @@ void ESP8266::process(const uint8_t *text)
         return;
     }
 
-    PO_DEBUG("cmd=%s %p at='%s'", command->name, command, text);
-
     if (command)
     {
+        PO_DEBUG("cmd=%s %p at='%s'", command->name, command, text);
         command->process(text);
     }
 }
@@ -385,6 +457,15 @@ void ESP8266::create_rx_buffer(const uint8_t *ipd)
         return;
     }
 
+    PO_DEBUG("size=%d", size);
+
+    if (!buffers.full())
+    {
+        // all previous buffers shouls be full.
+        // dropped serial data could cause errors here.
+        ASSERT(0);
+    }
+
     // Allocate read buff
     buffers.add_buffer(size);
     // redirect reads until done
@@ -404,32 +485,34 @@ void ESP8266::run()
 {
     PO_DEBUG("");
 
-    reset();
-
-    Select select(100);
-
+    Select select(4); // select.wait() adds an event semaphore
     select.add(rd_sem);
     select.add(wait_sem);
     select.add(cmd_sem);
+
+    reset();
 
     is_running = true;
 
     while (!dead)
     {
-        Semaphore *s = select.wait(& event_queue, 120000);
-
-        if (s == cmd_sem)
-        {
-            run_command();
-            continue;
-        }
+        select.wait(& event_queue, timer_now() + 120000);
 
         // delete any old messages
         while (!delete_queue.empty())
         {
             Command *c = delete_queue.pop(mutex);
-            PO_DEBUG("delete %s %p", c->name, c);
             delete c;
+        }
+
+        if (command && command->cancelled)
+        {
+            delete_command(command);
+        }
+
+        if (command == 0)
+        {
+            run_command();
         }
 
         // read the rx data ..
@@ -442,6 +525,12 @@ void ESP8266::run()
             //PO_DEBUG("%d %#02x", i, buff[i]);
             process(buff[i]);
         }
+    }
+
+    while (!delete_queue.empty())
+    {
+        Command *c = delete_queue.pop(mutex);
+        delete c;
     }
 }
 
