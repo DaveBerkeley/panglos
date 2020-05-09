@@ -200,6 +200,19 @@ public:
         return true;
     }
 
+    int write(const uint8_t *data, int len)
+    {
+        // TODO : use memcpy
+        for (int i = 0; i < len; i++)
+        {
+            if (!add(*data++))
+            {
+                return i;
+            }
+        }
+        return len;
+    }
+
     int read(uint8_t *buffer, int n)
     {
         int count = 0;

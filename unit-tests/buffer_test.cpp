@@ -325,6 +325,42 @@ TEST(Buffer, Test)
      *
      */
 
+TEST(Buffer, Write)
+{
+    {
+        Buffer b(6);
+
+        int n;
+        n = b.write((uint8_t*) "abcd", 4);
+        EXPECT_EQ(4, n);
+
+        n = b.write((uint8_t*) "efgh", 4);
+        EXPECT_EQ(2, n);
+
+        uint8_t buff[16];
+        n = b.read(buff, sizeof(buff));
+        EXPECT_EQ(6, n);
+        buff[n] = '\0';
+        EXPECT_STREQ((const char*) "abcdef", (char*) buff);
+    }
+    {
+        Buffer b(6);
+        int n;
+        n = b.write((uint8_t*) "abcdef", 6);
+        EXPECT_EQ(6, n);
+
+        uint8_t buff[16];
+        n = b.read(buff, sizeof(buff));
+        EXPECT_EQ(6, n);
+        buff[n] = '\0';
+        EXPECT_STREQ((const char*) "abcdef", (char*) buff);
+    }
+}
+
+    /*
+     *
+     */
+
 TEST(Buffers, Test)
 {
     Buffers b;

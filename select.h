@@ -23,7 +23,7 @@ class Select : public PostHook
 
 public:
     Select(int size);
-    ~Select();
+    virtual ~Select();
 
     virtual void post(Semaphore *s);
     void add(Semaphore *s);

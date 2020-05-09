@@ -171,4 +171,27 @@ TEST(Select, Dtor)
     EXPECT_EQ(0, semc.hook);    
 }
 
+TEST(Select, Delete)
+{
+    TestSem sema, semb, semc;
+
+    Select *select = new Select(100);
+
+    select->add(& sema);
+    select->add(& semb);
+    select->add(& semc);
+
+    // check the semaphores are unhooked
+    EXPECT_EQ(select, sema.hook);
+    EXPECT_EQ(select, semb.hook);
+    EXPECT_EQ(select, semc.hook);    
+
+    delete select;
+
+    // check the semaphores are unhooked
+    EXPECT_EQ(0, sema.hook);
+    EXPECT_EQ(0, semb.hook);
+    EXPECT_EQ(0, semc.hook);    
+}
+
 //  FIN

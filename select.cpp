@@ -10,17 +10,12 @@
 
 namespace panglos {
 
-static Semaphore** next_fn(Semaphore *semaphore)
-{
-    return & semaphore->next;
-}
-
     /*
      *
      */
 
 Select::Select(int _size)
-: mutex(0), semaphore(0), queue(next_fn), captured(0), size(_size) // semaphores(next_fn)
+: mutex(0), semaphore(0), queue(Semaphore::next_fn), captured(0), size(_size) // semaphores(next_fn)
 {
     // Semaphores may be posted in an interrupt, so use critical section
     mutex = Mutex::create_critical_section();
