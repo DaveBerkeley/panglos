@@ -24,6 +24,17 @@ Radio::~Radio()
     delete timeout_sem;
 }
 
+int Radio::send(const char *data, int size)
+{
+    ASSERT(out);
+    int count = 0;
+    for (int i = 0; i < size; i++)
+    {
+        count += out->_putc(*data++);
+    }
+    return count;
+}
+
 int Radio::send_at(const char *at)
 {
     ASSERT(out);
@@ -35,8 +46,6 @@ static int in = 0;
 
 bool Radio::process(char c)
 {
-    //PO_DEBUG("%c", c);
-
     const int next = in + 1;
 
     if (next == sizeof(buff))
@@ -76,7 +85,7 @@ int Radio::read_line(char *data, int size)
             PO_DEBUG("timeout");
             return 0;
         }
-        //ASSERT(s == rx_sem);
+        ASSERT(s == rx_sem);
 
         while (true)
         {
@@ -94,6 +103,50 @@ int Radio::read_line(char *data, int size)
                 // need to let select know we haven't finished reading ..
                 rx_sem->post();
                 return len;
+            }
+        }
+    }
+
+    return 0;
+}
+
+bool Radio::wait_for(const char *data, int size)
+{
+    int in = 0;
+
+    while (true)
+    {
+        Semaphore *s = select->wait();
+        PO_DEBUG("sem=%p", s);
+        if (s == timeout_sem)
+        {
+            PO_DEBUG("timeout");
+            return false;
+        }
+        ASSERT(s == rx_sem);
+
+        while (true)
+        {
+            char c;
+            if (!rd->get((uint8_t*) & c, 1))
+            {
+                break;
+            }
+            if (c == data[in])
+            {
+                // match
+                in += 1;
+                if (in == size)
+                {
+                    PO_DEBUG("match '%s'", data);
+                    rx_sem->post();
+                    return true;
+                }
+            }
+            else
+            {
+                // no match. start again
+                in = 0;
             }
         }
     }
@@ -166,6 +219,128 @@ bool Radio::connect(const char *ssid, const char *pw, timer_t timeout)
         if (!strcmp(buff, "OK"))
         {
             return connected && ip;
+        }
+
+        // unknown response
+        PO_ERROR("unknown: '%s'", buff);
+    }
+}
+
+int Radio::socket_open(const char *host, int port, timer_t timeout)
+{
+    char buff[128];
+
+    const char *tcp = "TCP";
+    snprintf(buff, sizeof(buff), "AT+CIPSTART=\"%s\",\"%s\",%d\r\n", tcp, host, port);
+    send_at(buff);
+    buff[0] = '\0';
+
+    bool connected = false;
+
+    AutoEvent period(timeout_sem, timeout);
+
+    while (true)
+    {
+        if (!read_line(buff, sizeof(buff)))
+        {
+            PO_ERROR("timeout");
+            return 0;
+        }
+
+        if (!strncmp(buff, "AT+CIPSTART=", 12))
+        {
+            // echo
+            continue;
+        }
+        if (!strcmp(buff, "CONNECT"))
+        {
+            connected = true;
+            continue;
+        }
+        // TODO : check fail case
+        if (!strcmp(buff, "FAIL"))
+        {
+            return false;
+        }
+        if (!strcmp(buff, "OK"))
+        {
+            return connected;
+        }
+
+        // unknown response
+        PO_ERROR("unknown: '%s'", buff);
+    }
+    return 0;
+}
+
+int Radio::socket_send(const char *data, int size, timer_t timeout)
+{
+    char buff[128];
+
+    snprintf(buff, sizeof(buff), "AT+CIPSEND=%d\r\n", size);
+    send_at(buff);
+    buff[0] = '\0';
+
+    AutoEvent period(timeout_sem, timeout);
+
+    while (true)
+    {
+        if (!read_line(buff, sizeof(buff)))
+        {
+            PO_ERROR("timeout");
+            return 0;
+        }
+
+        if (!strncmp(buff, "AT+CIPSEND=", 11))
+        {
+            // echo
+            continue;
+        }
+        // TODO : check fail case
+        if (!strcmp(buff, "FAIL"))
+        {
+            return false;
+        }
+        if (!strcmp(buff, "OK"))
+        {
+            break; 
+        }
+
+        // unknown response
+        PO_ERROR("unknown: '%s'", buff);
+    }
+
+    // Wait for "> " prompt
+    if (!wait_for("> ", 2))
+    {
+        PO_ERROR("no '> ' prompt");
+        return 0;
+    }
+    
+    int n = send(data, size);
+    if (n != size)
+    {
+        PO_ERROR("sent=%d size=%d", n, size);
+        return 0;
+    }
+
+    // wait for OK
+    while (true)
+    {
+        if (!read_line(buff, sizeof(buff)))
+        {
+            PO_ERROR("timeout");
+            return 0;
+        }
+
+        // TODO : check fail case
+        if (!strcmp(buff, "FAIL"))
+        {
+            return false;
+        }
+        if (!strcmp(buff, "SEND OK"))
+        {
+            return size;
         }
 
         // unknown response

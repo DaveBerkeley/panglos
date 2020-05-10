@@ -21,6 +21,8 @@ private:
     Semaphore *timeout_sem;
 
     int read_line(char *buff, int size);
+    bool wait_for(const char *buff, int size);
+    int send(const char *data, int size);
     int send_at(const char *at);
 
     bool process(char c);
@@ -30,6 +32,8 @@ public:
     ~Radio();
 
     bool connect(const char *ssid, const char *pw, timer_t timeout);
+    int socket_open(const char *host, int port, timer_t timeout);
+    int socket_send(const char *data, int size, timer_t timeout);
 };
 
 }   //  namespace panglos
