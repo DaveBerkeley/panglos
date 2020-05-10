@@ -8,6 +8,7 @@
 #include "../mutex.h"
 #include "../timer.h"
 
+static TIM_HandleTypeDef htim2;
 static TIM_HandleTypeDef htim5;
 
 namespace panglos {
@@ -19,8 +20,7 @@ namespace panglos {
 timer_t timer_now()
 {
     // Use TIM2 32-bit counter as a time reference
-    TIM_HandleTypeDef timer = { .Instance = TIM2 };
-    const uint32_t t = __HAL_TIM_GET_COUNTER(& timer);
+    const uint32_t t = __HAL_TIM_GET_COUNTER(& htim2);
     return t;
 }
 
@@ -126,19 +126,18 @@ static void Timer5_Init(void)
 
 static void Timer2_Init(void)
 {
-    static TIM_HandleTypeDef timer2 = { .Instance = TIM2 };
-
     // Timer 2 is used as a free-running time reference
-    timer2.Init.Prescaler = prescaler;
-    timer2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    timer2.Init.Period = 0xFFFFFFFF;
-    timer2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    timer2.Init.RepetitionCounter = 0;
+    htim2.Instance = TIM2;
+    htim2.Init.Prescaler = prescaler;
+    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim2.Init.Period = 0xFFFFFFFF;
+    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim2.Init.RepetitionCounter = 0;
 
     // Configure timer 2
     __TIM2_CLK_ENABLE();
-    HAL_TIM_Base_Init(& timer2);
-    HAL_TIM_Base_Start(& timer2);
+    HAL_TIM_Base_Init(& htim2);
+    HAL_TIM_Base_Start(& htim2);
 }
 
 void Timer_Init()
