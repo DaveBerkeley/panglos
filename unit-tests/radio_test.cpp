@@ -26,6 +26,31 @@ public:
      *
      */
 
+TEST(Radio, Init)
+{
+    mock_setup(true);
+
+    Out out;
+    Mutex *rd_mutex = Mutex::create();
+    Semaphore *rd_sem = Semaphore::create();
+    Radio::RdBuff *rd = new Radio::RdBuff(1024, rd_sem, rd_mutex);
+    MockPin pin(1);
+    Radio *radio = new Radio(& out, rd, rd_sem, & pin);
+
+    int err = radio->init();
+    EXPECT_EQ(0, err);
+
+    delete radio;
+    delete rd;
+    delete rd_mutex;
+    delete rd_sem;
+    mock_teardown();
+}
+
+    /*
+     *
+     */
+
 TEST(Radio, Connect)
 {
     mock_setup(true);
@@ -34,7 +59,7 @@ TEST(Radio, Connect)
     Mutex *rd_mutex = Mutex::create();
     Semaphore *rd_sem = Semaphore::create();
     Radio::RdBuff *rd = new Radio::RdBuff(1024, rd_sem, rd_mutex);
-    Radio *radio = new Radio(& out, rd, rd_sem);
+    Radio *radio = new Radio(& out, rd, rd_sem, 0);
 
     panglos::timer_t timeout = 120000;
     bool okay;
@@ -87,7 +112,7 @@ TEST(Radio, SocketOpen)
     Mutex *rd_mutex = Mutex::create();
     Semaphore *rd_sem = Semaphore::create();
     Radio::RdBuff *rd = new Radio::RdBuff(1024, rd_sem, rd_mutex);
-    Radio *radio = new Radio(& out, rd, rd_sem);
+    Radio *radio = new Radio(& out, rd, rd_sem, 0);
 
     panglos::timer_t timeout = 120000;
     bool okay;
@@ -138,7 +163,7 @@ TEST(Radio, SocketSend)
     Mutex *rd_mutex = Mutex::create();
     Semaphore *rd_sem = Semaphore::create();
     Radio::RdBuff *rd = new Radio::RdBuff(1024, rd_sem, rd_mutex);
-    Radio *radio = new Radio(& out, rd, rd_sem);
+    Radio *radio = new Radio(& out, rd, rd_sem, 0);
 
     panglos::timer_t timeout = 120000;
     int n;
@@ -160,6 +185,10 @@ TEST(Radio, SocketSend)
         0
     };
 
+    // intersperse some rx data
+    const char *t = "+IPD,4:wxyz";
+    rd->add((const uint8_t*) t, strlen(t));
+
     for (const char **s = str; *s; s++)
     {
         rd->add((const uint8_t*) *s, strlen(*s));
@@ -171,6 +200,12 @@ TEST(Radio, SocketSend)
 
     n = radio->socket_send("abcdefgh", 8, timeout);
     EXPECT_EQ(8, n);
+
+    // check that the read data was buffered
+    n = radio->socket_read(buff, 4, timeout);
+    EXPECT_EQ(4, n);
+    buff[n] = '\0';
+    EXPECT_STREQ("wxyz", buff);
 
     delete radio;
     delete rd;
@@ -191,7 +226,7 @@ TEST(Radio, SocketRead)
     Mutex *rd_mutex = Mutex::create();
     Semaphore *rd_sem = Semaphore::create();
     Radio::RdBuff *rd = new Radio::RdBuff(1024, rd_sem, rd_mutex);
-    Radio *radio = new Radio(& out, rd, rd_sem);
+    Radio *radio = new Radio(& out, rd, rd_sem, 0);
 
     panglos::timer_t timeout = 120000;
     int n;
@@ -201,21 +236,32 @@ TEST(Radio, SocketRead)
     EXPECT_EQ(0, n);
 
     // push some data to the rx input
-    const char *str[] = {
-        "+IPD,8,abcdefgh",
-        0
-    };
-
-    for (const char **s = str; *s; s++)
-    {
-        rd->add((const uint8_t*) *s, strlen(*s));
-    }
+    const char *t = "+IPD,8:abcdefgh";
+    rd->add((const uint8_t*) t, strlen(t));
 
     n = radio->socket_read(buff, sizeof(buff), timeout);
     EXPECT_EQ(8, n);
 
     buff[n] = '\0';
     EXPECT_STREQ("abcdefgh", buff);
+
+    // should timeout with no data
+    n = radio->socket_read(buff, sizeof(buff), timeout);
+    EXPECT_EQ(0, n);
+
+    // push some more ipd data
+    t = "+IPD,8:01234567";
+    rd->add((const uint8_t*) t, strlen(t));
+
+    n = radio->socket_read(buff, 4, timeout);
+    EXPECT_EQ(4, n);
+    buff[n] = '\0';
+    EXPECT_STREQ("0123", buff);
+
+    n = radio->socket_read(buff, 6, timeout);
+    EXPECT_EQ(4, n);
+    buff[n] = '\0';
+    EXPECT_STREQ("4567", buff);
 
     delete radio;
     delete rd;

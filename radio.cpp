@@ -1,5 +1,7 @@
 
 #include <string.h>
+#include <stdio.h>
+#include <ctype.h>
 
 #include "debug.h"
 #include "uart.h"
@@ -8,12 +10,16 @@
 
 namespace panglos {
 
-Radio::Radio(Output *_out, RdBuff *_rd, Semaphore *_rx_sem)
-: out(_out), rd(_rd), select(), rx_sem(_rx_sem), timeout_sem(0)
+// TODO : put in class
+static char buff[128];
+static int in = 0;
+
+Radio::Radio(Output *_out, RdBuff *_rd, Semaphore *_rx_sem, GPIO *r)
+: out(_out), rd(_rd), select(), rx_sem(_rx_sem), timeout_sem(0), reset(r), reading(0)
 {
     timeout_sem = Semaphore::create();
 
-    select = new Select(4);
+    select = new Select(3);
     select->add(rx_sem);
     select->add(timeout_sem);
 }
@@ -22,6 +28,45 @@ Radio::~Radio()
 {
     delete select;
     delete timeout_sem;
+}
+
+class AutoEvent : public Event
+{
+    Semaphore *s;
+public:
+    AutoEvent(Semaphore *_s, timer_t period)
+    :   Event(_s, period + timer_now()), s(_s)
+    {
+        event_queue.add(this);
+    }
+    ~AutoEvent()
+    {
+        event_queue.remove(this);
+    }
+};
+
+int Radio::init()
+{
+    if (!reset)
+    {
+        // TODO : try soft reset?
+        return 0;
+    }
+
+    Semaphore *s = Semaphore::create();
+
+    PO_DEBUG("reset GPIO");
+    reset->set(false);
+    event_queue.wait(s, 120000);
+    reset->set(true);
+    event_queue.wait(s, 60000);
+
+    event_queue.wait(s, 60000);
+    rd->reset();
+    in = 0;
+
+    delete s;
+    return 0;
 }
 
 int Radio::send(const char *data, int size)
@@ -41,11 +86,44 @@ int Radio::send_at(const char *at)
     return out->_puts(at);
 }
 
-static char buff[128];
-static int in = 0;
+int Radio::create_reader(const char *idp)
+{
+    PO_DEBUG("%s", idp);
+
+    ASSERT(!strncmp("+IPD,", idp, 5));
+    int size = 0;
+    for (const char *s = & idp[5]; *s != ':'; s++)
+    {
+        size *= 10;
+        if (!isdigit(*s))
+        {
+            return 0;
+        }
+        size += *s - '0';
+    }
+
+    // sanity check on size
+    if ((size < 0) || (size > 1024))
+    {
+        PO_ERROR("size=%d too big", size);
+        return 0;
+    }
+
+    // allocate read buffer
+    buffers.add_buffer(size);
+
+    return size;
+}
 
 bool Radio::process(char c)
 {
+    if (reading)
+    {
+        buffers.add(c);
+        reading -= 1;
+        return false;
+    }
+
     const int next = in + 1;
 
     if (next == sizeof(buff))
@@ -69,7 +147,14 @@ bool Radio::process(char c)
     buff[in] = c;
     in = next;
 
-    // TODO : match +IDP input
+    // match +IPD input
+    if ((in > 5) && (c == ':') && !strncmp("+IPD,", buff, 5))
+    {
+        buff[in] = '\0';
+        reading = create_reader(buff);
+        in = 0;
+        return false;
+    }
 
     return false;
 }
@@ -79,13 +164,13 @@ int Radio::read_line(char *data, int size)
     while (true)
     {
         Semaphore *s = select->wait();
-        PO_DEBUG("sem=%p", s);
+        //PO_DEBUG("sem=%p", s);
         if (s == timeout_sem)
         {
             PO_DEBUG("timeout");
             return 0;
         }
-        ASSERT(s == rx_sem);
+        //ASSERT(s == rx_sem);
 
         while (true)
         {
@@ -123,7 +208,7 @@ bool Radio::wait_for(const char *data, int size)
             PO_DEBUG("timeout");
             return false;
         }
-        ASSERT(s == rx_sem);
+        //ASSERT(s == rx_sem);
 
         while (true)
         {
@@ -153,20 +238,6 @@ bool Radio::wait_for(const char *data, int size)
 
     return 0;
 }
-
-class AutoEvent : public Event
-{
-public:
-    AutoEvent(Semaphore *s, timer_t period)
-    :   Event(s, period + timer_now())
-    {
-        event_queue.add(this);
-    }
-    ~AutoEvent()
-    {
-        event_queue.remove(this);
-    }
-};
 
     /*
      *
@@ -333,6 +404,11 @@ int Radio::socket_send(const char *data, int size, timer_t timeout)
             return 0;
         }
 
+        if (!strncmp(buff, "Recv ", 5))
+        {
+            // "Recv nn bytes"
+            continue;
+        }
         // TODO : check fail case
         if (!strcmp(buff, "FAIL"))
         {
@@ -350,10 +426,45 @@ int Radio::socket_send(const char *data, int size, timer_t timeout)
 
 int Radio::socket_read(char *data, int size, timer_t timeout)
 {
-    IGNORE(data);
-    IGNORE(size);
-    IGNORE(timeout);
-    return 0;
+    int count = buffers.read((uint8_t*) data, size);
+
+    if (count == size)
+    {
+        return count;
+    }
+
+    AutoEvent period(timeout_sem, timeout);
+
+    while (true)
+    {
+        Semaphore *s = select->wait();
+        //PO_DEBUG("sem=%p", s);
+        if (s == timeout_sem)
+        {
+            //PO_DEBUG("timeout");
+            return count;
+        }
+        //ASSERT(s == rx_sem);
+
+        while (true)
+        {
+            char c;
+            if (!rd->get((uint8_t*) & c, 1))
+            {
+                break;
+            }
+            process(c);
+            rx_sem->post();
+
+            const int more = size - count;
+            count += buffers.read((uint8_t*) & data[count], more);
+
+            if (count == size)
+            {
+                return count;
+            }
+        }
+    }
 }
 
 }   //  namespace panglos
