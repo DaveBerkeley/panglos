@@ -23,6 +23,9 @@ private:
     GPIO *reset;
     int reading;
     Buffers buffers;
+    // buffer used by read_line() / wait_for()
+    char buff[128];
+    int in;
 
     int read_line(char *buff, int size);
     bool wait_for(const char *buff, int size);

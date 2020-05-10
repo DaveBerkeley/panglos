@@ -10,12 +10,8 @@
 
 namespace panglos {
 
-// TODO : put in class
-static char buff[128];
-static int in = 0;
-
 Radio::Radio(Output *_out, RdBuff *_rd, Semaphore *_rx_sem, GPIO *r)
-: out(_out), rd(_rd), select(), rx_sem(_rx_sem), timeout_sem(0), reset(r), reading(0)
+: out(_out), rd(_rd), select(), rx_sem(_rx_sem), timeout_sem(0), reset(r), reading(0), in(0)
 {
     timeout_sem = Semaphore::create();
 
@@ -57,6 +53,7 @@ int Radio::init()
 
     PO_DEBUG("reset GPIO");
     reset->set(false);
+    // TODO : fix timer so it gives units related to 1s, 1ms etc.
     event_queue.wait(s, 120000);
     reset->set(true);
     event_queue.wait(s, 60000);
@@ -91,9 +88,12 @@ int Radio::create_reader(const char *idp)
     PO_DEBUG("%s", idp);
 
     ASSERT(!strncmp("+IPD,", idp, 5));
+
+    // read the <length> field
     int size = 0;
     for (const char *s = & idp[5]; *s != ':'; s++)
     {
+        ASSERT(*s);
         size *= 10;
         if (!isdigit(*s))
         {
@@ -117,6 +117,7 @@ int Radio::create_reader(const char *idp)
 
 bool Radio::process(char c)
 {
+    // if reading data from +IPD, just do that
     if (reading)
     {
         buffers.add(c);
@@ -202,7 +203,7 @@ bool Radio::wait_for(const char *data, int size)
     while (true)
     {
         Semaphore *s = select->wait();
-        PO_DEBUG("sem=%p", s);
+        //PO_DEBUG("sem=%p", s);
         if (s == timeout_sem)
         {
             PO_DEBUG("timeout");
@@ -367,10 +368,13 @@ int Radio::socket_send(const char *data, int size, timer_t timeout)
             // echo
             continue;
         }
-        // TODO : check fail case
-        if (!strcmp(buff, "FAIL"))
+        if (!strcmp(buff, "link is not valid"))
         {
-            return false;
+            continue;
+        }
+        if (!strcmp(buff, "ERROR"))
+        {
+            return -1;
         }
         if (!strcmp(buff, "OK"))
         {

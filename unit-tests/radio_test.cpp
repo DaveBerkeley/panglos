@@ -270,4 +270,54 @@ TEST(Radio, SocketRead)
     mock_teardown();
 }
 
+    /*
+     *
+     */
+
+TEST(Radio, SocketSendError)
+{
+    mock_setup(true);
+
+    Out out;
+    Mutex *rd_mutex = Mutex::create();
+    Semaphore *rd_sem = Semaphore::create();
+    Radio::RdBuff *rd = new Radio::RdBuff(1024, rd_sem, rd_mutex);
+    Radio *radio = new Radio(& out, rd, rd_sem, 0);
+
+    panglos::timer_t timeout = 120000;
+    int n;
+
+    n = radio->socket_send("abcdefgh", 8, timeout);
+    EXPECT_EQ(0, n);
+
+    char buff[1024];
+    n = out.buffer.read((uint8_t*) buff, sizeof(buff));
+    buff[n] = '\0';
+    const char *expect = "AT+CIPSEND=8\r\n";
+    EXPECT_STREQ(expect, buff);
+
+    // push some data to the rx input
+    const char *str[] = {
+        expect,
+        "link is not valid",
+        "ERROR",
+        0
+    };
+
+    for (const char **s = str; *s; s++)
+    {
+        rd->add((const uint8_t*) *s, strlen(*s));
+        rd->add((const uint8_t*) "\r\n", 2);
+    }
+
+    n = radio->socket_send("abcdefgh", 8, timeout);
+    EXPECT_EQ(-1, n);
+
+    delete radio;
+    delete rd;
+    delete rd_mutex;
+    delete rd_sem;
+    mock_teardown();
+}
+
 //  FIN
