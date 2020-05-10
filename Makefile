@@ -24,7 +24,7 @@ XSRC = $(TESTDIR)/motor_test.cpp $(TESTDIR)/mock.cpp $(TESTDIR)/hal.cpp \
 	   $(PANGLOS)/cli.cpp $(PANGLOS)/sprintf.cpp \
 	   $(PANGLOS)/mcp23s17.cpp $(PANGLOS)/spi.cpp \
 	   $(PANGLOS)/select.cpp $(PANGLOS)/radio.cpp \
-	   $(PANGLOS)/esp8266_cmd.cpp $(PANGLOS)/dispatch.cpp 
+	   $(PANGLOS)/dispatch.cpp 
 
 APP = panglos
 ODIR = obj
