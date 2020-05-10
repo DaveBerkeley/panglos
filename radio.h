@@ -34,6 +34,7 @@ public:
     bool connect(const char *ssid, const char *pw, timer_t timeout);
     int socket_open(const char *host, int port, timer_t timeout);
     int socket_send(const char *data, int size, timer_t timeout);
+    int socket_read(char *data, int size, timer_t timeout);
 };
 
 }   //  namespace panglos

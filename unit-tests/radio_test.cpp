@@ -179,4 +179,49 @@ TEST(Radio, SocketSend)
     mock_teardown();
 }
 
+    /*
+     *
+     */
+
+TEST(Radio, SocketRead)
+{
+    mock_setup(true);
+
+    Out out;
+    Mutex *rd_mutex = Mutex::create();
+    Semaphore *rd_sem = Semaphore::create();
+    Radio::RdBuff *rd = new Radio::RdBuff(1024, rd_sem, rd_mutex);
+    Radio *radio = new Radio(& out, rd, rd_sem);
+
+    panglos::timer_t timeout = 120000;
+    int n;
+    char buff[1024];
+
+    n = radio->socket_read(buff, sizeof(buff), timeout);
+    EXPECT_EQ(0, n);
+
+    // push some data to the rx input
+    const char *str[] = {
+        "+IPD,8,abcdefgh",
+        0
+    };
+
+    for (const char **s = str; *s; s++)
+    {
+        rd->add((const uint8_t*) *s, strlen(*s));
+    }
+
+    n = radio->socket_read(buff, sizeof(buff), timeout);
+    EXPECT_EQ(8, n);
+
+    buff[n] = '\0';
+    EXPECT_STREQ("abcdefgh", buff);
+
+    delete radio;
+    delete rd;
+    delete rd_mutex;
+    delete rd_sem;
+    mock_teardown();
+}
+
 //  FIN

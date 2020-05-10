@@ -348,6 +348,14 @@ int Radio::socket_send(const char *data, int size, timer_t timeout)
     }
 }
 
+int Radio::socket_read(char *data, int size, timer_t timeout)
+{
+    IGNORE(data);
+    IGNORE(size);
+    IGNORE(timeout);
+    return 0;
+}
+
 }   //  namespace panglos
 
 //  FIN
