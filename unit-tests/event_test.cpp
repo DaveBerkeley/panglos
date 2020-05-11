@@ -1,13 +1,11 @@
 
-#if !defined(NO_TESTS)
-
 #include <stdlib.h>
 
 #include <gtest/gtest.h>
 
-#include <panglos/debug.h>
-#include <panglos/event.h>
-#include <panglos/timer.h>
+#include <debug.h>
+#include <event.h>
+#include <timer.h>
 
 #include "mock.h"
 
@@ -417,7 +415,5 @@ TEST(Event, Wait)
 
     mock_teardown();
 }
-
-#endif // NO_TESTS
 
 //  FIN

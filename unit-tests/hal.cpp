@@ -1,11 +1,9 @@
 
-#if !defined(NO_TESTS)
-
 #include <pthread.h>
 #include <semaphore.h>
 
-#include <panglos/debug.h>
-#include <panglos/event.h>
+#include <debug.h>
+#include <event.h>
 
 #include "mock.h"
 
@@ -126,7 +124,5 @@ void *get_task_id()
 }
 
 }   //  namespace
-
-#endif // NO_TESTS
 
 //  FIN

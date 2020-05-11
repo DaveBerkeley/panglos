@@ -1,7 +1,7 @@
 
 CC = g++
 LL = g++
-CFLAGS = -Wall -Wextra -Werror -g -I.. -DGTEST=1
+CFLAGS = -Wall -Wextra -Werror -g -I src -I unit-tests -DGTEST=1
 LDFLAGS = -pthread -g
 
 # Link with google test
@@ -10,7 +10,7 @@ LDFLAGS += $(GTEST)/libgtest_main.a
 LDFLAGS += $(GTEST)/libgtest.a
 
 TESTDIR=unit-tests
-PANGLOS=.
+PANGLOS=src
 
 SRC = 
 XSRC = $(TESTDIR)/motor_test.cpp $(TESTDIR)/mock.cpp $(TESTDIR)/hal.cpp \

@@ -1,12 +1,10 @@
 
-#if !defined(NO_TESTS)
-
 #include <pthread.h>
 
 #include <gtest/gtest.h>
 
-#include "../debug.h"
-#include "../radio.h"
+#include <debug.h>
+#include <radio.h>
 #include "mock.h"
 
 using namespace panglos;
@@ -321,7 +319,5 @@ TEST(Radio, SocketSendError)
     delete rd_sem;
     mock_teardown();
 }
-
-#endif // NO_TESTS
 
 //  FIN

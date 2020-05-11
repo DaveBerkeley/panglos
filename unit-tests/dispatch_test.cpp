@@ -1,13 +1,10 @@
 
-#if !defined(NO_TESTS)
-
 #include <pthread.h>
 
 #include <gtest/gtest.h>
 
-#include <panglos/debug.h>
-
-#include  <panglos/dispatch.h>
+#include <debug.h>
+#include <dispatch.h>
 
 using namespace panglos;
 
@@ -73,7 +70,5 @@ TEST(Dispatch, Test)
     err = pthread_join(thread, 0);
     EXPECT_EQ(0, err);
 }
-
-#endif // NO_TESTS
 
 //  FIN

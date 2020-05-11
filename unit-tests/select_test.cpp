@@ -1,12 +1,10 @@
 
-#if !defined(NO_TESTS)
-
 #include <pthread.h>
 
 #include <gtest/gtest.h>
 
-#include <panglos/debug.h>
-#include <panglos/select.h>
+#include <debug.h>
+#include <select.h>
 
 #include "mock.h"
 
@@ -195,7 +193,5 @@ TEST(Select, Delete)
     EXPECT_EQ(0, semb.hook);
     EXPECT_EQ(0, semc.hook);    
 }
-
-#endif // NO_TESTS
 
 //  FIN

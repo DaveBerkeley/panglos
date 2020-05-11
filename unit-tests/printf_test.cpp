@@ -1,12 +1,10 @@
 
-#if !defined(NO_TESTS)
-
 #include <stdlib.h>
 #include <stdarg.h>
 
 #include <gtest/gtest.h>
 
-#include <panglos/sprintf.h>
+#include <sprintf.h>
 
 using namespace panglos;
 
@@ -265,7 +263,5 @@ TEST(Printf, Test)
         EXPECT_STREQ("hello 0x80001234 end", out.buff);
     }
 }
-
-#endif // NO_TESTS
 
 //  FIN

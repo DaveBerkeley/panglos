@@ -1,12 +1,10 @@
 
-#if !defined(NO_TESTS)
-
 #include <pthread.h>
 
 #include <gtest/gtest.h>
 
-#include <panglos/debug.h>
-#include <panglos/msg_queue.h>
+#include <debug.h>
+#include <msg_queue.h>
 
 using namespace panglos;
 
@@ -178,7 +176,5 @@ TEST(MsgQueue, ThreadSafe)
     delete mutex;
     delete semaphore;
 }
-
-#endif // NO_TESTS
 
 //  FIN

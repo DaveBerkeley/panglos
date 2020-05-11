@@ -2,11 +2,11 @@
 #include <semaphore.h>
 #include <string.h>
 
-#include <panglos/debug.h>
-#include <panglos/mutex.h>
-#include <panglos/event.h>
-#include <panglos/gpio.h>
-#include <panglos/spi.h>
+#include <debug.h>
+#include <mutex.h>
+#include <event.h>
+#include <gpio.h>
+#include <spi.h>
 
 void mock_setup(bool event_thread);
 void mock_teardown();

@@ -1,13 +1,11 @@
 
-#if !defined(NO_TESTS)
-
 #include <pthread.h>
 
 #include <gtest/gtest.h>
 
-#include "../debug.h"
-#include "../mutex.h"
-#include "../list.h"
+#include <debug.h>
+#include <mutex.h>
+#include <list.h>
 
 using namespace panglos;
 
@@ -416,7 +414,5 @@ TEST(List, Thread)
 
     delete mutex;
 }
-
-#endif // NO_TESTS
 
 //  FIN

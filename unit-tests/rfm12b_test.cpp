@@ -1,6 +1,4 @@
 
-#if !defined(NO_TESTS)
-
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
@@ -180,7 +178,5 @@ TEST(RFM12B, Test)
     delete s;
 }
 #endif
-
-#endif // NO_TESTS
 
 //  FIN

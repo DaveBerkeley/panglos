@@ -1,13 +1,11 @@
 
-#if !defined(NO_TESTS)
-
 #include <stdlib.h>
 #include <stdarg.h>
 
 #include <gtest/gtest.h>
 
-#include <panglos/debug.h>
-#include <panglos/buffer.h>
+#include <debug.h>
+#include <buffer.h>
 
 #include "mock.h"
 
@@ -464,7 +462,5 @@ TEST(Buffers, Spent)
     EXPECT_EQ('b', buff[1]);
     EXPECT_EQ('c', buff[2]);
 }
-
-#endif // NO_TESTS
 
 //  FIN

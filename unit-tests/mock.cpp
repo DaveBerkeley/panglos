@@ -1,14 +1,12 @@
 
-#if !defined(NO_TESTS)
-
 #include <pthread.h>
 #include <sys/select.h>
 
 #include <gtest/gtest.h>
 
-#include <panglos/debug.h>
-#include <panglos/event.h>
-#include <panglos/timer.h>
+#include <debug.h>
+#include <event.h>
+#include <timer.h>
 
 #include "mock.h"
 
@@ -166,7 +164,5 @@ bool pins_match(int num, int start, const int *p)
 
     return true;
 }
-
-#endif // NO_TESTS
 
 //  FIN
