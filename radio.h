@@ -44,6 +44,8 @@ public:
     int socket_open(const char *host, int port, timer_t timeout);
     int socket_send(const char *data, int size, timer_t timeout);
     int socket_read(char *data, int size, timer_t timeout);
+
+    void flush_read();
 };
 
 }   //  namespace panglos

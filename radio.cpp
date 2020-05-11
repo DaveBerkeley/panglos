@@ -471,6 +471,12 @@ int Radio::socket_read(char *data, int size, timer_t timeout)
     }
 }
 
+void Radio::flush_read()
+{
+    buffers.reset();
+    reading = 0;
+}
+
 }   //  namespace panglos
 
 //  FIN

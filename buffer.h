@@ -263,13 +263,17 @@ public:
 
     ~Buffers()
     {
+        reset();
+        delete mutex;
+    }
+
+    void reset()
+    {
         while (!deque.empty())
         {
             Buffer *b = deque.pop_head(0);
             delete b;
         }
-
-        delete mutex;
     }
 
     void add_buffer(int size)
