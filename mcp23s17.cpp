@@ -332,10 +332,10 @@ ExpandedGpio::ExpandedGpio(MCP23S17 *_chip, MCP23S17::Port _port, int _bit, MCP2
     ASSERT((bit >= 0) && (bit <= 7));
 
     mask = 1 << bit;
-    MCP23S17::Register iodir_reg;
-    MCP23S17::Register gppu_reg;
-    MCP23S17::Register gpinten_reg;
-    MCP23S17::Register defval_reg;
+    MCP23S17::Register iodir_reg = (MCP23S17::Register) 0;
+    MCP23S17::Register gppu_reg = (MCP23S17::Register) 0;
+    MCP23S17::Register gpinten_reg = (MCP23S17::Register) 0;
+    MCP23S17::Register defval_reg = (MCP23S17::Register) 0;
 
     switch (port)
     {

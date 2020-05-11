@@ -3,8 +3,14 @@
 #include <string.h>
 #include <stdarg.h>
 
+#if defined(STM32F1xx)
+#include "stm32f1xx_hal.h"
+#include "stm32f1xx_hal_uart.h"
+#else
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_uart.h"
+#define STM32F4xx
+#endif
 
 #include "../debug.h"
 
@@ -71,54 +77,118 @@ static IRQn_Type get_irq_num(panglos::UART::Id id)
      *
      */
 
+#if defined(STM32F4xx)
+
+static void init_uart1()
+{
+    __USART1_CLK_ENABLE();
+
+    GPIO_InitTypeDef gpio_def;
+
+    gpio_def.Pin = GPIO_PIN_9;
+    gpio_def.Mode = GPIO_MODE_AF_PP;
+    gpio_def.Alternate = GPIO_AF7_USART1;
+    gpio_def.Speed = GPIO_SPEED_HIGH;
+    gpio_def.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, & gpio_def);
+
+    gpio_def.Pin = GPIO_PIN_10;
+    gpio_def.Mode = GPIO_MODE_AF_PP;
+    HAL_GPIO_Init(GPIOA, & gpio_def);
+}
+
+static void init_uart2()
+{
+    __USART2_CLK_ENABLE();
+        
+    GPIO_InitTypeDef gpio_def;
+
+    gpio_def.Pin = GPIO_PIN_2;
+    gpio_def.Mode = GPIO_MODE_AF_PP;
+    gpio_def.Alternate = GPIO_AF7_USART2;
+    gpio_def.Speed = GPIO_SPEED_HIGH;
+    gpio_def.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, & gpio_def);
+
+    gpio_def.Pin = GPIO_PIN_3;
+    gpio_def.Mode = GPIO_MODE_AF_PP;
+    HAL_GPIO_Init(GPIOA, & gpio_def);
+}
+
+static void init_uart3()
+{
+    __USART3_CLK_ENABLE();
+
+    GPIO_InitTypeDef gpio_def;
+
+    gpio_def.Pin = GPIO_PIN_10;
+    gpio_def.Mode = GPIO_MODE_AF_PP;
+    gpio_def.Alternate = GPIO_AF7_USART3;
+    gpio_def.Speed = GPIO_SPEED_HIGH;
+    gpio_def.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOB, & gpio_def);
+
+    gpio_def.Pin = GPIO_PIN_11;
+    gpio_def.Mode = GPIO_MODE_AF_PP;
+    HAL_GPIO_Init(GPIOB, & gpio_def);
+}
+
+#endif // STM32F4xx
+
+    /*
+     *
+     */
+
+#if defined(STM32F1xx)
+
+static void init_uart1()
+{
+    // TODO
+    ASSERT(0);
+}
+
+static void init_uart2()
+{
+    // TODO
+    ASSERT(0);
+}
+
+static void init_uart3()
+{
+    // TODO
+    ASSERT(0);
+}
+
+#endif // STM32F1xx
+
+    /*
+     *
+     */
+
 static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud, int irq_level)
 {
 
     UART_HandleTypeDef *uart = get_uart(id);
-    uint32_t rx_pin;
-    uint32_t tx_pin;
-    uint32_t alternate;
     USART_TypeDef* instance = 0;
-    GPIO_TypeDef *port;
-    uint32_t tx_mode;
-    uint32_t rx_mode;
 
     switch (id)
     {
         case panglos::UART::UART_1 :
         {
-            __USART1_CLK_ENABLE();
-            tx_pin = GPIO_PIN_9;
-            rx_pin = GPIO_PIN_10;
-            alternate = GPIO_AF7_USART1;
             instance = USART1;
-            port = GPIOA;
-            tx_mode = GPIO_MODE_AF_PP;
-            rx_mode = GPIO_MODE_AF_PP;
+            init_uart1();
             break;
         }
         case panglos::UART::UART_2 :
         {
-            __USART2_CLK_ENABLE();
-            tx_pin = GPIO_PIN_2;
-            rx_pin = GPIO_PIN_3;
-            alternate = GPIO_AF7_USART2;
             instance = USART2;
-            port = GPIOA;
-            tx_mode = GPIO_MODE_AF_PP;
-            rx_mode = GPIO_MODE_AF_PP;
+            init_uart2();
             break;
         }
         case panglos::UART::UART_3 :
         {
-            __USART3_CLK_ENABLE();
-            tx_pin = GPIO_PIN_10;
-            rx_pin = GPIO_PIN_11;
-            alternate = GPIO_AF7_USART3;
             instance = USART3;
-            port = GPIOB;
-            tx_mode = GPIO_MODE_AF_PP;
-            rx_mode = GPIO_MODE_AF_PP;
+            init_uart3();
             break;
         }
         default :
@@ -126,19 +196,6 @@ static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud, int
             ASSERT(0);
         }
     }
-
-    GPIO_InitTypeDef gpio_def;
-
-    gpio_def.Pin = tx_pin;
-    gpio_def.Mode = tx_mode;
-    gpio_def.Alternate = alternate;
-    gpio_def.Speed = GPIO_SPEED_HIGH;
-    gpio_def.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(port, & gpio_def);
-
-    gpio_def.Pin = rx_pin;
-    gpio_def.Mode = rx_mode;
-    HAL_GPIO_Init(port, & gpio_def);
 
     memset(uart, 0, sizeof(*uart));
     uart->Instance = instance;

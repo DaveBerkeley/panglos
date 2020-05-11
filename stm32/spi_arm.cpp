@@ -1,5 +1,11 @@
 
+#if defined(STM32F1xx)
+#include "stm32f1xx_hal.h"
+#include "stm32f1xx_hal_gpio.h"
+#else
 #include "stm32f4xx_hal.h"
+#define STM32F4xx
+#endif
 
 #include "../debug.h"
 
@@ -65,31 +71,70 @@ public:
      *
      */
 
+#if defined(STM32F4xx)
+static void spi1_init()
+{
+    GPIO_InitTypeDef  gpio_def;
+    gpio_def.Pin       = GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
+    gpio_def.Mode      = GPIO_MODE_AF_PP;
+    gpio_def.Pull      = GPIO_PULLUP;
+    gpio_def.Speed     = GPIO_SPEED_FREQ_HIGH;
+    gpio_def.Alternate = GPIO_AF5_SPI1;
+    HAL_GPIO_Init(GPIOA, & gpio_def);
+}
+
+static void spi2_init()
+{
+    GPIO_InitTypeDef  gpio_def;
+    gpio_def.Pin       = GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
+    gpio_def.Mode      = GPIO_MODE_AF_PP;
+    gpio_def.Pull      = GPIO_PULLUP;
+    gpio_def.Speed     = GPIO_SPEED_FREQ_HIGH;
+    gpio_def.Alternate = GPIO_AF5_SPI1;
+    HAL_GPIO_Init(GPIOB, & gpio_def);
+}
+#endif
+
+#if defined(STM32F1xx)
+static void spi1_init()
+{
+    GPIO_InitTypeDef  gpio_def;
+    gpio_def.Pin       = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
+    gpio_def.Mode      = GPIO_MODE_AF_PP;
+    gpio_def.Pull      = GPIO_PULLUP;
+    gpio_def.Speed     = GPIO_SPEED_FREQ_HIGH;
+    __HAL_AFIO_REMAP_SPI1_ENABLE();
+    HAL_GPIO_Init(GPIOB, & gpio_def);
+}
+
+static void spi2_init()
+{
+    ASSERT(0);
+#if 0
+    GPIO_InitTypeDef  gpio_def;
+    gpio_def.Pin       = GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
+    gpio_def.Mode      = GPIO_MODE_AF_PP;
+    gpio_def.Pull      = GPIO_PULLUP;
+    gpio_def.Speed     = GPIO_SPEED_FREQ_HIGH;
+    __HAL_AFIO_REMAP_SPI2_ENABLE();
+    HAL_GPIO_Init(GPIOB, & gpio_def);
+#endif
+}
+#endif // STMF1xx
+
 SPI *SPI::create(ID _id, Mutex *mutex)
 {
     switch (_id)
     {
         case SPI_1 :
         {
-            GPIO_InitTypeDef  gpio_def;
-            gpio_def.Pin       = GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
-            gpio_def.Mode      = GPIO_MODE_AF_PP;
-            gpio_def.Pull      = GPIO_PULLUP;
-            gpio_def.Speed     = GPIO_SPEED_HIGH;
-            gpio_def.Alternate = GPIO_AF5_SPI1;
-            HAL_GPIO_Init(GPIOA, & gpio_def);
+            spi1_init();
             //GPIO * cs = gpio_create(GPIOA, GPIO_PIN_4, GPIO_MODE_OUTPUT_PP);
             return new ArmSpi(SPI1, mutex);
         }
         case SPI_2 :
         {
-            GPIO_InitTypeDef  gpio_def;
-            gpio_def.Pin       = GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
-            gpio_def.Mode      = GPIO_MODE_AF_PP;
-            gpio_def.Pull      = GPIO_PULLUP;
-            gpio_def.Speed     = GPIO_SPEED_HIGH;
-            gpio_def.Alternate = GPIO_AF5_SPI1;
-            HAL_GPIO_Init(GPIOB, & gpio_def);
+            spi2_init();
             //GPIO * cs = gpio_create(GPIOB, GPIO_PIN_12, GPIO_MODE_OUTPUT_PP);
             return new ArmSpi(SPI2, mutex);
         }
