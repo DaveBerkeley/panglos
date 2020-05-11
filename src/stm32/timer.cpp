@@ -26,6 +26,14 @@ static TIM_HandleTypeDef *timer = & htimx[1];
 
 static const uint16_t prescaler = 128;
 
+static void Init_Timer_Irq()
+{
+    __HAL_RCC_TIM5_CLK_ENABLE();
+    /* TIM5 interrupt Init */
+    HAL_NVIC_SetPriority(TIM5_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(TIM5_IRQn);
+}
+
 #endif // STM32F4xx
 
     /*
@@ -40,6 +48,14 @@ static const uint16_t prescaler = 128;
 #define TIMER_CLK_ENABLE __HAL_RCC_TIM2_CLK_ENABLE
 
 static const uint16_t prescaler = 1024;
+
+static void Init_Timer_Irq()
+{
+    __HAL_RCC_TIM3_CLK_ENABLE();
+    /* TIM3 interrupt Init */
+    HAL_NVIC_SetPriority(TIM3_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(TIM3_IRQn);
+}
 
 #endif // STM32F1xx
 
@@ -151,6 +167,8 @@ static void hw_timer_init(void)
     {
         Error_Handler();
     }
+
+    Init_Timer_Irq();
 }
 
 /**
