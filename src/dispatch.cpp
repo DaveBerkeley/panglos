@@ -1,7 +1,7 @@
 
-#include "debug.h"
+#include "panglos/debug.h"
 
-#include "dispatch.h"
+#include "panglos/dispatch.h"
 
 namespace panglos {
 

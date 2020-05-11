@@ -1,7 +1,7 @@
 
-#include "debug.h"
+#include "panglos/debug.h"
 
-#include "spi.h"
+#include "panglos/spi.h"
 
 namespace panglos {
 

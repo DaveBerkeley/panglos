@@ -7,9 +7,8 @@
 #define STM32F4xx
 #endif
 
-#include "../debug.h"
-
-#include "../spi.h"
+#include "../panglos/debug.h"
+#include "../panglos/spi.h"
 
 namespace panglos {
 

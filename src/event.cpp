@@ -1,8 +1,8 @@
 
-#include "debug.h"
+#include "panglos/debug.h"
 
-#include "list.h"
-#include "event.h"
+#include "panglos/list.h"
+#include "panglos/event.h"
 
 namespace panglos {
 

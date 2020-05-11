@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "debug.h"
+#include "panglos/debug.h"
 
-#include "list.h"
-#include "msg_queue.h"
-#include "select.h"
+#include "panglos/list.h"
+#include "panglos/msg_queue.h"
+#include "panglos/select.h"
 
 namespace panglos {
 

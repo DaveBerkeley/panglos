@@ -1,11 +1,11 @@
 
 #include <math.h>
 
-#include "debug.h"
+#include "panglos/debug.h"
 
-#include "gpio.h"
-#include "event.h"
-#include "motor.h"
+#include "panglos/gpio.h"
+#include "panglos/event.h"
+#include "panglos/motor.h"
 
 namespace panglos {
 

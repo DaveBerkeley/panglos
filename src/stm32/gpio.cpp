@@ -5,9 +5,9 @@
 #include "stm32f4xx_hal.h"
 #endif
 
-#include "../debug.h"
-#include "../gpio.h"
-#include "gpio_arm.h"
+#include "../panglos/debug.h"
+#include "../panglos/gpio.h"
+#include "../panglos/stm32/gpio_arm.h"
 
     /*
      *  GPIO

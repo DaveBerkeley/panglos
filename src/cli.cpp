@@ -1,7 +1,7 @@
 
 #include <string.h>
 
-#include "cli.h"
+#include "panglos/cli.h"
 
 namespace panglos {
 

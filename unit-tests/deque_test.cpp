@@ -1,8 +1,8 @@
 
 #include <gtest/gtest.h>
 
-#include <debug.h>
-#include <deque.h>
+#include <panglos/debug.h>
+#include <panglos/deque.h>
 
 using namespace panglos;
 

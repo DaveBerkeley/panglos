@@ -3,8 +3,8 @@
 
 #include <gtest/gtest.h>
 
-#include <debug.h>
-#include <msg_queue.h>
+#include <panglos/debug.h>
+#include <panglos/msg_queue.h>
 
 using namespace panglos;
 

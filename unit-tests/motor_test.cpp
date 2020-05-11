@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include <motor.h>
+#include <panglos/motor.h>
 
 #include "mock.h"
 

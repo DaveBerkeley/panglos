@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#include "debug.h"
-#include "uart.h"
-#include "radio.h"
-#include "event.h"
+#include "panglos/debug.h"
+#include "panglos/uart.h"
+#include "panglos/radio.h"
+#include "panglos/event.h"
 
 namespace panglos {
 

@@ -4,8 +4,8 @@
 
 #include <gtest/gtest.h>
 
-#include <debug.h>
-#include <buffer.h>
+#include <panglos/debug.h>
+#include <panglos/buffer.h>
 
 #include "mock.h"
 

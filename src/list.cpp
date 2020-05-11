@@ -1,8 +1,8 @@
 
-#include "debug.h"
-#include "mutex.h"
+#include "panglos/debug.h"
+#include "panglos/mutex.h"
 
-#include "list.h"
+#include "panglos/list.h"
 
 namespace panglos {
 

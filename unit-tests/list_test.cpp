@@ -3,9 +3,9 @@
 
 #include <gtest/gtest.h>
 
-#include <debug.h>
-#include <mutex.h>
-#include <list.h>
+#include <panglos/debug.h>
+#include <panglos/mutex.h>
+#include <panglos/list.h>
 
 using namespace panglos;
 

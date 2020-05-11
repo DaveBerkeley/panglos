@@ -3,8 +3,9 @@
 
 #include <gtest/gtest.h>
 
-#include <debug.h>
-#include <radio.h>
+#include <panglos/debug.h>
+#include <panglos/radio.h>
+
 #include "mock.h"
 
 using namespace panglos;

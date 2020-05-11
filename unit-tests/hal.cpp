@@ -2,8 +2,8 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#include <debug.h>
-#include <event.h>
+#include <panglos/debug.h>
+#include <panglos/event.h>
 
 #include "mock.h"
 

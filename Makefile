@@ -26,7 +26,7 @@ XSRC = $(TESTDIR)/motor_test.cpp $(TESTDIR)/mock.cpp $(TESTDIR)/hal.cpp \
 	   $(PANGLOS)/select.cpp $(PANGLOS)/radio.cpp \
 	   $(PANGLOS)/dispatch.cpp 
 
-APP = panglos
+APP = a.out
 ODIR = obj
 OBJDIR = $(ODIR)/c
 XOBJDIR = $(ODIR)/cpp
@@ -46,7 +46,7 @@ XMAKEDEPEND = $(CC) -MM $(CPPFLAGS) -MT $(XOBJDIR)/$*.o -o $(XOBJDIR)/$*.d $<
 all: $(APP) $(DEPS)
 
 clean:
-	rm -r $(ODIR) -f $(APP)
+	rm -r $(ODIR) -f $(APP) html latex
 
 test: $(APP)
 	./$(APP)

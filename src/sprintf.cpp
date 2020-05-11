@@ -4,9 +4,9 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-#include "debug.h"
+#include "panglos/debug.h"
 
-#include "sprintf.h"
+#include "panglos/sprintf.h"
 
 namespace panglos {
 

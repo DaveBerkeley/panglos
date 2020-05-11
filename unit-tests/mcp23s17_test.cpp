@@ -1,8 +1,8 @@
 
 #include <gtest/gtest.h>
 
-#include <debug.h>
-#include <mcp23s17.h>
+#include <panglos/debug.h>
+#include <panglos/mcp23s17.h>
 
 #include "mock.h"
 

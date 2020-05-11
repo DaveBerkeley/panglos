@@ -3,8 +3,8 @@
 
 #include <gtest/gtest.h>
 
-#include <debug.h>
-#include <select.h>
+#include <panglos/debug.h>
+#include <panglos/select.h>
 
 #include "mock.h"
 

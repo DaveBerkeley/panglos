@@ -9,9 +9,9 @@
 #define STM32F4xx
 #endif
 
-#include "../debug.h"
-#include "../mutex.h"
-#include "../timer.h"
+#include "../panglos/debug.h"
+#include "../panglos/mutex.h"
+#include "../panglos/timer.h"
 
     /*
      *

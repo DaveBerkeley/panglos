@@ -4,9 +4,9 @@
 
 #include <gtest/gtest.h>
 
-#include <debug.h>
-#include <event.h>
-#include <timer.h>
+#include <panglos/debug.h>
+#include <panglos/event.h>
+#include <panglos/timer.h>
 
 #include "mock.h"
 

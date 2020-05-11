@@ -3,8 +3,8 @@
 
 #include <gtest/gtest.h>
 
-#include <debug.h>
-#include <cli.h>
+#include <panglos/debug.h>
+#include <panglos/cli.h>
 
 #include "mock.h"
 

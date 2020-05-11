@@ -1,9 +1,9 @@
 
 #include <string.h>
 
-#include "debug.h"
+#include "panglos/debug.h"
 
-#include "mcp23s17.h"
+#include "panglos/mcp23s17.h"
 
 namespace panglos {
 

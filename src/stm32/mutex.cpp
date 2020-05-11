@@ -5,10 +5,10 @@
 
 #include <list>
 
-#include "../debug.h"
-#include "../mutex.h"
-#include "../msg_queue.h"
-#include "hal.h"
+#include "../panglos/debug.h"
+#include "../panglos/mutex.h"
+#include "../panglos/msg_queue.h"
+#include "../panglos/stm32/hal.h"
 
 using namespace panglos;
 

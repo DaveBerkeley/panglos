@@ -12,12 +12,12 @@
 #define STM32F4xx
 #endif
 
-#include "../debug.h"
+#include "../panglos/debug.h"
 
-#include "../gpio.h"
-#include "../mutex.h"
-#include "../list.h"
-#include "../uart.h"
+#include "../panglos/gpio.h"
+#include "../panglos/mutex.h"
+#include "../panglos/list.h"
+#include "../panglos/uart.h"
 
 namespace panglos {
 
