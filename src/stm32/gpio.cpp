@@ -1,9 +1,5 @@
 
-#if defined(STM32F1xx)
-#include "stm32f1xx_hal.h"
-#else
-#include "stm32f4xx_hal.h"
-#endif
+#include "../panglos/stm32/stm32fxxx_hal.h"
 
 #include "../panglos/debug.h"
 #include "../panglos/gpio.h"

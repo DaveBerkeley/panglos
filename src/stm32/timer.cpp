@@ -2,12 +2,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
-#if defined(STM32F1xx)
-#include "stm32f1xx_hal.h"
-#else
-#include "stm32f4xx_hal.h"
-#define STM32F4xx
-#endif
+#include "../panglos/stm32/stm32fxxx_hal.h"
 
 #include "../panglos/debug.h"
 #include "../panglos/mutex.h"
@@ -17,19 +12,19 @@
      *
      */
 
+static TIM_HandleTypeDef htimx[2];
+
+static TIM_HandleTypeDef *clock = & htimx[0];
+static TIM_HandleTypeDef *timer = & htimx[1];
+
 #if defined(STM32F4xx)
-
-static TIM_HandleTypeDef _htim2;
-static TIM_HandleTypeDef _htim5;
-
-static TIM_HandleTypeDef *clock = & _htim2;
-static TIM_HandleTypeDef *timer = & _htim5;
 
 #define TIM_CLOCK TIM2
 #define TIM_TIMER TIM5
 
-#define IRQ_HANDLER TIM5_IRQHandler
 #define TIMER_CLK_ENABLE __TIM2_CLK_ENABLE
+
+static const uint16_t prescaler = 128;
 
 #endif // STM32F4xx
 
@@ -39,17 +34,12 @@ static TIM_HandleTypeDef *timer = & _htim5;
 
 #if defined(STM32F1xx)
 
-static TIM_HandleTypeDef _htim2;
-static TIM_HandleTypeDef _htim3;
-
-static TIM_HandleTypeDef *clock = & _htim2;
-static TIM_HandleTypeDef *timer = & _htim3;
-
 #define TIM_CLOCK TIM2
 #define TIM_TIMER TIM3
 
-#define IRQ_HANDLER TIM3_IRQHandler
-#define TIMER_CLK_ENABLE() // __TIM2_CLK_ENABLE
+#define TIMER_CLK_ENABLE __HAL_RCC_TIM2_CLK_ENABLE
+
+static const uint16_t prescaler = 1024;
 
 #endif // STM32F1xx
 
@@ -114,7 +104,12 @@ void *get_task_id()
 
 } // namespace panglos
 
-extern "C" void IRQ_HANDLER(void)
+#if defined(STM32F4xx)
+extern "C" void TIM5_IRQHandler(void)
+#endif
+#if defined(STM32F1xx)
+extern "C" void TIM3_IRQHandler(void)
+#endif
 {
     panglos::timer_irq();
     HAL_TIM_IRQHandler(timer);
@@ -126,8 +121,6 @@ extern "C" void IRQ_HANDLER(void)
   * @retval None
   */
 
-static const uint16_t prescaler = 128;
-
 static void hw_timer_init(void)
 {
     TIM_ClockConfigTypeDef sClockSourceConfig = {0};
@@ -138,7 +131,7 @@ static void hw_timer_init(void)
     timer->Init.CounterMode = TIM_COUNTERMODE_UP;
     timer->Init.Period = 0;
     timer->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    //htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    timer->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(timer) != HAL_OK)
     {
         Error_Handler();

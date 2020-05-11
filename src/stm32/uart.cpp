@@ -3,14 +3,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#if defined(STM32F1xx)
-#include "stm32f1xx_hal.h"
-#include "stm32f1xx_hal_uart.h"
-#else
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_uart.h"
-#define STM32F4xx
-#endif
+#include "../panglos/stm32/stm32fxxx_hal.h"
 
 #include "../panglos/debug.h"
 
@@ -143,8 +136,22 @@ static void init_uart3()
 
 static void init_uart1()
 {
-    // TODO
-    ASSERT(0);
+    //__USART1_CLK_ENABLE();
+    __HAL_RCC_USART1_CLK_ENABLE();
+
+    GPIO_InitTypeDef gpio_def;
+
+    gpio_def.Pin = GPIO_PIN_9;
+    gpio_def.Mode = GPIO_MODE_AF_PP;
+    gpio_def.Speed = GPIO_SPEED_FREQ_HIGH;
+    gpio_def.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, & gpio_def);
+
+    gpio_def.Pin = GPIO_PIN_10;
+    gpio_def.Mode = GPIO_MODE_AF_PP;
+    HAL_GPIO_Init(GPIOA, & gpio_def);
+
+    __HAL_AFIO_REMAP_USART1_ENABLE();
 }
 
 static void init_uart2()
