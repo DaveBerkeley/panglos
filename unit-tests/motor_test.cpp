@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <stdlib.h>
 
 #include <gtest/gtest.h>
@@ -501,5 +503,7 @@ TEST(Motor, Power)
 
     mock_teardown();
 }
+
+#endif // NO_TESTS
 
 //  FIN

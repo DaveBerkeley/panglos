@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <stdlib.h>
 
 #include <gtest/gtest.h>
@@ -395,5 +397,7 @@ TEST(Cli, ErrorFn)
     EXPECT_EQ(err_info.err, CLI::ERR_BAD_SIGN);
 
 }
+
+#endif // NO_TESTS
 
 //  FIN

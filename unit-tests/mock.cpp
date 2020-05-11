@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <pthread.h>
 #include <sys/select.h>
 
@@ -164,5 +166,7 @@ bool pins_match(int num, int start, const int *p)
 
     return true;
 }
+
+#endif // NO_TESTS
 
 //  FIN

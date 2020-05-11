@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <pthread.h>
 
 #include <gtest/gtest.h>
@@ -71,5 +73,7 @@ TEST(Dispatch, Test)
     err = pthread_join(thread, 0);
     EXPECT_EQ(0, err);
 }
+
+#endif // NO_TESTS
 
 //  FIN

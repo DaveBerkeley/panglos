@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <pthread.h>
 
 #include <gtest/gtest.h>
@@ -176,5 +178,7 @@ TEST(MsgQueue, ThreadSafe)
     delete mutex;
     delete semaphore;
 }
+
+#endif // NO_TESTS
 
 //  FIN

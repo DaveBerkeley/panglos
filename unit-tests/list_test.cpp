@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <pthread.h>
 
 #include <gtest/gtest.h>
@@ -414,5 +416,7 @@ TEST(List, Thread)
 
     delete mutex;
 }
+
+#endif // NO_TESTS
 
 //  FIN

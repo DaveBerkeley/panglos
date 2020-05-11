@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <stdlib.h>
 #include <stdarg.h>
 
@@ -263,5 +265,7 @@ TEST(Printf, Test)
         EXPECT_STREQ("hello 0x80001234 end", out.buff);
     }
 }
+
+#endif // NO_TESTS
 
 //  FIN

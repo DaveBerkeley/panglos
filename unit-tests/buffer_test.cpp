@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <stdlib.h>
 #include <stdarg.h>
 
@@ -462,5 +464,7 @@ TEST(Buffers, Spent)
     EXPECT_EQ('b', buff[1]);
     EXPECT_EQ('c', buff[2]);
 }
+
+#endif // NO_TESTS
 
 //  FIN

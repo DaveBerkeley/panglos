@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
@@ -562,5 +564,7 @@ TEST(MCP23S17, GpioIrq)
     EXPECT_EQ(0x00, spi.buff[5]); // clear the bit
     EXPECT_EQ(6, spi.in);
 }
+
+#endif // NO_TESTS
 
 //  FIN

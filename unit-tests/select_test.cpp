@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <pthread.h>
 
 #include <gtest/gtest.h>
@@ -193,5 +195,7 @@ TEST(Select, Delete)
     EXPECT_EQ(0, semb.hook);
     EXPECT_EQ(0, semc.hook);    
 }
+
+#endif // NO_TESTS
 
 //  FIN

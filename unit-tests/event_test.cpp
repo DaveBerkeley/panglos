@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <stdlib.h>
 
 #include <gtest/gtest.h>
@@ -415,5 +417,7 @@ TEST(Event, Wait)
 
     mock_teardown();
 }
+
+#endif // NO_TESTS
 
 //  FIN

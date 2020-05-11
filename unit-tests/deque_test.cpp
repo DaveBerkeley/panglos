@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
@@ -234,5 +236,7 @@ TEST(Deque, Visit)
     EXPECT_EQ(3, item2.value);
     EXPECT_EQ(4, item1.value);
 }
+
+#endif // NO_TESTS
 
 //  FIN

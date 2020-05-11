@@ -1,4 +1,6 @@
 
+#if !defined(NO_TESTS)
+
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -124,5 +126,7 @@ void *get_task_id()
 }
 
 }   //  namespace
+
+#endif // NO_TESTS
 
 //  FIN
