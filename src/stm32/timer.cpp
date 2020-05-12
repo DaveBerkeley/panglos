@@ -12,6 +12,8 @@
      *
      */
 
+namespace panglos {
+
 static TIM_HandleTypeDef htimx[2];
 
 static TIM_HandleTypeDef *clock = & htimx[0];
@@ -41,6 +43,13 @@ static void Init_Timer()
     /* TIM5 interrupt Init */
     HAL_NVIC_SetPriority(TIM5_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(TIM5_IRQn);
+}
+
+timer_t timer_now()
+{
+    // Use TIM2 32-bit counter as a time reference
+    const uint32_t t = __HAL_TIM_GET_COUNTER(clock);
+    return t;
 }
 
 #endif // STM32F4xx
@@ -75,29 +84,6 @@ static void Init_Timer()
     HAL_NVIC_EnableIRQ(TIM3_IRQn);
 }
 
-#endif // STM32F1xx
-
-    /*
-     *
-     */
-
-namespace panglos {
-
-    /*
-     *  Use hardware timer to get the current time
-     */
-
-#if defined(STM32F4xx)
-timer_t timer_now()
-{
-    // Use TIM2 32-bit counter as a time reference
-    const uint32_t t = __HAL_TIM_GET_COUNTER(clock);
-    return t;
-}
-#endif
-
-#if defined(STM32F1xx)
-
 static volatile uint16_t clock_overflow = 0;
 
 timer_t timer_now()
@@ -105,19 +91,24 @@ timer_t timer_now()
     // Use TIM2 16-bit counter as a time reference
     const uint16_t o1 = clock_overflow;
     const uint32_t t1 = __HAL_TIM_GET_COUNTER(clock);
-    const uint32_t t2 = __HAL_TIM_GET_COUNTER(clock);
     const uint16_t o2 = clock_overflow;
 
-    if (t1 < t2)
+    if (o1 == o2)
     {
-        // no wrap
+        // usual case, timer is still counting up
         return t1 + (o1 << 16);
     }
 
-    // the counter has wrapped
+    // timer has rolled over : need new reading
+    const uint32_t t2 = __HAL_TIM_GET_COUNTER(clock);
     return t2 + (o2 << 16);
 }
-#endif
+
+#endif // STM32F1xx
+
+    /*
+     *  Use hardware timer to get the current time
+     */
 
 static TaskHandle_t event_h = 0;
 
