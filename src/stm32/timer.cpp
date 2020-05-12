@@ -55,7 +55,7 @@ static void Init_Timer()
 #define TIM_CLOCK TIM2
 #define TIM_TIMER TIM3
 
-static const uint16_t prescaler = 1024;
+static const uint16_t prescaler = 128;
 
 static void Init_Clock()
 {
@@ -98,7 +98,7 @@ timer_t timer_now()
 
 #if defined(STM32F1xx)
 
-static uint16_t clock_overflow = 0;
+static volatile uint16_t clock_overflow = 0;
 
 timer_t timer_now()
 {

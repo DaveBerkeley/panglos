@@ -136,7 +136,6 @@ static void init_uart3()
 
 static void init_uart1()
 {
-    //__USART1_CLK_ENABLE();
     __HAL_RCC_USART1_CLK_ENABLE();
 
     GPIO_InitTypeDef gpio_def;
@@ -148,7 +147,6 @@ static void init_uart1()
     HAL_GPIO_Init(GPIOA, & gpio_def);
 
     gpio_def.Pin = GPIO_PIN_10;
-    gpio_def.Mode = GPIO_MODE_AF_PP;
     HAL_GPIO_Init(GPIOA, & gpio_def);
 
     __HAL_AFIO_REMAP_USART1_ENABLE();
@@ -156,14 +154,38 @@ static void init_uart1()
 
 static void init_uart2()
 {
-    // TODO
-    ASSERT(0);
+    __HAL_RCC_USART2_CLK_ENABLE();
+
+    GPIO_InitTypeDef gpio_def;
+
+    gpio_def.Pin = GPIO_PIN_2;
+    gpio_def.Mode = GPIO_MODE_AF_PP;
+    gpio_def.Speed = GPIO_SPEED_FREQ_HIGH;
+    gpio_def.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, & gpio_def);
+
+    gpio_def.Pin = GPIO_PIN_3;
+    HAL_GPIO_Init(GPIOA, & gpio_def);
+
+    __HAL_AFIO_REMAP_USART2_ENABLE();
 }
 
 static void init_uart3()
 {
-    // TODO
-    ASSERT(0);
+    __HAL_RCC_USART3_CLK_ENABLE();
+
+    GPIO_InitTypeDef gpio_def;
+
+    gpio_def.Pin = GPIO_PIN_10;
+    gpio_def.Mode = GPIO_MODE_AF_PP;
+    gpio_def.Speed = GPIO_SPEED_FREQ_HIGH;
+    gpio_def.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOB, & gpio_def);
+
+    gpio_def.Pin = GPIO_PIN_11;
+    HAL_GPIO_Init(GPIOB, & gpio_def);
+
+    __HAL_AFIO_REMAP_USART3_ENABLE();
 }
 
 #endif // STM32F1xx
