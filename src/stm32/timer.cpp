@@ -29,7 +29,6 @@ static TIM_HandleTypeDef *timer = & htimx[1];
 #define TIM_CLOCK TIM2
 #define TIM_TIMER TIM5
 
-
 static const uint16_t prescaler = 128;
 
 static void Init_Clock()
@@ -52,6 +51,8 @@ timer_t timer_now()
     return t;
 }
 
+#define TIMER_IRQ_HANDLER TIM5_IRQHandler
+
 #endif // STM32F4xx
 
     /*
@@ -61,34 +62,33 @@ timer_t timer_now()
 #if defined(STM32F1xx)
 
 // The STM32F1xx doesn't have 32-bit timers
-#define TIM_CLOCK TIM2
-#define TIM_TIMER TIM3
+// so we have to use 16-bit ones and extend timer overflow
+#define TIM_CLOCK TIM4
+#define TIM_TIMER TIM2
 
 static const uint16_t prescaler = 128;
 
 static void Init_Clock()
 {
-    __HAL_RCC_TIM2_CLK_ENABLE();
-    /* TIM2 interrupt Init */
-    HAL_NVIC_SetPriority(TIM2_IRQn, 5, 0);
-    HAL_NVIC_EnableIRQ(TIM2_IRQn);
+    __HAL_RCC_TIM4_CLK_ENABLE();
+    HAL_NVIC_SetPriority(TIM4_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(TIM4_IRQn);
 
     HAL_TIM_Base_Start_IT(clock);
 }
 
 static void Init_Timer()
 {
-    __HAL_RCC_TIM3_CLK_ENABLE();
-    /* TIM3 interrupt Init */
-    HAL_NVIC_SetPriority(TIM3_IRQn, 5, 0);
-    HAL_NVIC_EnableIRQ(TIM3_IRQn);
+    __HAL_RCC_TIM2_CLK_ENABLE();
+    HAL_NVIC_SetPriority(TIM2_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(TIM2_IRQn);
 }
 
 static volatile uint16_t clock_overflow = 0;
 
 timer_t timer_now()
 {
-    // Use TIM2 16-bit counter as a time reference
+    // Use TIM4 16-bit counter as a time reference
     const uint16_t o1 = clock_overflow;
     const uint32_t t1 = __HAL_TIM_GET_COUNTER(clock);
     const uint16_t o2 = clock_overflow;
@@ -102,6 +102,16 @@ timer_t timer_now()
     // timer has rolled over : need new reading
     const uint32_t t2 = __HAL_TIM_GET_COUNTER(clock);
     return t2 + (o2 << 16);
+}
+
+#define TIMER_IRQ_HANDLER TIM2_IRQHandler
+
+#define _IRQ_HANDLER(n) TIM ## n ## _IRQHandler
+
+extern "C" void _IRQ_HANDLER(4)(void)
+{
+    clock_overflow += 1;
+    HAL_TIM_IRQHandler(clock);
 }
 
 #endif // STM32F1xx
@@ -156,24 +166,11 @@ void *get_task_id()
     return xTaskGetCurrentTaskHandle();
 }
 
-#if defined(STM32F4xx)
-extern "C" void TIM5_IRQHandler(void)
-#endif
-#if defined(STM32F1xx)
-extern "C" void TIM3_IRQHandler(void)
-#endif
+extern "C" void TIMER_IRQ_HANDLER(void)
 {
-    panglos::timer_irq();
+    timer_irq();
     HAL_TIM_IRQHandler(timer);
 }
-
-#if defined(STM32F1xx)
-extern "C" void TIM2_IRQHandler(void)
-{
-    clock_overflow += 1;
-    HAL_TIM_IRQHandler(clock);
-}
-#endif
 
     /**
       * @brief TIM5 Initialization Function
