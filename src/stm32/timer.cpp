@@ -23,13 +23,13 @@ static TIM_HandleTypeDef *timer = & htimx[1];
      *
      */
 
+static const uint16_t prescaler = 800;
+
 #if defined(STM32F4xx)
 
 // The F4xx has 2 32-bit timers
 #define TIM_CLOCK TIM2
 #define TIM_TIMER TIM5
-
-static const uint16_t prescaler = 128;
 
 static void Init_Clock()
 {
@@ -65,8 +65,6 @@ timer_t timer_now()
 // so we have to use 16-bit ones and extend timer overflow
 #define TIM_CLOCK TIM4
 #define TIM_TIMER TIM2
-
-static const uint16_t prescaler = 128;
 
 static void Init_Clock()
 {
@@ -218,7 +216,7 @@ static void hw_clock_init(void)
 {
     HAL_StatusTypeDef status;
 
-    // Timer 2 is used as a free-running time reference
+    // TIMx is used as a free-running time reference
     clock->Instance = TIM_CLOCK;
     clock->Init.Prescaler = prescaler;
     clock->Init.CounterMode = TIM_COUNTERMODE_UP;
@@ -226,7 +224,7 @@ static void hw_clock_init(void)
     clock->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     clock->Init.RepetitionCounter = 0;
 
-    // Configure timer 2
+    // Configure TIMx
     Init_Clock();
     status = HAL_TIM_Base_Init(clock);
     ASSERT(status == HAL_OK);

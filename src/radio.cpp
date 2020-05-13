@@ -53,12 +53,10 @@ int Radio::init()
 
     PO_DEBUG("reset GPIO");
     reset->set(false);
-    // TODO : fix timer so it gives units related to 1s, 1ms etc.
-    event_queue.wait(s, 120000);
+    event_queue.wait(s, TIMER_S);
     reset->set(true);
-    event_queue.wait(s, 60000);
+    event_queue.wait(s, TIMER_S);
 
-    event_queue.wait(s, 60000);
     rd->reset();
     in = 0;
 
