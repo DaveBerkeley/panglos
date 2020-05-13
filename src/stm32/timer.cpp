@@ -180,6 +180,7 @@ extern "C" void TIMER_IRQ_HANDLER(void)
 
 static void hw_timer_init(void)
 {
+    HAL_StatusTypeDef status;
     TIM_ClockConfigTypeDef sClockSourceConfig = {0};
     TIM_MasterConfigTypeDef sMasterConfig = {0};
 
@@ -189,25 +190,20 @@ static void hw_timer_init(void)
     timer->Init.Period = 0;
     timer->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     timer->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_Base_Init(timer) != HAL_OK)
-    {
-        Error_Handler();
-    }
+    status = HAL_TIM_Base_Init(timer);
+    ASSERT(status == HAL_OK);
+
     sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-    if (HAL_TIM_ConfigClockSource(timer, &sClockSourceConfig) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    if (HAL_TIM_OnePulse_Init(timer, TIM_OPMODE_SINGLE) != HAL_OK)
-    {
-        Error_Handler();
-    }
+    status = HAL_TIM_ConfigClockSource(timer, &sClockSourceConfig);
+    ASSERT(status == HAL_OK);
+
+    status = HAL_TIM_OnePulse_Init(timer, TIM_OPMODE_SINGLE);
+    ASSERT(status == HAL_OK);
+
     sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
     sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    if (HAL_TIMEx_MasterConfigSynchronization(timer, &sMasterConfig) != HAL_OK)
-    {
-        Error_Handler();
-    }
+    status = HAL_TIMEx_MasterConfigSynchronization(timer, &sMasterConfig);
+    ASSERT(status == HAL_OK);
 
     Init_Timer();
 }
@@ -220,6 +216,8 @@ static void hw_timer_init(void)
 
 static void hw_clock_init(void)
 {
+    HAL_StatusTypeDef status;
+
     // Timer 2 is used as a free-running time reference
     clock->Instance = TIM_CLOCK;
     clock->Init.Prescaler = prescaler;
@@ -230,8 +228,10 @@ static void hw_clock_init(void)
 
     // Configure timer 2
     Init_Clock();
-    HAL_TIM_Base_Init(clock);
-    HAL_TIM_Base_Start(clock);
+    status = HAL_TIM_Base_Init(clock);
+    ASSERT(status == HAL_OK);
+    status = HAL_TIM_Base_Start(clock);
+    ASSERT(status == HAL_OK);
 }
 
 } // namespace panglos
