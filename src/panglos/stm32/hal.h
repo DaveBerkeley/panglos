@@ -2,10 +2,15 @@
 #if !defined(__STM32_HAL_H__)
 #define __STM32_HAL_H__
 
-// NOTE : CORTEX M4
-#define portNVIC_INT_CTRL_REG       ( * ( ( volatile uint32_t * ) 0xe000ed04 ) )
+// The VECTACTIVE field of the ICSR (Interrupt control and state register)
+// is set to show the active exception number
 
-#define IS_IN_IRQ() ((portNVIC_INT_CTRL_REG & 0xFFUL) != 0)
+#if defined(STM32F1xx) || defined(STM32F4xx)
+
+#define NVIC_ICSR   (*((volatile uint32_t *) 0xe000ed04))
+#define IS_IN_IRQ() ((NVIC_ICSR & 0x1FFUL) != 0)
+
+#endif
 
 #endif // __STM32_HAL_H__
 

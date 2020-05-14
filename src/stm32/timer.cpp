@@ -136,6 +136,24 @@ void timer_set(d_timer_t dt)
 {
     Lock lock(timer_mutex);
 
+    const uint32_t rd = __HAL_TIM_GET_COUNTER(timer);
+
+    const uint32_t MARGIN = 2;
+#if defined(STM32F1xx)
+    // The Cortex M3 only has 16-bit timers,
+    // so we need to clip the timer interrupt period
+    // then try again ...
+    if (dt >= 0x10000)
+    {
+        dt = 0xFFFF;
+    }
+#endif
+    // check if we have already passed the reload count?
+    if (dt <= (d_timer_t)(rd + MARGIN))
+    {
+        dt = rd + MARGIN;
+    }
+ 
     __HAL_TIM_SET_AUTORELOAD(timer, dt);
     __HAL_TIM_SET_COUNTER(timer, 0);
     HAL_TIM_Base_Start_IT(timer);
