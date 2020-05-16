@@ -89,15 +89,49 @@ static void spi2_init()
 #endif
 
 #if defined(STM32F1xx)
-static void spi1_init()
+static void spi1_init(bool remap=false)
 {
-    GPIO_InitTypeDef  gpio_def;
-    gpio_def.Pin       = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
-    gpio_def.Mode      = GPIO_MODE_AF_PP;
-    gpio_def.Pull      = GPIO_PULLUP;
-    gpio_def.Speed     = GPIO_SPEED_FREQ_HIGH;
-    __HAL_AFIO_REMAP_SPI1_ENABLE();
-    HAL_GPIO_Init(GPIOB, & gpio_def);
+    // AF remap and debug I/O configuration register (AFIO_MAPR)
+    // 0: No remap (NSS/PA4, SCK/PA5, MISO/PA6, MOSI/PA7)
+    // 1: Remap (NSS/PA15, SCK/PB3, MISO/PB4, MOSI/PB5)
+
+    typedef struct {
+        GPIO_TypeDef *port;
+        uint32_t pin;
+    }   PortPin;
+
+    static const PortPin no_map[] = {
+        //{   GPIOA, GPIO_PIN_4 },
+        {   GPIOA, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7 },
+        { 0, 0 },
+    };
+    static const PortPin do_remap[] = {
+        //{   GPIOA, GPIO_PIN_15 },
+        {   GPIOB, GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 },
+        { 0, 0 },
+    };
+
+    __HAL_RCC_SPI1_CLK_ENABLE();
+
+    if (remap)
+    {
+        __HAL_AFIO_REMAP_SPI1_ENABLE();
+    }
+    else
+    {
+        __HAL_AFIO_REMAP_SPI1_DISABLE();
+    }
+ 
+    for (const PortPin *pp = remap ? do_remap : no_map; pp->port; pp++)
+    {
+        GPIO_InitTypeDef gpio_def;
+
+        gpio_def.Pin   = pp->pin;
+        gpio_def.Mode  = GPIO_MODE_AF_PP;
+        gpio_def.Pull  = GPIO_PULLUP;
+        gpio_def.Speed = GPIO_SPEED_FREQ_HIGH;
+        HAL_GPIO_Init(pp->port, & gpio_def);
+    }
 }
 
 static void spi2_init()
