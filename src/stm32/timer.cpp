@@ -143,28 +143,11 @@ void timer_init()
 
 static Mutex *timer_mutex = Mutex::create();
 
-static timer_t last_set = 0;
+static d_timer_t last_dt = 0;
 
 void timer_set(d_timer_t dt)
 {
     Lock lock(timer_mutex);
-
-    const timer_t now = timer_now();
-    const timer_t when = now + dt;
-
-    // TODO : handle wrap around
-    if (last_set < now)
-    {
-        last_set = 0;
-    }
-
-    if (last_set && (last_set < when))
-    {
-        // we are already waiting for a more imminent event
-        return;
-    }
-
-    last_set = when;
 
 #if defined(STM32F1xx)
     // The Cortex M3 only has 16-bit timers,
@@ -176,6 +159,14 @@ void timer_set(d_timer_t dt)
     }
 #endif
  
+    if (last_dt && (last_dt < dt))
+    {
+        // we are already waiting for a more imminent event
+        return;
+    }
+
+    last_dt = dt;
+
     HAL_StatusTypeDef status;
 
     status = HAL_TIM_Base_Stop(timer);
@@ -207,6 +198,9 @@ void timer_wait(panglos::d_timer_t dt)
 
 static void timer_irq()
 {
+    // clear the last scheduled wake-up
+    last_dt = 0;
+
     // signal waiting task
     if (event_h)
     {
