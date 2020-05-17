@@ -41,6 +41,51 @@ EventQueue::~EventQueue()
     delete delete_mutex;
 }
 
+    /*
+     *
+     */
+
+//#define EVENT_SHOW
+
+#if defined(EVENT_SHOW)
+
+static int visit(Event *e, void *arg)
+{
+    ASSERT(arg);
+    Output *out = (Output*) arg;
+    out->printf("%#x ", e->time);
+    return 0;
+}
+
+static void show(const char *label, List<Event*> *events)
+{
+    // show the state of the queue
+    Buffers bs;
+    BufferOutput bo(& bs, 128);
+    events->visit(visit, & bo, 0);
+    char buff[64];
+    while (true)
+    {
+        int n = bs.read((uint8_t*) buff, sizeof(buff)-1);
+        if (n == 0)
+        {
+            break;
+        }
+        buff[n] = '\0';
+        PO_DEBUG("%s: [ %s]", label, buff);
+    }
+}
+
+#else // EVENT_SHOW
+
+#define show(x,y)
+
+#endif // EVENT_SHOW
+
+    /*
+     *
+     */
+
 void EventQueue::reschedule(d_timer_t dt)
 {
     if (rescheduler)
@@ -56,6 +101,7 @@ bool EventQueue::add(Event *ev)
     events.add_sorted(ev, event_cmp, 0);
     // return true if the new event is now at the head of the queue
     const bool first = (ev == events.head);
+    show(__FUNCTION__, & events);
     return first;
 }
 
@@ -89,6 +135,8 @@ d_timer_t EventQueue::check()
             // return the time until the next event
             return diff;
         }
+
+        show(__FUNCTION__, & events);
 
         // Save the semaphore before removing the event from the list
         Semaphore *semaphore = event->semaphore;

@@ -46,14 +46,12 @@ void Dispatch::run()
     {
         semaphore->wait();
 
-        Callback *cb = (Callback*) deque.pop_head(mutex);
-        if (!cb)
+        Callback *cb = deque.pop_head(mutex);
+        if (cb)
         {
-            break;
+            //PO_DEBUG("debug=%s", cb->debug);
+            cb->execute();
         }
-
-        //PO_DEBUG("debug=%s", cb->debug);
-        cb->execute();
     }
 
     PO_DEBUG("leave");

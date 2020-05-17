@@ -114,15 +114,11 @@ static void init_uart3()
 
     GPIO_InitTypeDef gpio_def;
 
-    gpio_def.Pin = GPIO_PIN_10;
+    gpio_def.Pin = GPIO_PIN_10 | GPIO_PIN_11;
     gpio_def.Mode = GPIO_MODE_AF_PP;
     gpio_def.Alternate = GPIO_AF7_USART3;
     gpio_def.Speed = GPIO_SPEED_HIGH;
     gpio_def.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOB, & gpio_def);
-
-    gpio_def.Pin = GPIO_PIN_11;
-    gpio_def.Mode = GPIO_MODE_AF_PP;
     HAL_GPIO_Init(GPIOB, & gpio_def);
 }
 
@@ -143,38 +139,65 @@ enum Map {
     MAP_FULL
 };
 
-static void init_uart1()
+static void init_uart1(Map map=MAP_NONE)
 {
     //0: No remap (TX/PA9, RX/PA10)
     //1: Remap    (TX/PB6, RX/PB7)
+
     __HAL_RCC_USART1_CLK_ENABLE();
-    //__HAL_AFIO_REMAP_USART1_ENABLE();
-    __HAL_AFIO_REMAP_USART1_DISABLE();
 
-    GPIO_InitTypeDef gpio_def;
-
-    gpio_def.Pin = GPIO_PIN_9 | GPIO_PIN_10;
-    gpio_def.Mode = GPIO_MODE_AF_PP;
-    gpio_def.Speed = GPIO_SPEED_FREQ_HIGH;
-    gpio_def.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, & gpio_def);
+    switch (map)
+    {
+        case MAP_NONE:
+        {
+            static const PortPin pp = { GPIOA, GPIO_PIN_9 | GPIO_PIN_10 };
+            __HAL_AFIO_REMAP_USART1_DISABLE();
+            INIT_AF_GPIO(& pp);
+            break;
+        }
+        case MAP_FULL:
+        {
+            static const PortPin pp = { GPIOB, GPIO_PIN_6 | GPIO_PIN_7 };
+            __HAL_AFIO_REMAP_USART1_ENABLE();
+            INIT_AF_GPIO(& pp);
+            break;
+        }
+        default :
+        {
+            ASSERT(0);
+        }
+    }
 }
 
-static void init_uart2()
+
+static void init_uart2(Map map=MAP_NONE)
 {
     //0: No remap (CTS/PA0, RTS/PA1, TX/PA2, RX/PA3, CK/PA4)
     //1: Remap    (CTS/PD3, RTS/PD4, TX/PD5, RX/PD6, CK/PD7
+
     __HAL_RCC_USART2_CLK_ENABLE();
-    //__HAL_AFIO_REMAP_USART2_ENABLE();
-    __HAL_AFIO_REMAP_USART2_DISABLE();
 
-    GPIO_InitTypeDef gpio_def;
-
-    gpio_def.Pin = GPIO_PIN_2 | GPIO_PIN_3;
-    gpio_def.Mode = GPIO_MODE_AF_PP;
-    gpio_def.Speed = GPIO_SPEED_FREQ_HIGH;
-    gpio_def.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, & gpio_def);
+    switch (map)
+    {
+        case MAP_NONE:
+        {
+            static const PortPin pp = { GPIOA, GPIO_PIN_2 | GPIO_PIN_3 };
+            __HAL_AFIO_REMAP_USART2_DISABLE();
+            INIT_AF_GPIO(& pp);
+            break;
+        }
+        case MAP_FULL:
+        {
+            static const PortPin pp = { GPIOD, GPIO_PIN_5 | GPIO_PIN_6 };
+            __HAL_AFIO_REMAP_USART2_ENABLE();
+            INIT_AF_GPIO(& pp);
+            break;
+        }
+        default :
+        {
+            ASSERT(0);
+        }
+    }
 }
 
 static void init_uart3(Map map=MAP_NONE)
@@ -189,21 +212,21 @@ static void init_uart3(Map map=MAP_NONE)
     {
         case MAP_NONE:
         {
-            static const PortPin pp = {   GPIOB, GPIO_PIN_10 | GPIO_PIN_11,  };
+            static const PortPin pp = { GPIOB, GPIO_PIN_10 | GPIO_PIN_11 };
             __HAL_AFIO_REMAP_USART3_DISABLE();
             INIT_AF_GPIO(& pp);
             break;
         }
         case MAP_PARTIAL:
         {
-            static const PortPin pp = { GPIOC, GPIO_PIN_10 | GPIO_PIN_11,  };
+            static const PortPin pp = { GPIOC, GPIO_PIN_10 | GPIO_PIN_11 };
             __HAL_AFIO_REMAP_USART3_PARTIAL();
             INIT_AF_GPIO(& pp);
             break;
         }
         case MAP_FULL:
         {
-            static const PortPin pp = { GPIOD, GPIO_PIN_8 | GPIO_PIN_9,  };
+            static const PortPin pp = { GPIOD, GPIO_PIN_8 | GPIO_PIN_9 };
             __HAL_AFIO_REMAP_USART3_ENABLE();
             INIT_AF_GPIO(& pp);
             break;
@@ -224,6 +247,7 @@ static void init_uart3(Map map=MAP_NONE)
 static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud, int irq_level)
 {
 
+    HAL_StatusTypeDef status;
     UART_HandleTypeDef *uart = get_uart(id);
     USART_TypeDef* instance = 0;
 
@@ -263,10 +287,8 @@ static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud, int
     uart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
     uart->Init.OverSampling = UART_OVERSAMPLING_16;
 
-    if (HAL_UART_Init(uart) != HAL_OK)
-    {
-        ASSERT(0);
-    }
+    status = HAL_UART_Init(uart);
+    ASSERT(status == HAL_OK);
 
     /* Peripheral interrupt init*/
     const IRQn_Type irq_num = get_irq_num(id);
