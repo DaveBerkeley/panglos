@@ -122,45 +122,80 @@ static TaskHandle_t event_h = 0;
 
 void timer_init()
 {
+    HAL_StatusTypeDef status;
+
     event_h = xTaskGetCurrentTaskHandle();
+    ASSERT(event_h);
 
     // start the timer
     timer->Init.Period = 1000;
-    HAL_TIM_Base_Init(timer);
-    HAL_TIM_Base_Start_IT(timer);
+    status = HAL_TIM_Base_Init(timer);
+    ASSERT(status == HAL_OK);
+    status = HAL_TIM_Base_Start_IT(timer);
+    ASSERT(status == HAL_OK);
+
+    PO_DEBUG("handle=%p", event_h);
 }
 
+    /*
+     *
+     */
+
 static Mutex *timer_mutex = Mutex::create();
+
+static timer_t last_set = 0;
 
 void timer_set(d_timer_t dt)
 {
     Lock lock(timer_mutex);
 
-    const uint32_t rd = __HAL_TIM_GET_COUNTER(timer);
+    const timer_t now = timer_now();
+    const timer_t when = now + dt;
 
-    const uint32_t MARGIN = 2;
+    // TODO : handle wrap around
+    if (last_set < now)
+    {
+        last_set = 0;
+    }
+
+    if (last_set && (last_set < when))
+    {
+        // we are already waiting for a more imminent event
+        return;
+    }
+
+    last_set = when;
+
 #if defined(STM32F1xx)
     // The Cortex M3 only has 16-bit timers,
     // so we need to clip the timer interrupt period
-    // then try again ...
-    if (dt >= 0x10000)
+    // then try again later ...
+    if (dt > 0xFFFF)
     {
         dt = 0xFFFF;
     }
 #endif
-    // check if we have already passed the reload count?
-    if (dt <= (d_timer_t)(rd + MARGIN))
-    {
-        dt = rd + MARGIN;
-    }
  
+    HAL_StatusTypeDef status;
+
+    status = HAL_TIM_Base_Stop(timer);
+    ASSERT(status == HAL_OK);
+    status = HAL_TIM_Base_Stop_IT(timer);
+    ASSERT(status == HAL_OK);
     __HAL_TIM_SET_AUTORELOAD(timer, dt);
     __HAL_TIM_SET_COUNTER(timer, 0);
-    HAL_TIM_Base_Start_IT(timer);
+    status = HAL_TIM_Base_Start_IT(timer);
+    ASSERT(status == HAL_OK);
+    //PO_DEBUG("dt=%#x t=%#x", dt, dt + timer_now());
 }
+
+    /*
+     *
+     */
 
 void timer_wait(panglos::d_timer_t dt)
 {
+    //PO_DEBUG("td=%#x", dt);
     if (dt == 0)
     {
         return;
