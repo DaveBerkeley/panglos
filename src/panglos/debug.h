@@ -58,7 +58,7 @@ inline const char *err_lookup(const Code *codes, int err, const char *def="unkno
 
 extern "C" void Error_Handler(void);
 
-extern panglos::UART *err_uart;
+extern panglos::Output *err_uart;
 
 #define _PO_PRINT(uart, level, fmt, ...) \
     if (uart) { \

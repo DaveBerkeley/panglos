@@ -34,7 +34,7 @@ public:
     virtual int _putc(char c) = 0;
     virtual int _puts(const char *s);
 
-    int printf(const char* fmt, ...);
+    virtual int printf(const char* fmt, ...);
 };
 
 int _print_num(Output *output, const Format *format, long int number, int base);

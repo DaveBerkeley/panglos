@@ -8,6 +8,7 @@
 #include "mutex.h"
 #include "event.h"
 #include "deque.h"
+#include "sprintf.h"
 
 namespace panglos {
 
@@ -239,6 +240,11 @@ public:
         return out == size;
     }
 
+    int get_size()
+    {
+        return size;
+    }
+
     static Buffer **next_fn(Buffer *b)
     {
         return & b->next;
@@ -282,13 +288,18 @@ public:
         deque.push_tail(b, mutex);
     }
 
-    bool add(uint8_t c)
+    bool add(uint8_t c, int force_add=0)
     {
         Lock lock(mutex);
 
         Buffer *b = deque.tail;
         if (!b)
         {
+            if (force_add)
+            {
+                add_buffer(force_add);
+                return add(c);
+            }
             // no buffer allocated
             return false;
         }
@@ -343,6 +354,38 @@ public:
 
         return count;
     }
+
+    int get_size()
+    {
+        Lock lock(mutex);
+
+        int size = 0;
+        for (Buffer **b = & deque.head; *b; b = Buffer::next_fn(*b))
+        {
+            size += (*b)->get_size();
+        }
+        return size;
+    }
+};
+
+    /*
+     *
+     */
+
+class BufferOutput : public Output
+{
+    Buffers *buffers;
+    int force_size;
+
+    virtual int _putc(char c)
+    {
+        return buffers->add(c, force_size);
+    }
+
+public:
+    BufferOutput(Buffers *b, int size=0) 
+    :   buffers(b), force_size(size)
+    { }
 };
 
 }   //  namespace panglos
