@@ -23,21 +23,21 @@ typedef struct {
     uint32_t pin;
 }   PortPin;
 
-#define INIT_AF_GPIO(pp) \
+#define INIT_AF_GPIO(pp,mode) \
     { \
         GPIO_InitTypeDef gpio_def; \
       \
         gpio_def.Pin   = (pp)->pin; \
-        gpio_def.Mode  = GPIO_MODE_AF_PP; \
+        gpio_def.Mode  = (mode); \
         gpio_def.Pull  = GPIO_PULLUP; \
         gpio_def.Speed = GPIO_SPEED_FREQ_HIGH; \
         HAL_GPIO_Init((pp)->port, & gpio_def); \
     }
 
-#define INIT_AF_GPIOs(map) \
+#define INIT_AF_GPIOs(map,mode) \
     for (const PortPin *pp = (map); pp->port; pp++) \
     { \
-        INIT_AF_GPIO(pp); \
+        INIT_AF_GPIO(pp,(mode)); \
     }
 
 #endif

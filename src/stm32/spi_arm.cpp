@@ -118,7 +118,7 @@ static void spi1_init(bool remap=false)
         __HAL_AFIO_REMAP_SPI1_DISABLE();
     }
 
-    INIT_AF_GPIOs(remap ? do_remap : no_map);
+    INIT_AF_GPIOs(remap ? do_remap : no_map, GPIO_MODE_AF_PP);
 }
 
 static void spi2_init()

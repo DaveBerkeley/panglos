@@ -53,9 +53,9 @@ int Radio::init()
 
     PO_DEBUG("reset GPIO");
     reset->set(false);
-    event_queue.wait(s, TIMER_S);
+    event_queue.wait(s, TIMER_MS * 500);
     reset->set(true);
-    event_queue.wait(s, TIMER_S);
+    event_queue.wait(s, TIMER_MS * 500);
 
     rd->reset();
     in = 0;

@@ -22,47 +22,29 @@ class ArmUart;
 
 static ArmUart *uarts[3];
 
-static UART_HandleTypeDef *get_uart(panglos::UART::Id id)
+static UART_HandleTypeDef *get_uart(UART::Id id)
 {
     switch (id)
     {
-        case panglos::UART::UART_1 :
-        {
-            return & uart1;
-        }
-        case panglos::UART::UART_2 :
-        {
-            return & uart2;
-        }
-        case panglos::UART::UART_3 :
-        {
-            return & uart3;
-        }
+        case UART::UART_1 : return & uart1;
+        case UART::UART_2 : return & uart2;
+        case UART::UART_3 : return & uart3;
+        default : ASSERT(0);
     }
 
-    ASSERT(0);
     return 0;
 }
 
-static IRQn_Type get_irq_num(panglos::UART::Id id)
+static IRQn_Type get_irq_num(UART::Id id)
 {
     switch (id)
     {
-        case panglos::UART::UART_1 :
-        {
-            return USART1_IRQn;
-        }
-        case panglos::UART::UART_2 :
-        {
-            return USART2_IRQn;
-        }
-        case panglos::UART::UART_3 :
-        {
-            return USART3_IRQn;
-        }
+        case UART::UART_1 : return USART1_IRQn;
+        case UART::UART_2 : return USART2_IRQn;
+        case UART::UART_3 : return USART3_IRQn;
+        default : ASSERT(0);
     }
 
-    ASSERT(0);
     return (IRQn_Type) 0;
 }
 
@@ -150,16 +132,20 @@ static void init_uart1(Map map=MAP_NONE)
     {
         case MAP_NONE:
         {
-            static const PortPin pp = { GPIOA, GPIO_PIN_9 | GPIO_PIN_10 };
+            static const PortPin rx = { GPIOA, GPIO_PIN_10 };
+            static const PortPin tx = { GPIOA, GPIO_PIN_9 };
             __HAL_AFIO_REMAP_USART1_DISABLE();
-            INIT_AF_GPIO(& pp);
+            INIT_AF_GPIO(& rx, GPIO_MODE_AF_INPUT);
+            INIT_AF_GPIO(& tx, GPIO_MODE_AF_PP);
             break;
         }
         case MAP_FULL:
         {
-            static const PortPin pp = { GPIOB, GPIO_PIN_6 | GPIO_PIN_7 };
+            static const PortPin rx = { GPIOB, GPIO_PIN_7 };
+            static const PortPin tx = { GPIOB, GPIO_PIN_6 };
             __HAL_AFIO_REMAP_USART1_ENABLE();
-            INIT_AF_GPIO(& pp);
+            INIT_AF_GPIO(& rx, GPIO_MODE_AF_INPUT);
+            INIT_AF_GPIO(& tx, GPIO_MODE_AF_PP);
             break;
         }
         default :
@@ -181,16 +167,20 @@ static void init_uart2(Map map=MAP_NONE)
     {
         case MAP_NONE:
         {
-            static const PortPin pp = { GPIOA, GPIO_PIN_2 | GPIO_PIN_3 };
+            static const PortPin rx = { GPIOA, GPIO_PIN_3 };
+            static const PortPin tx = { GPIOA, GPIO_PIN_2 };
             __HAL_AFIO_REMAP_USART2_DISABLE();
-            INIT_AF_GPIO(& pp);
+            INIT_AF_GPIO(& rx, GPIO_MODE_AF_INPUT);
+            INIT_AF_GPIO(& tx, GPIO_MODE_AF_PP);
             break;
         }
         case MAP_FULL:
         {
-            static const PortPin pp = { GPIOD, GPIO_PIN_5 | GPIO_PIN_6 };
+            static const PortPin rx = { GPIOD, GPIO_PIN_6 };
+            static const PortPin tx = { GPIOD, GPIO_PIN_5 };
             __HAL_AFIO_REMAP_USART2_ENABLE();
-            INIT_AF_GPIO(& pp);
+            INIT_AF_GPIO(& rx, GPIO_MODE_AF_INPUT);
+            INIT_AF_GPIO(& tx, GPIO_MODE_AF_PP);
             break;
         }
         default :
@@ -212,23 +202,29 @@ static void init_uart3(Map map=MAP_NONE)
     {
         case MAP_NONE:
         {
-            static const PortPin pp = { GPIOB, GPIO_PIN_10 | GPIO_PIN_11 };
+            static const PortPin rx = { GPIOB, GPIO_PIN_11 };
+            static const PortPin tx = { GPIOB, GPIO_PIN_10 };
             __HAL_AFIO_REMAP_USART3_DISABLE();
-            INIT_AF_GPIO(& pp);
+            INIT_AF_GPIO(& rx, GPIO_MODE_AF_INPUT);
+            INIT_AF_GPIO(& tx, GPIO_MODE_AF_PP);
             break;
         }
         case MAP_PARTIAL:
         {
-            static const PortPin pp = { GPIOC, GPIO_PIN_10 | GPIO_PIN_11 };
+            static const PortPin rx = { GPIOC, GPIO_PIN_11 };
+            static const PortPin tx = { GPIOC, GPIO_PIN_10 };
             __HAL_AFIO_REMAP_USART3_PARTIAL();
-            INIT_AF_GPIO(& pp);
+            INIT_AF_GPIO(& rx, GPIO_MODE_AF_INPUT);
+            INIT_AF_GPIO(& tx, GPIO_MODE_AF_PP);
             break;
         }
         case MAP_FULL:
         {
-            static const PortPin pp = { GPIOD, GPIO_PIN_8 | GPIO_PIN_9 };
+            static const PortPin rx = { GPIOD, GPIO_PIN_9 };
+            static const PortPin tx = { GPIOD, GPIO_PIN_8 };
             __HAL_AFIO_REMAP_USART3_ENABLE();
-            INIT_AF_GPIO(& pp);
+            INIT_AF_GPIO(& rx, GPIO_MODE_AF_INPUT);
+            INIT_AF_GPIO(& tx, GPIO_MODE_AF_PP);
             break;
         }
         default :
@@ -253,19 +249,19 @@ static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud, int
 
     switch (id)
     {
-        case panglos::UART::UART_1 :
+        case UART::UART_1 :
         {
             instance = USART1;
             init_uart1();
             break;
         }
-        case panglos::UART::UART_2 :
+        case UART::UART_2 :
         {
             instance = USART2;
             init_uart2();
             break;
         }
-        case panglos::UART::UART_3 :
+        case UART::UART_3 :
         {
             instance = USART3;
             init_uart3();
