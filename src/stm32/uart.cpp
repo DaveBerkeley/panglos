@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "../panglos/stm32/stm32fxxx_hal.h"
+#include "../panglos/stm32/hal.h"
 
 #include "../panglos/debug.h"
 
@@ -134,58 +134,85 @@ static void init_uart3()
 
 #if defined(STM32F1xx)
 
+// See STM32F103xx Reference Manual :
+// AF remap and debug I/O configuration register (AFIO_MAPR)
+
+enum Map {
+    MAP_NONE,
+    MAP_PARTIAL,
+    MAP_FULL
+};
+
 static void init_uart1()
 {
+    //0: No remap (TX/PA9, RX/PA10)
+    //1: Remap    (TX/PB6, RX/PB7)
     __HAL_RCC_USART1_CLK_ENABLE();
+    //__HAL_AFIO_REMAP_USART1_ENABLE();
+    __HAL_AFIO_REMAP_USART1_DISABLE();
 
     GPIO_InitTypeDef gpio_def;
 
-    gpio_def.Pin = GPIO_PIN_9;
+    gpio_def.Pin = GPIO_PIN_9 | GPIO_PIN_10;
     gpio_def.Mode = GPIO_MODE_AF_PP;
     gpio_def.Speed = GPIO_SPEED_FREQ_HIGH;
     gpio_def.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, & gpio_def);
-
-    gpio_def.Pin = GPIO_PIN_10;
-    HAL_GPIO_Init(GPIOA, & gpio_def);
-
-    __HAL_AFIO_REMAP_USART1_ENABLE();
 }
 
 static void init_uart2()
 {
+    //0: No remap (CTS/PA0, RTS/PA1, TX/PA2, RX/PA3, CK/PA4)
+    //1: Remap    (CTS/PD3, RTS/PD4, TX/PD5, RX/PD6, CK/PD7
     __HAL_RCC_USART2_CLK_ENABLE();
+    //__HAL_AFIO_REMAP_USART2_ENABLE();
+    __HAL_AFIO_REMAP_USART2_DISABLE();
 
     GPIO_InitTypeDef gpio_def;
 
-    gpio_def.Pin = GPIO_PIN_2;
+    gpio_def.Pin = GPIO_PIN_2 | GPIO_PIN_3;
     gpio_def.Mode = GPIO_MODE_AF_PP;
     gpio_def.Speed = GPIO_SPEED_FREQ_HIGH;
     gpio_def.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, & gpio_def);
-
-    gpio_def.Pin = GPIO_PIN_3;
-    HAL_GPIO_Init(GPIOA, & gpio_def);
-
-    __HAL_AFIO_REMAP_USART2_ENABLE();
 }
 
-static void init_uart3()
+static void init_uart3(Map map=MAP_NONE)
 {
+    // 00: No remap      (TX/PB10, RX/PB11, CK/PB12, CTS/PB13, RTS/PB14)
+    // 01: Partial remap (TX/PC10, RX/PC11, CK/PC12, CTS/PB13, RTS/PB14)
+    // 11: Full remap    (TX/PD8,  RX/PD9,  CK/PD10, CTS/PD11, RTS/PD12)
+
     __HAL_RCC_USART3_CLK_ENABLE();
 
-    GPIO_InitTypeDef gpio_def;
-
-    gpio_def.Pin = GPIO_PIN_10;
-    gpio_def.Mode = GPIO_MODE_AF_PP;
-    gpio_def.Speed = GPIO_SPEED_FREQ_HIGH;
-    gpio_def.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOB, & gpio_def);
-
-    gpio_def.Pin = GPIO_PIN_11;
-    HAL_GPIO_Init(GPIOB, & gpio_def);
-
-    __HAL_AFIO_REMAP_USART3_ENABLE();
+    switch (map)
+    {
+        case MAP_NONE:
+        {
+            static const PortPin pp = {   GPIOB, GPIO_PIN_10 | GPIO_PIN_11,  };
+            __HAL_AFIO_REMAP_USART3_DISABLE();
+            INIT_AF_GPIO(& pp);
+            break;
+        }
+        case MAP_PARTIAL:
+        {
+            static const PortPin pp = { GPIOC, GPIO_PIN_10 | GPIO_PIN_11,  };
+            __HAL_AFIO_REMAP_USART3_PARTIAL();
+            INIT_AF_GPIO(& pp);
+            break;
+        }
+        case MAP_FULL:
+        {
+            static const PortPin pp = { GPIOD, GPIO_PIN_8 | GPIO_PIN_9,  };
+            __HAL_AFIO_REMAP_USART3_ENABLE();
+            INIT_AF_GPIO(& pp);
+            break;
+        }
+        default :
+        {
+            ASSERT(0);
+        }
+    }
 }
 
 #endif // STM32F1xx

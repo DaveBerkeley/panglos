@@ -3,6 +3,7 @@
 
 #include "../panglos/debug.h"
 #include "../panglos/spi.h"
+#include "../panglos/stm32/hal.h"
 
 namespace panglos {
 
@@ -95,11 +96,6 @@ static void spi1_init(bool remap=false)
     // 0: No remap (NSS/PA4, SCK/PA5, MISO/PA6, MOSI/PA7)
     // 1: Remap (NSS/PA15, SCK/PB3, MISO/PB4, MOSI/PB5)
 
-    typedef struct {
-        GPIO_TypeDef *port;
-        uint32_t pin;
-    }   PortPin;
-
     static const PortPin no_map[] = {
         //{   GPIOA, GPIO_PIN_4 },
         {   GPIOA, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7 },
@@ -121,17 +117,8 @@ static void spi1_init(bool remap=false)
     {
         __HAL_AFIO_REMAP_SPI1_DISABLE();
     }
- 
-    for (const PortPin *pp = remap ? do_remap : no_map; pp->port; pp++)
-    {
-        GPIO_InitTypeDef gpio_def;
 
-        gpio_def.Pin   = pp->pin;
-        gpio_def.Mode  = GPIO_MODE_AF_PP;
-        gpio_def.Pull  = GPIO_PULLUP;
-        gpio_def.Speed = GPIO_SPEED_FREQ_HIGH;
-        HAL_GPIO_Init(pp->port, & gpio_def);
-    }
+    INIT_AF_GPIOs(remap ? do_remap : no_map);
 }
 
 static void spi2_init()
