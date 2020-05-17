@@ -105,26 +105,25 @@ d_timer_t EventQueue::check()
      *
      */
 
-void EventQueue::wait(Semaphore *semaphore, d_timer_t d_time)
+void EventQueue::wait_absolute(Semaphore *semaphore, timer_t time)
 {
     ASSERT(semaphore);
 
-    if (d_time == 0)
+    const timer_t now = panglos::timer_now();
+    if (now >= time)
     {
-        // no point waiting
+        // no point in waiting
         return;
     }
 
-    const timer_t now = panglos::timer_now();
-
-    Event event(semaphore, now + d_time);
+    Event event(semaphore, time);
 
     const bool first = add(& event);
 
     if (first)
     {
         // may need to reschedule the timer manager task / thread
-        reschedule(d_time);
+        reschedule(time - now);
     }
 
     event.semaphore->wait();
@@ -132,6 +131,26 @@ void EventQueue::wait(Semaphore *semaphore, d_timer_t d_time)
     // but not if the semaphore is signalled elsewhere
     _remove(& event, mutex);
 }
+
+    /*
+     *
+     */
+
+void EventQueue::wait(Semaphore *semaphore, d_timer_t d_time)
+{
+    if (d_time == 0)
+    {
+        // no point waiting
+        return;
+    }
+
+    const timer_t now = panglos::timer_now();
+    return wait_absolute(semaphore, now + d_time);
+}
+
+    /*
+     *
+     */
 
 void EventQueue::run()
 {

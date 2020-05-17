@@ -161,7 +161,11 @@ void timer_set(d_timer_t dt)
 
 void timer_wait(panglos::d_timer_t dt)
 {
-    timer_set(dt ? dt : 100000);
+    if (dt == 0)
+    {
+        return;
+    }
+    timer_set(dt);
     // wait for signal
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 }
@@ -200,14 +204,16 @@ static void hw_timer_init(void)
     TIM_ClockConfigTypeDef sClockSourceConfig = {0};
     TIM_MasterConfigTypeDef sMasterConfig = {0};
 
+    Init_Timer();
+
     timer->Instance = TIM_TIMER;
     timer->Init.Prescaler = prescaler;
     timer->Init.CounterMode = TIM_COUNTERMODE_UP;
     timer->Init.Period = 0;
     timer->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     timer->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    status = HAL_TIM_Base_Init(timer);
-    ASSERT(status == HAL_OK);
+
+    HAL_TIM_OnePulse_MspInit(timer);
 
     sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
     status = HAL_TIM_ConfigClockSource(timer, &sClockSourceConfig);
@@ -221,7 +227,8 @@ static void hw_timer_init(void)
     status = HAL_TIMEx_MasterConfigSynchronization(timer, &sMasterConfig);
     ASSERT(status == HAL_OK);
 
-    Init_Timer();
+    status = HAL_TIM_Base_Init(timer);
+    ASSERT(status == HAL_OK);
 }
 
     /**

@@ -59,6 +59,7 @@ public:
     ~EventQueue();
 
     void wait(Semaphore *s, d_timer_t time);
+    void wait_absolute(Semaphore *s, timer_t time);
     d_timer_t check();
 
     void run();
