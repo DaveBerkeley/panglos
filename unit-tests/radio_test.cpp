@@ -52,6 +52,56 @@ TEST(Radio, Init)
      *
      */
 
+TEST(Radio, SetAp)
+{
+    mock_setup(true);
+
+    Out out;
+    Mutex *rd_mutex = Mutex::create();
+    Semaphore *rd_sem = Semaphore::create();
+    Radio::RdBuff *rd = new Radio::RdBuff(1024, rd_sem, rd_mutex);
+    Radio *radio = new Radio(& out, rd, rd_sem, 0);
+
+    panglos::timer_t timeout = 120000;
+    int err;
+
+    err = radio->set_ap(false, timeout);
+    EXPECT_EQ(-1, err);
+
+    char buff[1024];
+    int n = out.buffer.read((uint8_t*) buff, sizeof(buff));
+    buff[n] = '\0';
+    const char *expect = "AT+CWMODE=1\r\n";
+    EXPECT_STREQ(expect, buff);
+
+    // push some data to the rx input
+    const char *str[] = {
+        expect,
+        //"FAIL",
+        "OK",
+        0
+    };
+
+    for (const char **s = str; *s; s++)
+    {
+        rd->add((const uint8_t*) *s, strlen(*s));
+        rd->add((const uint8_t*) "\r\n", 2);
+    }
+
+    err = radio->set_ap(false, timeout);
+    EXPECT_EQ(0, err);
+
+    delete radio;
+    delete rd;
+    delete rd_mutex;
+    delete rd_sem;
+    mock_teardown();
+}
+
+    /*
+     *
+     */
+
 TEST(Radio, Connect)
 {
     mock_setup(true);
@@ -63,15 +113,15 @@ TEST(Radio, Connect)
     Radio *radio = new Radio(& out, rd, rd_sem, 0);
 
     panglos::timer_t timeout = 120000;
-    bool okay;
+    int err;
 
-    okay = radio->connect("ssid", "pw", timeout);
-    EXPECT_FALSE(okay);
+    err = radio->connect("ssid", "pw", timeout);
+    EXPECT_EQ(-1, err);
 
     char buff[1024];
     int n = out.buffer.read((uint8_t*) buff, sizeof(buff));
     buff[n] = '\0';
-    const char *expect = "AT+CWJAP_DEF=\"ssid\",\"pw\"\r\n";
+    const char *expect = "AT+CWJAP=\"ssid\",\"pw\"\r\n";
     EXPECT_STREQ(expect, buff);
 
     // push some data to the rx input
@@ -91,8 +141,8 @@ TEST(Radio, Connect)
         rd->add((const uint8_t*) "\r\n", 2);
     }
 
-    okay = radio->connect("ssid", "pw", timeout);
-    EXPECT_TRUE(okay);
+    err = radio->connect("ssid", "pw", timeout);
+    EXPECT_EQ(0, err);
 
     delete radio;
     delete rd;

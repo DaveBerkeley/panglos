@@ -45,8 +45,8 @@ int Radio::init()
 {
     if (!reset)
     {
-        // TODO : try soft reset?
-        return 0;
+        // currently must have a hard reset
+        ASSERT(0);
     }
 
     Semaphore *s = Semaphore::create();
@@ -242,15 +242,14 @@ bool Radio::wait_for(const char *data, int size)
      *
      */
 
-bool Radio::connect(const char *ssid, const char *pw, timer_t timeout)
+int Radio::set_ap(bool on, timer_t timeout)
 {
     char buff[128];
 
-    snprintf(buff, sizeof(buff), "AT+CWJAP_DEF=\"%s\",\"%s\"\r\n", ssid, pw);
+    snprintf(buff, sizeof(buff), "AT+CWMODE=%s\r\n", on ? "2" : "1");
+
     send_at(buff);
     buff[0] = '\0';
-
-    bool connected = false, ip = false;
 
     AutoEvent period(timeout_sem, timeout);
 
@@ -259,10 +258,50 @@ bool Radio::connect(const char *ssid, const char *pw, timer_t timeout)
         if (!read_line(buff, sizeof(buff)))
         {
             PO_ERROR("timeout");
+            return -1;
+        }
+
+        if (!strncmp(buff, "AT+CWMODE=", 10))
+        {
+            // echo
+            continue;
+        }
+        if (!strcmp(buff, "FAIL"))
+        {
+            return -1;
+        }
+        if (!strcmp(buff, "OK"))
+        {
             return 0;
         }
 
-        if (!strncmp(buff, "AT+CWJAP_DEF=", 13))
+        // unknown response
+        PO_ERROR("unknown: '%s'", buff);
+    }
+}
+
+int Radio::connect(const char *ssid, const char *pw, timer_t timeout)
+{
+    char buff[128];
+
+    AutoEvent period(timeout_sem, timeout);
+
+    snprintf(buff, sizeof(buff), "AT+CWJAP=\"%s\",\"%s\"\r\n", ssid, pw);
+
+    send_at(buff);
+    buff[0] = '\0';
+
+    bool connected = false, ip = false;
+
+    while (true)
+    {
+        if (!read_line(buff, sizeof(buff)))
+        {
+            PO_ERROR("timeout");
+            return -1;
+        }
+
+        if (!strncmp(buff, "AT+CWJAP=", 9))
         {
             // echo
             continue;
@@ -284,11 +323,15 @@ bool Radio::connect(const char *ssid, const char *pw, timer_t timeout)
         }
         if (!strcmp(buff, "FAIL"))
         {
-            return false;
+            return -1;
+        }
+        if (!strcmp(buff, "ERROR"))
+        {
+            return -1;
         }
         if (!strcmp(buff, "OK"))
         {
-            return connected && ip;
+            return (connected && ip) ? 0 : -1;
         }
 
         // unknown response
@@ -440,13 +483,11 @@ int Radio::socket_read(char *data, int size, timer_t timeout)
     while (true)
     {
         Semaphore *s = select->wait();
-        //PO_DEBUG("sem=%p", s);
         if (s == timeout_sem)
         {
             //PO_DEBUG("timeout");
             return count;
         }
-        //ASSERT(s == rx_sem);
 
         while (true)
         {
