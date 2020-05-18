@@ -72,7 +72,9 @@ extern panglos::Output *err_uart;
 
 #define PO_REPORT(fmt, ...) if (err_uart) { err_uart->printf(fmt "\r\n", ## __VA_ARGS__ ); }
 
-#define ASSERT(x) if (!(x)) { PO_ERROR("assert failed"); Error_Handler(); }
+#define ASSERT(x)           if (!(x)) { PO_ERROR("assert failed"); Error_Handler(); }
+#define ASSERT_ERROR(x,fmt,...) \
+                            if (!(x)) {  _PO_PRINT(err_uart, "ERROR", fmt, ## __VA_ARGS__ ); Error_Handler(); }
 
 #endif // GTEST
 
