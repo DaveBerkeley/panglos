@@ -188,6 +188,16 @@ public:
         free(data);
     }
 
+    uint8_t *buffer()
+    {
+        return data;
+    }
+
+    void reset()
+    {
+        in = out = 0;
+    }
+
     bool add(uint8_t c)
     {
         int next = in + 1;
