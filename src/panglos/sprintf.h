@@ -25,7 +25,7 @@ public:
 // TODO : move this to something akin to stdio.h for the library
 class Output
 {
-protected:
+public:
     Mutex *mutex;
 public:
     Output() : mutex(0) { }

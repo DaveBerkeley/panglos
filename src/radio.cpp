@@ -120,6 +120,10 @@ bool Radio::process(char c)
     {
         buffers.add(c);
         reading -= 1;
+        if (reading == 0)
+        {
+            PO_DEBUG("done read");
+        }
         return false;
     }
 
@@ -180,7 +184,7 @@ int Radio::read_line(char *data, int size)
             }
             if (process(c))
             {
-                PO_DEBUG("%s", buff);
+                PO_DEBUG("%s reading=%d", buff, reading);
                 int len = ((in+1) < size) ? in+1 : size;
                 memcpy(data, buff, len);
                 in = 0;
@@ -478,7 +482,10 @@ int Radio::socket_read(char *data, int size, timer_t timeout)
         return count;
     }
 
-    AutoEvent period(timeout_sem, timeout);
+    //PO_DEBUG("size=%d reading=%d", size, reading);
+
+    AutoEvent period(timeout_sem, reading ? (TIMER_S * 2) : timeout);
+    //AutoEvent period(timeout_sem, timeout);
 
     while (true)
     {
@@ -486,7 +493,10 @@ int Radio::socket_read(char *data, int size, timer_t timeout)
         if (s == timeout_sem)
         {
             //PO_DEBUG("timeout");
-            return count;
+            if (rd->empty())
+            {
+                return count;
+            }
         }
 
         while (true)

@@ -8,6 +8,8 @@
      *
      */
 
+#if defined(__cplusplus)
+
 namespace panglos {
     void * get_task_id();
 
@@ -77,6 +79,14 @@ extern panglos::Output *err_uart;
                             if (!(x)) {  _PO_PRINT(err_uart, "ERROR", fmt, ## __VA_ARGS__ ); Error_Handler(); }
 
 #endif // GTEST
+
+#else // __cplusplus
+
+void po_syslog(const char *fmt, ...);
+
+#define PO_DEBUG(fmt, ...) po_syslog("%s %s +%d %s() : " fmt "\r\n", "DEBUG", __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
+
+#endif // __cplusplus
 
 #endif // __DEBUG_H__
 

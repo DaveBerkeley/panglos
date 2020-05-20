@@ -356,4 +356,30 @@ int Output::printf(const char* fmt, ...)
 
 }   //  namespace panglos
 
+    /*
+     *  C interface to debug library
+     */
+
+#if !defined(GTEST)
+
+using namespace panglos;
+
+extern "C" void po_syslog(const char *fmt, ...)
+{
+    if (err_uart)
+    {
+        Lock lock(err_uart->mutex);
+
+        va_list va;
+
+        va_start (va, fmt);
+        // emulate PO_DEBUG() macros "timer task_id " format
+        xprintf(err_uart, "%#08x %p ", timer_now(), get_task_id());
+        xvprintf(err_uart, fmt, va);
+        va_end (va);
+    }
+}
+
+#endif // DGTEST
+
 //  FIN
