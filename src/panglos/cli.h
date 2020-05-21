@@ -1,4 +1,7 @@
 
+#if !defined(__CLI_H__)
+#define __CLI_H__
+
 #include "sprintf.h"
 
     /*
@@ -64,5 +67,7 @@ public:
 };
 
 }   //  namespace panglos
+
+#endif // __CLI_H__
 
 // FIN
