@@ -54,13 +54,35 @@ public:
             delete_mutex = mutex = Mutex::create();
         }
 
-        data = (T*) malloc(_size * sizeof(T));
+        data = (T*) malloc(size * sizeof(T));
     }
 
     ~RingBuffer()
     {
         free(data);
         delete delete_mutex;
+    }
+
+    int remain(T **start)
+    {
+        ASSERT(start);
+        Lock lock(mutex);
+
+        *start = & data[in];
+
+        if (out < in)
+        {
+            // return the rest of the buffer
+            return size - in;
+        }
+        if (out == in)
+        {
+            // we can't return the whole buffer
+            return in ? (size - in) : (size - 1);
+        }
+
+        // return beginning of the buffer
+        return out - in;
     }
 
     int add(T c)

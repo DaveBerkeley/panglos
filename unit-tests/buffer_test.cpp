@@ -252,6 +252,96 @@ TEST(RingBuffer, Timeout)
      *
      */
 
+TEST(RingBuffer, Remain)
+{
+    Semaphore *s = Semaphore::create();
+    RingBuffer<uint8_t> buffer(128, s);
+
+    int n;
+    uint8_t *start;
+
+    // can't return the whole buffer
+    n = buffer.remain(& start);
+    EXPECT_EQ(127, n);
+    const uint8_t *begin = start;
+
+    // still N-1
+    buffer.add('x');
+    n = buffer.remain(& start);
+    EXPECT_EQ(127, n);
+
+    // total of 64 chars added
+    for (int i = 0; i < 63; i++)
+    {
+        buffer.add('x');    
+    }
+
+    // half the buffer should be gone
+    n = buffer.remain(& start);
+    EXPECT_EQ(64, n);
+    EXPECT_EQ(& begin[64], start);
+
+    // add another 62. Should be only 2 chars free
+    for (int i = 0; i < 62; i++)
+    {
+        buffer.add('x');    
+    }
+
+    n = buffer.remain(& start);
+    EXPECT_EQ(2, n);
+    EXPECT_EQ(& begin[126], start);
+
+    // one char free
+    buffer.add('x');    
+    n = buffer.remain(& start);
+    EXPECT_EQ(1, n);
+    EXPECT_EQ(& begin[127], start);
+
+    // read half the chars. ie. advance the out pointer
+    for (int i = 0; i < 64; i++)
+    {
+        uint8_t c;
+        buffer.get(& c);
+    }
+ 
+    // still one char free
+    n = buffer.remain(& start);
+    EXPECT_EQ(1, n);
+    EXPECT_EQ(& begin[127], start);
+
+    // wrap the buff
+    buffer.add('x');    
+    
+    n = buffer.remain(& start);
+    EXPECT_EQ(64, n);
+    EXPECT_EQ(& begin[0], start);
+
+    for (int i = 0; i < 32; i++)
+    {
+        buffer.add('x');    
+    }
+
+    n = buffer.remain(& start);
+    EXPECT_EQ(32, n);
+    EXPECT_EQ(& begin[32], start);
+
+    for (int i = 0; i < 64; i++)
+    {
+        uint8_t c;
+        buffer.get(& c);
+    }
+ 
+    n = buffer.remain(& start);
+    EXPECT_EQ(96, n);
+    EXPECT_EQ(& begin[32], start);
+
+    delete s;
+}
+
+    /*
+     *
+     */
+
 TEST(Buffer, Test)
 {
     Buffer b(8);
