@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include "../panglos/stm32/stm32fxxx_hal.h"
 #include "../panglos/stm32/hal.h"
 
 #include <stm32f1xx_hal_dma.h>
@@ -21,18 +22,20 @@ extern panglos::Dispatch dispatch;
 
 namespace panglos {
 
-class Callback;
-extern List<Callback*> callbacks;
-static Callback *cb_next;
+    /*
+     *  DMA
+     */
 
-static Mutex *cb_mutex = Mutex::create_critical_section();
+#define DISPATCH_BUFF_SIZE 16
+#define DISPATCH_BUFFERS 8
 
 class Callback : public Dispatch::Callback
 {
     UART::Buffer *uart;
 public:
-    uint8_t buff[16];
+    uint8_t buff[DISPATCH_BUFF_SIZE];
     int in;
+
     Callback(UART::Buffer *b) 
     :   Dispatch::Callback(0), uart(b), in(0)
     {
@@ -44,21 +47,53 @@ public:
     { 
         ASSERT(uart);
         uart->add(buff, in);
-        //PO_DEBUG("%s", buff);
-        callbacks.push(this, cb_mutex);
+        // return this callback to the pool
+        list.push(this, mutex);
     }
+
+    static List<Callback*> list;
+    static Callback **next_fn(Callback *cb) { return (Callback**) & cb->next; }
+    static Mutex *mutex;
 };
 
-#define NEXT_FN (Callback **(*)(Callback*)) Dispatch::Callback::next_fn
-List<Callback*> callbacks(NEXT_FN);
+List<Callback*> Callback::list(Callback::next_fn);
+
+Mutex *Callback::mutex = Mutex::create_critical_section();
+
+static Callback *cb_next;
+
+    /*
+     *
+     */
 
 static UART_HandleTypeDef uart1;
 static UART_HandleTypeDef uart2;
 static UART_HandleTypeDef uart3;
 
+    /*
+     *
+     */
+
+static UART_HandleTypeDef *get_uart(UART::Id id)
+{
+    switch (id)
+    {
+        case UART::UART_1 : return & uart1;
+        case UART::UART_2 : return & uart2;
+        case UART::UART_3 : return & uart3;
+        default : ASSERT(0);
+    }
+
+    return 0;
+}
+
 class ArmUart;
 
 static ArmUart *uarts[3];
+
+    /*
+     *
+     */
 
 class ArmUart : public UART
 {
@@ -90,24 +125,57 @@ public:
 };
 
     /*
-     *  DMA
+     *
      */
 
 static DMA_HandleTypeDef dma1_chan5_rx;
 
-    /*
-     *
-     */
+#if defined(STM32F1xx)
 
-static void dma_init(UART_HandleTypeDef *uart, DMA_HandleTypeDef *dma)
+static DMA_Channel_TypeDef *get_dma_instance(UART::Id id, bool rx)
 {
-    // DMA init
+    switch (id)
+    {
+        case UART::UART_1 : return rx ? DMA1_Channel5 : DMA1_Channel4;
+        default : ASSERT(0);
+    }
+    return 0;
+}
+
+static DMA_HandleTypeDef *get_dma_handle(UART::Id id, bool rx)
+{
+    switch (id)
+    {
+        case UART::UART_1 : return rx ? & dma1_chan5_rx : 0;
+        default : ASSERT(0);
+    }
+    return 0;
+}
+
+static IRQn_Type get_dma_irq(UART::Id id, bool rx)
+{
+    switch (id)
+    {
+        case UART::UART_1 : return rx ? DMA1_Channel5_IRQn : DMA1_Channel4_IRQn;
+        default : ASSERT(0);
+    }
+    return (IRQn_Type) 0;
+}
+
+#endif
+
+static void dma_rx_init(UART::Id id, int irq_level)
+{
+    // DMA Rx init
+    const bool rx = true;
+    UART_HandleTypeDef *uart = get_uart(id);
+    DMA_HandleTypeDef *dma = get_dma_handle(id, rx);
 
     // enable dma interface ck
     __HAL_RCC_DMA1_CLK_ENABLE();
 
     // configure handle with required rx/tx params
-    dma->Instance = DMA1_Channel5;
+    dma->Instance = get_dma_instance(id, rx);
 
     dma->Init.Direction = DMA_PERIPH_TO_MEMORY;
     dma->Init.PeriphInc = DMA_PINC_DISABLE;
@@ -125,8 +193,8 @@ static void dma_init(UART_HandleTypeDef *uart, DMA_HandleTypeDef *dma)
     __HAL_LINKDMA(uart, hdmarx, (*dma));
 
     // configure priority and enable NVIC for xfer complete irq
-    HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 5, 0);
-    HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
+    HAL_NVIC_SetPriority(get_dma_irq(id, rx), irq_level, 0);
+    HAL_NVIC_EnableIRQ(get_dma_irq(id, rx));
 }
 
     /*
@@ -139,7 +207,7 @@ static void dma_start(UART_HandleTypeDef *uart, DMA_HandleTypeDef *dma)
     __HAL_UART_DISABLE_IT(uart, UART_IT_RXNE);
 
     ASSERT(cb_next == 0);
-    cb_next = callbacks.pop(cb_mutex);
+    cb_next = Callback::list.pop(Callback::mutex);
     HAL_StatusTypeDef status = HAL_UART_Receive_DMA(uart, cb_next->buff, sizeof(cb_next->buff));
     ASSERT(status == HAL_OK);
 }
@@ -178,23 +246,6 @@ extern "C" void DMA1_Channel5_IRQHandler(void)
     HAL_DMA_IRQHandler(& dma1_chan5_rx);
 }
     
-    /*
-     *
-     */
-
-static UART_HandleTypeDef *get_uart(UART::Id id)
-{
-    switch (id)
-    {
-        case UART::UART_1 : return & uart1;
-        case UART::UART_2 : return & uart2;
-        case UART::UART_3 : return & uart3;
-        default : ASSERT(0);
-    }
-
-    return 0;
-}
-
 static IRQn_Type get_irq_num(UART::Id id)
 {
     switch (id)
@@ -545,21 +596,21 @@ UART *UART::create(UART::Id id, int baud, Buffer *b, int irq_level)
 
     if (id == UART::UART_1)
     {
-        if (callbacks.empty())
+        if (Callback::list.empty())
         {
-            for (int i = 0; i < 20; i++)
+            for (int i = 0; i < DISPATCH_BUFFERS; i++)
             {
                 Callback *cb = new Callback(arm_uart->buffer);
-                callbacks.push(cb, cb_mutex);
+                Callback::list.push(cb, Callback::mutex);
             }
         }
 
-        dma_init(uart, & dma1_chan5_rx);
+        dma_rx_init(id, irq_level);
         dma_start(uart, & dma1_chan5_rx);
     }
-
-    if (id != UART::UART_1)
+    else
     {
+        // Use Rx Not Empty interrupt for the other UARTs
         __HAL_UART_ENABLE_IT(uart, UART_IT_RXNE);
     }
     return arm_uart;
@@ -588,11 +639,15 @@ static void uart_rx_irq(ArmUart *uart)
 
 using namespace panglos;
 
+extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+    // TODO : called on error. Needs to recover from it, especially during DMA.
+    //ASSERT(0);
+}
+
 extern "C" void USART1_IRQHandler(void)
 {
-    //uart_rx_irq(uarts[0]);
     HAL_UART_IRQHandler(& uart1);
-    //dma_start(& uart1, & dma1_chan5_rx, 0);
 }
 
 extern "C" void USART2_IRQHandler(void)
