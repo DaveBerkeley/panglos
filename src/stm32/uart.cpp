@@ -51,16 +51,15 @@ public:
         list.push(this, mutex);
     }
 
-    static List<Callback*> list;
+    typedef List<Callback*> Callbacks;
+    static Callbacks list;
     static Callback **next_fn(Callback *cb) { return (Callback**) & cb->next; }
     static Mutex *mutex;
 };
 
-List<Callback*> Callback::list(Callback::next_fn);
+Callback::Callbacks Callback::list(Callback::next_fn);
 
 Mutex *Callback::mutex = Mutex::create_critical_section();
-
-static Callback *cb_next;
 
     /*
      *
@@ -87,10 +86,6 @@ static UART_HandleTypeDef *get_uart(UART::Id id)
     return 0;
 }
 
-class ArmUart;
-
-static ArmUart *uarts[3];
-
     /*
      *
      */
@@ -103,6 +98,7 @@ public:
     UART_HandleTypeDef *handle;
     Buffer *buffer;
     uint32_t error;
+    Callback *next_cb;
 
     virtual uint32_t get_error() { uint32_t e = error; error = 0; return e; }
 
@@ -122,21 +118,41 @@ public:
     void irq();
 
     void set_error(uint32_t e) { error |= e; }
+
+    Callback *get_cb()
+    {
+        if (!next_cb)
+        {
+            next_cb = Callback::list.pop(Callback::mutex);
+        }
+
+        return next_cb;
+    }
 };
+
+static ArmUart *uarts[3];
 
     /*
      *
      */
 
-static DMA_HandleTypeDef dma1_chan5_rx;
+static DMA_HandleTypeDef dma_rx_1;
+static DMA_HandleTypeDef dma_tx_1;
+static DMA_HandleTypeDef dma_rx_2;
+static DMA_HandleTypeDef dma_tx_2;
+static DMA_HandleTypeDef dma_rx_3;
+static DMA_HandleTypeDef dma_tx_3;
 
 #if defined(STM32F1xx)
 
 static DMA_Channel_TypeDef *get_dma_instance(UART::Id id, bool rx)
 {
+    // See manual section 13.3.7 on DMA request mapping
     switch (id)
     {
         case UART::UART_1 : return rx ? DMA1_Channel5 : DMA1_Channel4;
+        case UART::UART_2 : return rx ? DMA1_Channel6 : DMA1_Channel7;
+        case UART::UART_3 : return rx ? DMA1_Channel3 : DMA1_Channel2;
         default : ASSERT(0);
     }
     return 0;
@@ -146,7 +162,9 @@ static DMA_HandleTypeDef *get_dma_handle(UART::Id id, bool rx)
 {
     switch (id)
     {
-        case UART::UART_1 : return rx ? & dma1_chan5_rx : 0;
+        case UART::UART_1 : return rx ? & dma_rx_1 : & dma_tx_1;
+        case UART::UART_2 : return rx ? & dma_rx_2 : & dma_tx_2;
+        case UART::UART_3 : return rx ? & dma_rx_3 : & dma_tx_3;
         default : ASSERT(0);
     }
     return 0;
@@ -164,10 +182,9 @@ static IRQn_Type get_dma_irq(UART::Id id, bool rx)
 
 #endif
 
-static void dma_rx_init(UART::Id id, int irq_level)
+static void dma_init(UART::Id id, bool rx, int irq_level)
 {
     // DMA Rx init
-    const bool rx = true;
     UART_HandleTypeDef *uart = get_uart(id);
     DMA_HandleTypeDef *dma = get_dma_handle(id, rx);
 
@@ -177,7 +194,7 @@ static void dma_rx_init(UART::Id id, int irq_level)
     // configure handle with required rx/tx params
     dma->Instance = get_dma_instance(id, rx);
 
-    dma->Init.Direction = DMA_PERIPH_TO_MEMORY;
+    dma->Init.Direction = rx ? DMA_PERIPH_TO_MEMORY : DMA_MEMORY_TO_PERIPH;
     dma->Init.PeriphInc = DMA_PINC_DISABLE;
     dma->Init.MemInc = DMA_MINC_ENABLE;
     dma->Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
@@ -190,7 +207,14 @@ static void dma_rx_init(UART::Id id, int irq_level)
     ASSERT(status == HAL_OK);
 
     // associate dma handle with the tx/rx handle
-    __HAL_LINKDMA(uart, hdmarx, (*dma));
+    if (rx)
+    {
+        __HAL_LINKDMA(uart, hdmarx, (*dma));
+    }
+    else
+    {
+        __HAL_LINKDMA(uart, hdmatx, (*dma));
+    }
 
     // configure priority and enable NVIC for xfer complete irq
     HAL_NVIC_SetPriority(get_dma_irq(id, rx), irq_level, 0);
@@ -201,39 +225,30 @@ static void dma_rx_init(UART::Id id, int irq_level)
      *
      */
 
-static void dma_start(UART_HandleTypeDef *uart, DMA_HandleTypeDef *dma)
+static void dma_start_rx(ArmUart *uart, DMA_HandleTypeDef *dma)
 {
-    // only the first Rx irq is required to start the xfer
-    __HAL_UART_DISABLE_IT(uart, UART_IT_RXNE);
-
-    ASSERT(cb_next == 0);
-    cb_next = Callback::list.pop(Callback::mutex);
-    HAL_StatusTypeDef status = HAL_UART_Receive_DMA(uart, cb_next->buff, sizeof(cb_next->buff));
+    Callback *cb = uart->get_cb();
+    ASSERT(cb);
+    HAL_StatusTypeDef status = HAL_UART_Receive_DMA(uart->handle, cb->buff, sizeof(cb->buff));
     ASSERT(status == HAL_OK);
 }
 
-#if 0
-extern "C" void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
-{
-    //p5->set(true);
-    ASSERT(huart == & uart1);
-
-    // only the first Rx irq is required to start the xfer
-    __HAL_UART_DISABLE_IT(huart, UART_IT_RXNE);
-    // Can get called when a line-break or other error occurs
-}
-#endif
+    /*
+     *
+     */
 
 extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     ASSERT(huart == & uart1);
 
+    ArmUart *uart = uarts[0];
+
     // TODO : how many chars have been xferred?
 
-    Callback *cb = cb_next;
-    cb_next = 0;
+    Callback *cb = uart->get_cb();
+    uart->next_cb = 0;
 
-    dma_start(huart, & dma1_chan5_rx);
+    dma_start_rx(uart, & dma_rx_1);
 
     if (cb)
     {
@@ -243,7 +258,7 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 extern "C" void DMA1_Channel5_IRQHandler(void)
 {
-    HAL_DMA_IRQHandler(& dma1_chan5_rx);
+    HAL_DMA_IRQHandler(& dma_rx_1);
 }
     
 static IRQn_Type get_irq_num(UART::Id id)
@@ -520,7 +535,7 @@ static void MX_UART_Deinit(panglos::UART::Id id)
      */
 
 ArmUart::ArmUart(Id _id, UART_HandleTypeDef *_handle, Buffer *b)
-: id(_id), handle(_handle), buffer(b), error(0)
+: id(_id), handle(_handle), buffer(b), error(0), next_cb(0)
 {   
     ASSERT(buffer);
     uarts[id] = this;
@@ -561,8 +576,6 @@ void ArmUart::irq()
     if (sr & UART_FLAG_RXNE)
     {
         uint8_t data = handle->Instance->DR;
-        /* Clear RXNE interrupt flag */
-        //__HAL_UART_SEND_REQ(handle, UART_RXDATA_FLUSH_REQUEST);
         on_rx(& data, 1);
     }
 }
@@ -598,15 +611,17 @@ UART *UART::create(UART::Id id, int baud, Buffer *b, int irq_level)
     {
         if (Callback::list.empty())
         {
+            Lock lock(Callback::mutex);
+
             for (int i = 0; i < DISPATCH_BUFFERS; i++)
             {
                 Callback *cb = new Callback(arm_uart->buffer);
-                Callback::list.push(cb, Callback::mutex);
+                Callback::list.push(cb, 0);
             }
         }
 
-        dma_rx_init(id, irq_level);
-        dma_start(uart, & dma1_chan5_rx);
+        dma_init(id, true, irq_level);
+        dma_start_rx(arm_uart, get_dma_handle(id, true));
     }
     else
     {
