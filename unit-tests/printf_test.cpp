@@ -118,6 +118,11 @@ public:
         buff[0] = '\0';
     }
 
+    void reset()
+    {
+        idx = 0;
+    }
+
     virtual int _putc(char c)
     {
         EXPECT_TRUE(idx < sizeof(buff));
@@ -262,6 +267,49 @@ TEST(Printf, Test)
         out.printf("hello %p end", 0x80001234);
         EXPECT_STREQ("hello 0x80001234 end", out.buff);
     }
+}
+
+    /*
+     *
+     */
+
+TEST(Buffered, Test)
+{
+    TestOutput to;
+    Output *out = Output::create_buffered(& to, 32);
+
+    out->_puts("hello", 5);
+    EXPECT_EQ(0, to.idx);
+    out->_puts("\r", 1);
+    EXPECT_EQ(0, to.idx);
+    out->_puts("\n", 1);
+    EXPECT_EQ(7, to.idx);
+    EXPECT_STREQ("hello\r\n", to.buff);
+
+    to.reset();
+    EXPECT_EQ(0, to.idx);
+
+    out->_puts("hello\r\nworld!", 13);
+    EXPECT_EQ(7, to.idx);
+    EXPECT_STREQ("hello\r\n", to.buff);
+
+    to.reset();
+    EXPECT_EQ(0, to.idx);
+ 
+    out->_puts("xx\r\n", 4);
+    EXPECT_EQ(10, to.idx);
+    EXPECT_STREQ("world!xx\r\n", to.buff);
+
+    to.reset();
+    EXPECT_EQ(0, to.idx);
+ 
+    out->_puts("abcd", 4);
+    EXPECT_EQ(0, to.idx);
+    out->flush();
+    EXPECT_EQ(4, to.idx);
+    EXPECT_STREQ("abcd", to.buff);
+
+    delete out;
 }
 
 //  FIN

@@ -6,20 +6,61 @@
 
 #include "panglos/debug.h"
 
+#include "panglos/buffer.h"
 #include "panglos/sprintf.h"
 
 namespace panglos {
 
-int Output::_puts(const char* s)
+int Output::_puts(const char* s, int n)
 {
     int count = 0;
 
-    for (; *s; s++)
+    for (int i = 0; i < n; i++)
     {
-        count += _putc(*s);
+        count += _putc(*s++);
     }
 
     return count;
+}
+
+    /*
+     *
+     */
+
+class Buffered : public Output
+{
+    Output *out;
+    Buffer buffer;
+public:
+    Buffered(Output *_out, int _size)
+    :   out(_out), buffer(_size+1)
+    {
+    }
+
+    virtual void flush()
+    {
+        // flush to output 
+        out->_puts((const char*) buffer.buffer(), buffer.count());
+        buffer.reset();
+    }
+
+    virtual int _putc(const char c)
+    {
+        buffer.add(c);
+
+        if ((c == '\n') || buffer.full())
+        {
+            flush();
+            return 1;
+        }
+
+        return 1;
+    }
+};
+
+Output *Output::create_buffered(Output *out, int size)
+{
+    return new Buffered(out, size);
 }
 
 // see http://www.cplusplus.com/reference/cstdio/printf/
@@ -273,7 +314,7 @@ int xvprintf(Output *output, const char* fmt, va_list va)
             {
                 if (f.flags == '#')
                 {
-                    count += output->_puts("0x");
+                    count += output->_puts("0x", 2);
                 }
                 int i = va_arg(va, int);
                 count += _print_num(output, & f, i, 16);
@@ -281,7 +322,7 @@ int xvprintf(Output *output, const char* fmt, va_list va)
             }
             case 'p' :
             {
-                count += output->_puts("0x");
+                count += output->_puts("0x", 2);
                 void* v = va_arg(va, void*);
                 count += _print_num(output, & f, (long unsigned int) v, 16);
                 break;
@@ -302,7 +343,7 @@ int xvprintf(Output *output, const char* fmt, va_list va)
                     print_pad(output, ' ', pad);
                 }
 
-                count += output->_puts(s);
+                count += output->_puts(s, strlen(s));
 
                 if (f.flags == '-')
                 {

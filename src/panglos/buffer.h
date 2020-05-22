@@ -277,6 +277,11 @@ public:
         return size;
     }
 
+    int count()
+    {
+        return in - out;
+    }
+
     static Buffer **next_fn(Buffer *b)
     {
         return & b->next;

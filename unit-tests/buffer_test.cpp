@@ -345,20 +345,25 @@ TEST(RingBuffer, Remain)
 TEST(Buffer, Test)
 {
     Buffer b(8);
+    EXPECT_EQ(0, b.count());
 
     bool okay;
     okay = b.add('a');
     EXPECT_TRUE(okay);
+    EXPECT_EQ(1, b.count());
     okay = b.add('b');
     EXPECT_TRUE(okay);
+    EXPECT_EQ(2, b.count());
     okay = b.add('c');
     EXPECT_TRUE(okay);
+    EXPECT_EQ(3, b.count());
     EXPECT_FALSE(b.full());
 
     // read part of the buffer
     uint8_t buff[64];
     int n = b.read(buff, 4);
     EXPECT_EQ(3, n);
+    EXPECT_EQ(0, b.count());
     EXPECT_EQ('a', buff[0]);
     EXPECT_EQ('b', buff[1]);
     EXPECT_EQ('c', buff[2]);
@@ -366,15 +371,19 @@ TEST(Buffer, Test)
 
     okay = b.add('a');
     EXPECT_TRUE(okay);
+    EXPECT_EQ(1, b.count());
     okay = b.add('b');
     EXPECT_TRUE(okay);
+    EXPECT_EQ(2, b.count());
     okay = b.add('c');
     EXPECT_TRUE(okay);
+    EXPECT_EQ(3, b.count());
     EXPECT_FALSE(b.full());
 
     // read all requested data
     n = b.read(buff, 2);
     EXPECT_EQ(2, n);
+    EXPECT_EQ(1, b.count());
     EXPECT_EQ('a', buff[0]);
     EXPECT_EQ('b', buff[1]);
     EXPECT_FALSE(b.spent());
@@ -382,12 +391,14 @@ TEST(Buffer, Test)
     // read the rest
     n = b.read(buff, 1);
     EXPECT_EQ(1, n);
+    EXPECT_EQ(0, b.count());
     EXPECT_EQ('c', buff[0]);
     EXPECT_FALSE(b.spent());
 
     // try to read empty buffer
     n = b.read(buff, 1);
     EXPECT_EQ(0, n);
+    EXPECT_EQ(0, b.count());
     EXPECT_FALSE(b.spent());
 
     // buffer should fill up

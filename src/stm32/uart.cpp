@@ -109,6 +109,7 @@ public:
 
     // Implement Output class
     virtual int _putc(char c);
+    virtual int _puts(char *s, int n);
 
     // Implement UART class
     virtual int send(const char* data, int n);
@@ -158,6 +159,18 @@ static DMA_Channel_TypeDef *get_dma_instance(UART::Id id, bool rx)
     return 0;
 }
 
+static IRQn_Type get_dma_irq(UART::Id id, bool rx)
+{
+    switch (id)
+    {
+        case UART::UART_1 : return rx ? DMA1_Channel5_IRQn : DMA1_Channel4_IRQn;
+        case UART::UART_2 : return rx ? DMA1_Channel6_IRQn : DMA1_Channel7_IRQn;
+        case UART::UART_3 : return rx ? DMA1_Channel3_IRQn : DMA1_Channel2_IRQn;
+        default : ASSERT(0);
+    }
+    return (IRQn_Type) 0;
+}
+
 static DMA_HandleTypeDef *get_dma_handle(UART::Id id, bool rx)
 {
     switch (id)
@@ -168,16 +181,6 @@ static DMA_HandleTypeDef *get_dma_handle(UART::Id id, bool rx)
         default : ASSERT(0);
     }
     return 0;
-}
-
-static IRQn_Type get_dma_irq(UART::Id id, bool rx)
-{
-    switch (id)
-    {
-        case UART::UART_1 : return rx ? DMA1_Channel5_IRQn : DMA1_Channel4_IRQn;
-        default : ASSERT(0);
-    }
-    return (IRQn_Type) 0;
 }
 
 #endif
@@ -260,7 +263,13 @@ extern "C" void DMA1_Channel5_IRQHandler(void)
 {
     HAL_DMA_IRQHandler(& dma_rx_1);
 }
-    
+ 
+extern "C" void DMA1_Channel4_IRQHandler(void)
+{
+    ASSERT(0);
+    HAL_DMA_IRQHandler(& dma_tx_1);
+}
+ 
 static IRQn_Type get_irq_num(UART::Id id)
 {
     switch (id)
@@ -553,6 +562,11 @@ int ArmUart::_putc(char c)
     return send(& c, 1);
 }
 
+int ArmUart::_puts(char *s, int n)
+{
+    return send(s, n);
+}
+
 int ArmUart::on_rx(const uint8_t *data, int size)
 {
     return buffer->add(data, size);
@@ -594,6 +608,7 @@ int ArmUart::send(const char* data, int n)
     // TODO : where is this global mutex!
     Lock lock(mutex);
 
+    //HAL_UART_Transmit_DMA(handle, (uint8_t*) data, n);
     HAL_UART_Transmit(handle, (uint8_t*) data, n, 100);
     return n;
 }
@@ -628,6 +643,12 @@ UART *UART::create(UART::Id id, int baud, Buffer *b, int irq_level)
         // Use Rx Not Empty interrupt for the other UARTs
         __HAL_UART_ENABLE_IT(uart, UART_IT_RXNE);
     }
+
+    if (id == UART::UART_3)
+    {
+        //dma_init(id, false, irq_level);
+    }
+    
     return arm_uart;
 }
 

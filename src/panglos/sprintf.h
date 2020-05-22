@@ -8,6 +8,28 @@
 
 namespace panglos {
 
+// TODO : move this to something akin to stdio.h for the library
+class Output
+{
+public:
+    Mutex *mutex;
+public:
+    Output() : mutex(0) { }
+    virtual ~Output() { }
+
+    virtual int _putc(char c) = 0;
+    virtual int _puts(const char *s, int n);
+    virtual void flush() { }
+
+    virtual int printf(const char* fmt, ...);
+
+    static Output *create_buffered(Output *out, int size);
+};
+
+    /*
+     *
+     */
+
 class Format {
 public:
     char flags;
@@ -22,20 +44,9 @@ public:
     void get(const char **fmt, va_list va);
 };
 
-// TODO : move this to something akin to stdio.h for the library
-class Output
-{
-public:
-    Mutex *mutex;
-public:
-    Output() : mutex(0) { }
-    virtual ~Output() { }
-
-    virtual int _putc(char c) = 0;
-    virtual int _puts(const char *s);
-
-    virtual int printf(const char* fmt, ...);
-};
+    /*
+     *
+     */
 
 int _print_num(Output *output, const Format *format, long int number, int base);
 
