@@ -110,7 +110,7 @@ class TestOutput : public Output
 {
 public:
     char buff[1024];
-    size_t idx = 0;
+    size_t idx;
 
     TestOutput()
     : idx(0)

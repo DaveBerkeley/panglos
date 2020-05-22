@@ -1,6 +1,8 @@
 
 #include <pthread.h>
 
+#include <map>
+
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
