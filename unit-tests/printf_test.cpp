@@ -194,8 +194,8 @@ TEST(Printf, Num)
         test(& format, & fmt);
 
         TestOutput out;
-        _print_num(& out, & format, 0xdeadface, 16);
-        EXPECT_STREQ("deadface", out.buff);
+        _print_num(& out, & format, 0x7eadface, 16);
+        EXPECT_STREQ("7eadface", out.buff);
     }
 }
 
