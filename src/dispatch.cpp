@@ -49,7 +49,10 @@ void Dispatch::run()
         Callback *cb = deque.pop_head(mutex);
         if (cb)
         {
-            //PO_DEBUG("debug=%s", cb->debug);
+            if (cb->debug)
+            {
+                PO_DEBUG("debug=%s", cb->debug);
+            }
             cb->execute();
         }
     }
