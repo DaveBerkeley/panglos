@@ -44,6 +44,40 @@ class ARM_GPIO;
 
 static ARM_GPIO *interrupt_table[16];
 
+static uint16_t porta, portb, portc;
+
+static void busy(GPIO_TypeDef *port, uint16_t pin, bool mark)
+{
+    uint16_t *map = 0;
+
+    if (port == GPIOA)
+    {
+        map = & porta;
+    }
+    else if (port == GPIOB)
+    {
+        map = & portb;
+    }
+    else if (port == GPIOC)
+    {
+        map = & portc;
+    }
+    else
+    {
+        ASSERT(0);
+    }
+
+    if (mark)
+    {   
+        ASSERT((*map & pin) == 0);
+        *map |= pin;
+    }
+    else
+    {
+        *map &= ~pin;
+    }
+}
+
     /*
      *
      */
@@ -60,6 +94,8 @@ public:
     ARM_GPIO(GPIO_TypeDef *_port, uint16_t _pin, uint32_t mode)
     :   port(_port), pin(_pin), irq_handler(0), irq_arg(0), irq_enabled(false)
     {
+        busy(port, pin, true);
+
         GPIO_InitTypeDef gpio_init = {0};
 
         set(false);
@@ -120,6 +156,13 @@ public:
         ASSERT(!interrupt_table[idx]);
         interrupt_table[idx] = this;
         irq_enabled = true;
+    }
+
+    ~ARM_GPIO()
+    {
+        busy(port, pin, false);
+        // TODO
+        ASSERT(0);
     }
 
     virtual void set(bool state)

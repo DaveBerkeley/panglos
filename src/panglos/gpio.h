@@ -8,7 +8,7 @@ class GPIO
 {
 public:
     virtual ~GPIO() { }
-    
+ 
     virtual void set(bool state) = 0;
     virtual bool get() = 0;
     virtual void toggle() = 0;
