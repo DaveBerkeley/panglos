@@ -17,6 +17,7 @@ namespace panglos {
 static UART_HandleTypeDef uart1;
 static UART_HandleTypeDef uart2;
 static UART_HandleTypeDef uart3;
+static UART_HandleTypeDef uart4;
 
     /*
      *
@@ -24,7 +25,7 @@ static UART_HandleTypeDef uart3;
 
 class ArmUart;
 
-static ArmUart *uarts[3];
+static ArmUart *uarts[4];
 
 static UART_HandleTypeDef *get_uart(UART::Id id)
 {
@@ -33,6 +34,7 @@ static UART_HandleTypeDef *get_uart(UART::Id id)
         case UART::UART_1 : return & uart1;
         case UART::UART_2 : return & uart2;
         case UART::UART_3 : return & uart3;
+        case UART::UART_4 : return & uart4;
         default : ASSERT(0);
     }
 
@@ -46,6 +48,7 @@ static IRQn_Type get_irq_num(UART::Id id)
         case UART::UART_1 : return USART1_IRQn;
         case UART::UART_2 : return USART2_IRQn;
         case UART::UART_3 : return USART3_IRQn;
+        case UART::UART_4 : return UART4_IRQn;
         default : ASSERT(0);
     }
 
@@ -110,6 +113,24 @@ static void init_uart3()
     gpio_def.Pin = GPIO_PIN_11;
     gpio_def.Mode = GPIO_MODE_AF_OD;
     HAL_GPIO_Init(GPIOB, & gpio_def);
+}
+
+static void init_uart4()
+{
+    __USART4_CLK_ENABLE();
+
+    GPIO_InitTypeDef gpio_def;
+
+    gpio_def.Pin = GPIO_PIN_0;
+    gpio_def.Mode = GPIO_MODE_AF_PP;
+    gpio_def.Alternate = GPIO_AF8_UART4;
+    gpio_def.Speed = GPIO_SPEED_HIGH;
+    gpio_def.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOB, & gpio_def);
+
+    gpio_def.Pin = GPIO_PIN_1;
+    gpio_def.Mode = GPIO_MODE_AF_OD;
+    HAL_GPIO_Init(GPIOA, & gpio_def);
 }
 
 #endif // STM32F4xx
@@ -242,6 +263,11 @@ static void init_uart3(Map map=MAP_NONE)
     }
 }
 
+static void init_uart4(Map map=MAP_NONE)
+{
+    ASSERT(0);
+}
+
 #endif // STM32F1xx
 
     /*
@@ -273,6 +299,12 @@ static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud, int
         {
             instance = USART3;
             init_uart3();
+            break;
+        }
+        case UART::UART_4 :
+        {
+            instance = UART4;
+            init_uart4();
             break;
         }
         default :
@@ -448,6 +480,11 @@ extern "C" void USART2_IRQHandler(void)
 extern "C" void USART3_IRQHandler(void)
 {
     uart_rx_irq(uarts[2]);
+}
+
+extern "C" void UART4_IRQHandler(void)
+{
+    uart_rx_irq(uarts[3]);
 }
 
 //  FIN

@@ -18,6 +18,7 @@ public:
         UART_1 = 0,
         UART_2 = 1,
         UART_3 = 2,
+        UART_4 = 3,
     };
 
     virtual ~UART() { }
