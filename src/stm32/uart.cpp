@@ -48,7 +48,9 @@ static IRQn_Type get_irq_num(UART::Id id)
         case UART::UART_1 : return USART1_IRQn;
         case UART::UART_2 : return USART2_IRQn;
         case UART::UART_3 : return USART3_IRQn;
+#if defined(STM32F4xx)
         case UART::UART_4 : return UART4_IRQn;
+#endif
         default : ASSERT(0);
     }
 
@@ -263,11 +265,6 @@ static void init_uart3(Map map=MAP_NONE)
     }
 }
 
-static void init_uart4(Map map=MAP_NONE)
-{
-    ASSERT(0);
-}
-
 #endif // STM32F1xx
 
     /*
@@ -301,12 +298,14 @@ static UART_HandleTypeDef* MX_UART_Init(panglos::UART::Id id, uint32_t baud, int
             init_uart3();
             break;
         }
+#if defined(STM32F4xx)
         case UART::UART_4 :
         {
             instance = UART4;
             init_uart4();
             break;
         }
+#endif
         default :
         {
             ASSERT(0);
@@ -430,7 +429,7 @@ int ArmUart::send(const char* data, int n)
     Lock lock(mutex);
 
     HAL_StatusTypeDef status = HAL_UART_Transmit(handle, (uint8_t*) data, n, 100);
-    ASSERT(status == HAL_OK);
+    //ASSERT(status == HAL_OK);
     return n;
 }
 

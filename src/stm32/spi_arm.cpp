@@ -68,6 +68,8 @@ public:
 #if defined(STM32F4xx)
 static void spi1_init()
 {
+    __HAL_RCC_SPI1_CLK_ENABLE();
+
     GPIO_InitTypeDef  gpio_def;
     gpio_def.Pin       = GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
     gpio_def.Mode      = GPIO_MODE_AF_PP;
@@ -79,12 +81,14 @@ static void spi1_init()
 
 static void spi2_init()
 {
+    __HAL_RCC_SPI2_CLK_ENABLE();
+
     GPIO_InitTypeDef  gpio_def;
     gpio_def.Pin       = GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
     gpio_def.Mode      = GPIO_MODE_AF_PP;
     gpio_def.Pull      = GPIO_PULLUP;
     gpio_def.Speed     = GPIO_SPEED_FREQ_HIGH;
-    gpio_def.Alternate = GPIO_AF5_SPI1;
+    gpio_def.Alternate = GPIO_AF5_SPI2;
     HAL_GPIO_Init(GPIOB, & gpio_def);
 }
 #endif
@@ -143,20 +147,20 @@ SPI *SPI::create(ID _id, Mutex *mutex)
         case SPI_1 :
         {
             spi1_init();
-            //GPIO * cs = gpio_create(GPIOA, GPIO_PIN_4, GPIO_MODE_OUTPUT_PP);
             return new ArmSpi(SPI1, mutex);
         }
         case SPI_2 :
         {
             spi2_init();
-            //GPIO * cs = gpio_create(GPIOB, GPIO_PIN_12, GPIO_MODE_OUTPUT_PP);
             return new ArmSpi(SPI2, mutex);
         }
         default :
         {
-            return 0;
+            ASSERT(0);
         }
     }
+
+    return 0;
 }
 
 }   //  namespace panglos
