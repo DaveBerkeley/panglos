@@ -56,6 +56,17 @@ public:
 
         return 1;
     }
+    virtual int _puts(const char *s, int n)
+    {
+        int count = 0;
+
+        for (int i = 0; i < n; i++)
+        {
+            count += _putc(*s++);
+        }
+
+        return count;
+    }
 };
 
 Output *Output::create_buffered(Output *out, int size)

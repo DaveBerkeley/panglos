@@ -209,7 +209,9 @@ void EventQueue::run()
     while (true)
     {
         d_timer_t next = event_queue.check();
-        timer_wait(next);
+        // if next==0, wait arbitrary time.
+        // the next reschedule will fix this.
+        timer_wait(next ? next : 10000);
     }
 }
 

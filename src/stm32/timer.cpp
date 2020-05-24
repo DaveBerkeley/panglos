@@ -240,7 +240,8 @@ static void hw_timer_init(void)
     timer->Init.CounterMode = TIM_COUNTERMODE_UP;
     timer->Init.Period = 0;
     timer->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    timer->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    timer->Init.RepetitionCounter = 0; 
+    //timer->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
     HAL_TIM_OnePulse_MspInit(timer);
 

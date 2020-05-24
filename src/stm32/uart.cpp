@@ -90,7 +90,7 @@ static void init_uart2()
     HAL_GPIO_Init(GPIOA, & gpio_def);
 
     gpio_def.Pin = GPIO_PIN_3;
-    gpio_def.Mode = GPIO_MODE_AF_PP;
+    gpio_def.Mode = GPIO_MODE_AF_OD;
     HAL_GPIO_Init(GPIOA, & gpio_def);
 }
 
@@ -100,11 +100,15 @@ static void init_uart3()
 
     GPIO_InitTypeDef gpio_def;
 
-    gpio_def.Pin = GPIO_PIN_10 | GPIO_PIN_11;
+    gpio_def.Pin = GPIO_PIN_10;
     gpio_def.Mode = GPIO_MODE_AF_PP;
     gpio_def.Alternate = GPIO_AF7_USART3;
     gpio_def.Speed = GPIO_SPEED_HIGH;
     gpio_def.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOB, & gpio_def);
+
+    gpio_def.Pin = GPIO_PIN_11;
+    gpio_def.Mode = GPIO_MODE_AF_OD;
     HAL_GPIO_Init(GPIOB, & gpio_def);
 }
 
@@ -344,9 +348,9 @@ public:
     {
         return send(& c, 1);
     }
-    virtual int _puts(char *s, int n)
+    virtual int _puts(const char *s, int n)
     {
-        return send(s, 1);
+        return send(s, n);
     }
 
     // Implement UART class
@@ -393,7 +397,8 @@ int ArmUart::send(const char* data, int n)
     // TODO : where is this global mutex!
     Lock lock(mutex);
 
-    HAL_UART_Transmit(handle, (uint8_t*) data, n, 100);
+    HAL_StatusTypeDef status = HAL_UART_Transmit(handle, (uint8_t*) data, n, 100);
+    ASSERT(status == HAL_OK);
     return n;
 }
 
