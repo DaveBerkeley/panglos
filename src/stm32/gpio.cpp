@@ -69,7 +69,7 @@ static void busy(GPIO_TypeDef *port, uint16_t pin, bool mark)
 
     if (mark)
     {   
-        ASSERT((*map & pin) == 0);
+        ASSERT_ERROR((*map & pin) == 0, "port=%#x pin=%#x", port, pin);
         *map |= pin;
     }
     else
