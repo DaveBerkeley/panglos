@@ -46,26 +46,15 @@ public:
 
     virtual int _putc(const char c)
     {
-        buffer.add(c);
+        const int n = buffer.add(c);
 
         if ((c == '\n') || buffer.full())
         {
             flush();
-            return 1;
+            return n;
         }
 
-        return 1;
-    }
-    virtual int _puts(const char *s, int n)
-    {
-        int count = 0;
-
-        for (int i = 0; i < n; i++)
-        {
-            count += _putc(*s++);
-        }
-
-        return count;
+        return n;
     }
 };
 
