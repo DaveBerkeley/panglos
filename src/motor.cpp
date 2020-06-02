@@ -86,11 +86,172 @@ void MotorIo_4::power(bool on)
     }
 }
 
+    /*
+     *
+     */
+
+void Accelerator::show_state(const char *t)
+{
+#if 0
+    static const Code lut[] = { 
+        { STOP,  "STOP ", },
+        { ACCEL, "ACCEL", },
+        { DECEL, "DECEL", },
+        { FULL,  "FULL ", },
+        { 0, 0 },
+    };
+    const char *dir = dirn_forward ? ">>" : "<<";
+    if (state == STOP)
+    {
+        dir = "--";
+    }
+
+    PO_REPORT("%s state=%s %s idx=%d", t, err_lookup(lut, state), dir, idx);
+#else
+    IGNORE(t);
+#endif
+}
+
+void Accelerator::set_state(State s)
+{
+    state = s;
+    show_state("set");
+}
+
+Accelerator::Accelerator(int _max_p, int _min_p, int _steps)
+:   size(_steps),
+    idx(0),
+    state(STOP),
+    dirn_forward(true),
+    table(0),
+    max_p(_max_p),
+    min_p(_min_p)
+{
+    set_state(STOP);
+
+    table = new int[size];
+
+    for (int i = 0; i < size; i++)
+    {
+        const int range = abs(max_p - min_p);
+        const float div = range / float(size);
+        const int v = int(i * div);
+        table[i] = v;
+        ASSERT_ERROR(v >= 0, "i=%d v=%d", i, v);
+    }
+}
+
+Accelerator::~Accelerator()
+{
+    delete[] table;
+}
+
+void Accelerator::decelerate()
+{
+    if (state != STOP)
+    {
+        set_state(DECEL);
+    }
+}
+
+int Accelerator::go(int up)
+{
+    show_state(up ? ">> " : "<< ");
+
+    // if we are stopped, the current direction does not matter
+    if (state == STOP)
+    {
+        // accelerate in the direction requested
+        dirn_forward = up;
+        set_state(ACCEL);
+        return min_p;
+    }
+ 
+    if (dirn_forward == up)
+    {
+        // already going in this direction
+        if (state == FULL)
+        {
+            // already at full speed
+            return max_p;
+        }
+        if (state == ACCEL)
+        {
+            if ((idx+1) == size)
+            {
+                // reached full speed
+                set_state(FULL);
+                return max_p;
+            }
+            // continue acceleration
+            idx += 1;
+            return table[idx];
+        }
+        if (state == DECEL)
+        {
+            // continue decelerating
+            int v = table[idx];
+            if (idx > 0)
+            {
+                idx -= 1;
+            }
+            if (idx == 0)
+            {
+                // come to a stop
+                set_state(STOP);
+            }
+            return v;
+        }
+        ASSERT(0);
+    }
+
+    // changing direction
+    ASSERT(dirn_forward != up);
+
+    if (state == FULL)
+    {
+        // need to decel and come to a stop
+        ASSERT(idx == (size-1));
+        set_state(DECEL);
+        return table[idx];
+    }
+    if (state == ACCEL)
+    {
+        // we need to reverse direction
+        set_state(DECEL);
+        if (idx > 0)
+        {
+            idx -= 1;
+        }
+        if (idx == 0)
+        {
+            set_state(STOP);
+            dirn_forward = up;
+        }
+        return table[idx];
+    }
+    if (state == DECEL)
+    {
+        if (idx > 0)
+        {
+            idx -= 1;
+        }
+        if (idx == 0)
+        {
+            set_state(STOP);
+            dirn_forward = up;
+        }
+        return table[idx];
+    }
+    ASSERT(0);
+    return 0;
+}
+
   /*
   *
   */
 
-Stepper::Stepper(int cycle, MotorIo *io, uint32_t time)
+Stepper::Stepper(int cycle, MotorIo *io, uint32_t time, int32_t slow, int _steps)
 :   io(io),
     steps(cycle), 
     count(0), 
@@ -98,15 +259,16 @@ Stepper::Stepper(int cycle, MotorIo *io, uint32_t time)
     rotate_to(-1), 
     period(time), 
     semaphore(0),
-    accel(NONE), 
-    reference(0)
+    accelerator(0)
 {
     ASSERT(io);
     semaphore = Semaphore::create();
+    accelerator = new Accelerator(time, (slow == -1) ? time*10 : slow, (_steps == -1) ? 10 : _steps);
 }
 
 Stepper::~Stepper()
 {
+    delete accelerator;
     delete semaphore;
 }
 
@@ -150,23 +312,9 @@ int Stepper::clip(int t)
     return t;
 }
 
-void Stepper::set_accel()
-{
-
-    int delta = get_delta();
-    if (!delta)
-    {
-        return;
-    }
-
-    reference = count;
-    accel = ACCEL;
-}
-
 void Stepper::seek(int t)
 {
     target = clip(t);
-    set_accel();
 }
 
 void Stepper::rotate(int t)
@@ -182,7 +330,6 @@ void Stepper::rotate(int t)
     if (t != count)
     {
         rotate_to = t;
-        set_accel();
     }
 }
 
@@ -253,65 +400,43 @@ int Stepper::get_delta()
 
 void Stepper::pause(uint32_t us)
 {
+    //PO_REPORT("pause %d", us);
     panglos::event_queue.wait(semaphore, us);
 }
 
 bool Stepper::poll()
 {
-    int delta = get_delta();
+    const int delta = get_delta();
 
-    if (delta == 0)
+    if ((delta == 0) && (accelerator->stopped()))
     {
         return false;
     }
 
-    step(delta > 0);
+    Accelerator::State state = accelerator->get_state();
 
-    if ((rotate_to != -1) && (rotate_to == count))
+    if ((state == Accelerator::FULL) || (state == Accelerator::ACCEL))
+    {
+        if (abs(delta) <= (accelerator->get_idx()))
+        {
+            accelerator->decelerate();
+        }
+    }
+
+    const bool dirn = delta > 0;
+    const int period = accelerator->go(dirn);
+    // we may still be travelling in the opposite direction ..
+    const bool travel = accelerator->forward();
+
+    step(travel);
+
+    if ((rotate_to != -1) && (rotate_to == count) && accelerator->stopped())
     {
         //  we've arrived
         rotate_to = -1;
         target = count;
     }
 
-    static const int num = 20;
-    static uint32_t speed[num];
-    static bool init = false;
-
-    if (!init)
-    {
-        // initialise the accel / decel profile.
-        init = true;
-        for (int i = 0; i < num; i++)
-        {
-            const uint32_t fast = period;
-            const uint32_t slow = period * 10;
-            uint32_t s = ((i * fast) + ((num - i) * slow)) / num;
-            speed[i] = s;
-        }
-    }
-
-    int move = abs(delta);
-
-    if (move < num)
-    {
-        // looks like decel
-        accel = DECEL;
-        pause(speed[move]);
-        return true;
-    }
-
-    if (accel == ACCEL)
-    {
-        int move = abs(reference - count);
-        if (move < num)
-        {
-            pause(speed[move]);
-            return true;
-        }
-    }
-
-    accel = NONE;
     pause(period);
     return true;
 }

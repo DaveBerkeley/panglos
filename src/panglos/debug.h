@@ -44,6 +44,10 @@ inline const char *err_lookup(const Code *codes, int err, const char *def="unkno
 #include <stdio.h>
 
 #define ASSERT(x) assert(x)
+#define ASSERT_ERROR(x,fmt,...) \
+    if (!(x)) {  \
+        fprintf(stderr, "ERROR %p %s %d %s " fmt "\r\n", panglos::get_task_id(), __FILE__, __LINE__, __PRETTY_FUNCTION__,  ## __VA_ARGS__ ); \
+    }
 
 #define PO_DEBUG(x, ...)    fprintf(stderr, "DEBUG %p %s %d %s " x "\r\n", panglos::get_task_id(), __FILE__, __LINE__, __PRETTY_FUNCTION__,  ## __VA_ARGS__ )
 #define PO_ERROR(x, ...)    fprintf(stderr, "ERROR %p %s %d %s " x "\r\n", panglos::get_task_id(), __FILE__, __LINE__, __PRETTY_FUNCTION__,  ## __VA_ARGS__ )
@@ -76,7 +80,7 @@ extern panglos::Output *err_uart;
 
 #define ASSERT(x)           if (!(x)) { PO_ERROR("assert failed"); Error_Handler(); }
 #define ASSERT_ERROR(x,fmt,...) \
-                            if (!(x)) {  _PO_PRINT(err_uart, "ERROR", fmt, ## __VA_ARGS__ ); Error_Handler(); }
+                            if (!(x)) {  _PO_PRINT(err_uart, "ASSERT ERROR", fmt, ## __VA_ARGS__ ); Error_Handler(); }
 
 #endif // GTEST
 

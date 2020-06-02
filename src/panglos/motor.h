@@ -50,6 +50,41 @@ public:
     virtual void power(bool on);
 };
 
+    /*
+     *
+     */
+
+class Accelerator
+{
+    int size;
+    int idx;
+public:
+    enum State { STOP=0, ACCEL=1, DECEL=2, FULL=3 };
+private:
+    enum State state;
+    bool dirn_forward;
+    int *table;
+
+    int max_p;
+    int min_p;
+
+    void show_state(const char *t);
+    void set_state(State s);
+
+public:
+    Accelerator(int _max_p, int _min_p, int _steps);
+    ~Accelerator();
+
+    void decelerate();
+    int go(int up);
+
+    int get_size() { return size; }
+    int get_idx() { return idx; }
+    State get_state() { return state; }
+    bool stopped() { return state == STOP; }
+    bool forward() { return dirn_forward; }
+};
+
    /*
     *
     */
@@ -64,19 +99,18 @@ class Stepper
     uint32_t period;
     Semaphore *semaphore;
 
-    enum Accel { ACCEL, DECEL, NONE };
-    enum Accel accel;
-    int reference;
+public:
+    Accelerator *accelerator;
+private:
 
     void set_state(int s);
     void step(bool up);
     int get_delta();
-    void set_accel();
 
-    void pause(uint32_t us);
+    virtual void pause(uint32_t us);
 
 public:
-    Stepper(int cycle, MotorIo* io, uint32_t time=1000);
+    Stepper(int cycle, MotorIo* io, uint32_t time=1000, int32_t slow=-1, int steps=-1);
     virtual ~Stepper();
 
     virtual int position();

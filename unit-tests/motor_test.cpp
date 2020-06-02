@@ -502,4 +502,440 @@ TEST(Motor, Power)
     mock_teardown();
 }
 
+    /*
+     *
+     */
+
+TEST(Motor, AccelDecel)
+{
+    Accelerator accel(100, 0, 5);
+
+    int v;
+
+    EXPECT_TRUE(accel.stopped());
+    EXPECT_TRUE(accel.forward());
+
+    // check accel forwards
+    v = accel.go(true);
+    EXPECT_EQ(v, 0);
+    EXPECT_FALSE(accel.stopped());
+    v = accel.go(true);
+    EXPECT_EQ(v, 20);
+    v = accel.go(true);
+    EXPECT_EQ(v, 40);
+    v = accel.go(true);
+    EXPECT_EQ(v, 60);
+    v = accel.go(true);
+    EXPECT_EQ(v, 80);
+    v = accel.go(true);
+    EXPECT_EQ(v, 100);
+    EXPECT_FALSE(accel.stopped());
+    EXPECT_TRUE(accel.forward());
+
+    // should stay at max
+    v = accel.go(true);
+    EXPECT_EQ(v, 100);
+    EXPECT_FALSE(accel.stopped());
+    EXPECT_TRUE(accel.forward());
+
+    // decelerate
+    accel.decelerate();
+    EXPECT_FALSE(accel.stopped());
+    EXPECT_TRUE(accel.forward());
+ 
+    v = accel.go(true);
+    EXPECT_EQ(v, 80);
+    v = accel.go(true);
+    EXPECT_EQ(v, 60);
+    v = accel.go(true);
+    EXPECT_EQ(v, 40);
+    v = accel.go(true);
+    EXPECT_EQ(v, 20);
+    // should be stopped now
+    EXPECT_TRUE(accel.stopped());
+    EXPECT_TRUE(accel.forward());
+
+    // start it going again. should start with min_p
+    v = accel.go(true);
+    EXPECT_EQ(v, 0);
+    EXPECT_FALSE(accel.stopped());
+    EXPECT_TRUE(accel.forward());
+
+    v = accel.go(true);
+    EXPECT_EQ(v, 20);
+    v = accel.go(true);
+    EXPECT_EQ(v, 40);
+    v = accel.go(true);
+    EXPECT_EQ(v, 60);
+    EXPECT_TRUE(accel.forward());
+
+    // now drive it the opposite direction
+    EXPECT_TRUE(accel.forward());
+    v = accel.go(false);
+    EXPECT_EQ(v, 40);
+    // still moving forward
+    EXPECT_TRUE(accel.forward());
+    v = accel.go(false);
+    EXPECT_EQ(v, 20);
+    EXPECT_TRUE(accel.forward());
+    v = accel.go(false);
+    EXPECT_EQ(v, 0);
+    EXPECT_TRUE(accel.stopped());
+    EXPECT_FALSE(accel.forward());
+
+    // we've come to a stop. Should continue to accelerate in reverse direction
+    v = accel.go(false);
+    EXPECT_EQ(v, 0);
+    v = accel.go(false);
+    EXPECT_EQ(v, 20);
+    v = accel.go(false);
+    EXPECT_EQ(v, 40);
+    v = accel.go(false);
+    EXPECT_EQ(v, 60);
+    v = accel.go(false);
+    EXPECT_EQ(v, 80);
+    v = accel.go(false);
+    EXPECT_EQ(v, 100);
+
+    v = accel.go(false);
+    EXPECT_EQ(v, 100);
+    v = accel.go(false);
+    EXPECT_EQ(v, 100);
+
+    // go forward again
+    // decelerate ...
+    EXPECT_FALSE(accel.forward());
+    v = accel.go(true);
+    EXPECT_EQ(v, 80);
+    EXPECT_FALSE(accel.forward());
+    v = accel.go(true);
+    EXPECT_EQ(v, 60);
+    v = accel.go(true);
+    EXPECT_EQ(v, 40);
+    v = accel.go(true);
+    EXPECT_EQ(v, 20);
+    // stop ..
+    v = accel.go(true);
+    EXPECT_EQ(v, 0);
+    EXPECT_TRUE(accel.forward());
+    v = accel.go(true);
+    EXPECT_EQ(v, 0);
+    v = accel.go(true);
+    EXPECT_EQ(v, 20);
+    v = accel.go(true);
+    EXPECT_EQ(v, 40);
+    v = accel.go(true);
+    EXPECT_EQ(v, 60);
+    v = accel.go(true);
+    EXPECT_EQ(v, 80);
+    v = accel.go(true);
+    EXPECT_EQ(v, 100);
+    v = accel.go(true);
+    EXPECT_EQ(v, 100);
+    // up to max speed
+
+    // decelerate until we've stopped
+    while (!accel.stopped())
+    {
+        v = accel.go(false);
+    }
+    EXPECT_EQ(v, 0);
+    EXPECT_FALSE(accel.forward());
+
+    // go forward from STOP
+    v = accel.go(true);
+    EXPECT_EQ(v, 0);
+    EXPECT_TRUE(accel.forward());
+    v = accel.go(true);
+    EXPECT_EQ(v, 20);
+    v = accel.go(true);
+    EXPECT_EQ(v, 40);
+}
+
+TEST(Motor, Near)
+{
+    xxx();
+    mock_setup(true);
+    int cycle = 360;
+    MockPin a(1), b(2), c(3), d(4);
+    MotorIo_4 motor(& a, & b, & c, & d);
+    Stepper stepper(cycle, & motor, 1000, 10000, 10);
+
+    Accelerator *acc = stepper.accelerator;
+
+    EXPECT_EQ(0, stepper.position());
+    EXPECT_EQ(Accelerator::STOP, acc->get_state());
+    stepper.seek(9);
+    stepper.poll();
+    EXPECT_EQ(1, stepper.position());
+    EXPECT_EQ(Accelerator::ACCEL, acc->get_state());
+    stepper.poll();
+    EXPECT_EQ(2, stepper.position());
+    EXPECT_EQ(Accelerator::ACCEL, acc->get_state());
+    stepper.poll();
+    EXPECT_EQ(3, stepper.position());
+    EXPECT_EQ(Accelerator::ACCEL, acc->get_state());
+    stepper.poll();
+    EXPECT_EQ(4, stepper.position());
+    EXPECT_EQ(Accelerator::ACCEL, acc->get_state());
+    stepper.poll();
+    EXPECT_EQ(5, stepper.position());
+    EXPECT_EQ(Accelerator::ACCEL, acc->get_state());
+
+    // should start decelerating
+    stepper.poll();
+    EXPECT_EQ(6, stepper.position());
+    EXPECT_EQ(Accelerator::DECEL, acc->get_state());
+    stepper.poll();
+    EXPECT_EQ(7, stepper.position());
+    EXPECT_EQ(Accelerator::DECEL, acc->get_state());
+    stepper.poll();
+    EXPECT_EQ(8, stepper.position());
+    EXPECT_EQ(Accelerator::DECEL, acc->get_state());
+    stepper.poll();
+    EXPECT_EQ(9, stepper.position());
+    EXPECT_EQ(Accelerator::STOP, acc->get_state());
+
+    mock_teardown();
+}
+
+#if 0
+
+    /*
+     *
+     */
+
+#include <panglos/select.h>
+#include <panglos/event.h>
+#include <panglos/timer.h>
+
+    /*
+     *
+     */
+
+class Waiter
+{
+    Waiter *next;
+
+public:
+    Event event;
+
+    Waiter(Semaphore *s)
+    :   next(0),
+        event(s, 0)
+    {
+    }
+
+    virtual ~Waiter() {}
+
+    static Waiter ** next_fn(Waiter *w) { return & w->next; }
+
+    virtual int visit(Semaphore *s) = 0;
+};
+
+    /*
+     *
+     */
+
+class Scheduler 
+{
+    bool dead;
+    Semaphore *sem_kill;
+
+    Mutex *mutex;
+    typedef List<Waiter*> Waiters;
+
+    Waiters waiters;
+    Select *select;
+
+    EventQueue *eq;
+
+public:
+    Scheduler(EventQueue *q, int size)
+    :   dead(false), 
+        sem_kill(0),
+        mutex(0),
+        waiters(Waiter::next_fn),
+        select(0),
+        eq(q)
+    {
+        mutex = Mutex::create();
+        select = new Select(size+1);
+        sem_kill = Semaphore::create();
+        select->add(sem_kill);
+    }
+
+    ~Scheduler()
+    {
+        delete mutex;
+        select->remove(sem_kill);
+        delete sem_kill;
+        delete select;
+    }
+
+    void add(Waiter *w)
+    {
+        waiters.push(w, mutex);
+    }
+
+    void add(Semaphore *s)
+    {
+        select->add(s);
+    }
+
+    void remove(Waiter *w)
+    {
+        waiters.remove(w, mutex);
+        // remove any pending event in the event queue
+        eq->remove(& w->event);
+    }
+
+    void remove(Semaphore *s)
+    {
+        select->remove(s);
+    }
+
+    static int visit(Waiter *w, void *arg)
+    {
+        ASSERT(w);
+        ASSERT(arg);
+        Semaphore *s = (Semaphore *) arg;
+        return w->visit(s);
+    }
+
+    void run()
+    {
+        while (!dead)
+        {
+            Semaphore *s = select->wait();
+            if ((s == 0) || (s == sem_kill))
+            {
+                continue;
+            }
+
+            // check all the waiters for this semaphore
+            waiters.visit(visit, s, mutex);
+        }
+
+        // remove all the waiters
+        while (true)
+        {
+            Waiter *w = waiters.pop(mutex);
+            if (!w)
+            {
+                break;
+            }
+            remove(w);
+        }
+    }
+
+    void kill()
+    {
+        dead = true;
+        sem_kill->post();
+    }
+
+    void schedule(Waiter *w, panglos::timer_t abs_time)
+    {
+        // remove any pending event
+        eq->remove(& w->event);
+
+        // schedule the event
+        w->event.time = abs_time;
+        eq->add(& w->event);
+    }
+};
+
+    /*
+     *
+     */
+
+class MotorThread : public Waiter
+{
+    Scheduler *scheduler;
+    panglos::timer_t next_time;
+    panglos::timer_t period;
+
+public:
+
+    MotorThread(Scheduler *sch, Semaphore *s, panglos::timer_t _period)
+    :   Waiter(s),
+        scheduler(sch),
+        next_time(timer_now()),
+        period(_period)
+    {
+        ASSERT(scheduler);
+        ASSERT(s);
+        scheduler->add(this);
+        scheduler->add(s);
+
+        scheduler->schedule(this, next_time);
+    }
+
+    ~MotorThread()
+    {
+        scheduler->remove(this);
+        scheduler->remove(event.semaphore);
+    }
+
+    void execute()
+    {
+        PO_DEBUG("%d", timer_now());
+        next_time += period;
+        scheduler->schedule(this, next_time);
+    }
+
+    virtual int visit(Semaphore *s)
+    {
+        if (s == event.semaphore)
+        {
+            execute();
+            return 1;
+        }
+
+        // not us
+        return 0;
+    }
+};
+
+    /*
+     *
+     */
+
+static void *run_sched(void *arg)
+{
+    ASSERT(arg);
+    Scheduler *sched = (Scheduler*) arg;
+    sched->run();
+    return 0;
+}
+
+TEST(Schedule, Test)
+{
+    xxx();
+    mock_setup(true);
+    Scheduler scheduler(& event_queue, 10);
+
+    int err;
+    pthread_t thread;
+    err = pthread_create(& thread, 0, run_sched, & scheduler);
+    EXPECT_EQ(0, err);
+
+    Semaphore *s = Semaphore::create();
+    MotorThread *m = new MotorThread(& scheduler, s, 2000000);
+
+    sleep(1);
+    scheduler.kill();
+
+    err = pthread_join(thread, 0);
+    EXPECT_EQ(0, err);
+
+    delete m;
+    delete s;
+
+    mock_teardown();
+}
+
+#endif
+
 //  FIN
