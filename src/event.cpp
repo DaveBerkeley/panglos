@@ -115,6 +115,11 @@ Event* EventQueue::remove(Event *ev)
     return _remove(ev, mutex);
 }
 
+bool EventQueue::waiting(Event *ev)
+{
+    return events.has(ev, mutex);
+}
+
     /*
      *
      */

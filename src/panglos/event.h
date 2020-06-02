@@ -54,6 +54,7 @@ public:
     bool add(Event *ev);
     Event* remove(Event *ev);
     void reschedule(d_timer_t dt);
+    bool waiting(Event *ev);
 public:
     EventQueue(Rescheduler *r, Mutex *mutex=0);
     ~EventQueue();

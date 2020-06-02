@@ -71,9 +71,17 @@ TEST(Event, Check)
     MockSemaphore *ms3 = new MockSemaphore();
     Event *ev3 = new Event(ms3, 1000);
 
+    EXPECT_FALSE(eq.waiting(ev1));
     eq.add(ev1);
+    EXPECT_TRUE(eq.waiting(ev1));
+
+    EXPECT_FALSE(eq.waiting(ev2));
     eq.add(ev2);
+    EXPECT_TRUE(eq.waiting(ev2));
+
+    EXPECT_FALSE(eq.waiting(ev3));
     eq.add(ev3);
+    EXPECT_TRUE(eq.waiting(ev3));
 
     // Should show next event
     dt = eq.check();
@@ -94,6 +102,7 @@ TEST(Event, Check)
     EXPECT_EQ(false, ms1->set);
     EXPECT_EQ(false, ms2->set);
     EXPECT_EQ(true, ms3->set);
+    EXPECT_FALSE(eq.waiting(ev3));
 
     mock_timer_set((panglos::timer_t)9999);
     // no event, but nearly
@@ -110,6 +119,7 @@ TEST(Event, Check)
     EXPECT_EQ(true, ms1->set);
     EXPECT_EQ(false, ms2->set);
     EXPECT_EQ(true, ms3->set);
+    EXPECT_FALSE(eq.waiting(ev1));
 
     mock_timer_set((panglos::timer_t)200000);
     // no pending event
@@ -126,6 +136,7 @@ TEST(Event, Check)
     EXPECT_EQ(true, ms1->set);
     EXPECT_EQ(true, ms2->set);
     EXPECT_EQ(true, ms3->set);
+    EXPECT_FALSE(eq.waiting(ev2));
 
     delete ev1->semaphore;
     delete ev1;
