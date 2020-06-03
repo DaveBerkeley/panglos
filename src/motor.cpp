@@ -133,9 +133,9 @@ Accelerator::Accelerator(int _max_p, int _min_p, int _steps)
 
     for (int i = 0; i < size; i++)
     {
-        const int range = abs(max_p - min_p);
+        const int range = max_p - min_p;
         const float div = range / float(size);
-        const int v = int(i * div);
+        const int v = min_p + int(i * div);
         table[i] = v;
         ASSERT_ERROR(v >= 0, "i=%d v=%d", i, v);
     }
@@ -263,7 +263,7 @@ Stepper::Stepper(int cycle, MotorIo *io, uint32_t time, int32_t slow, int _steps
 {
     ASSERT(io);
     semaphore = Semaphore::create();
-    accelerator = new Accelerator(time, (slow == -1) ? time*10 : slow, (_steps == -1) ? 10 : _steps);
+    accelerator = new Accelerator(time, (slow == -1) ? time : slow, _steps);
 }
 
 Stepper::~Stepper()
@@ -340,7 +340,7 @@ int Stepper::get_target()
 
 bool Stepper::ready()
 {
-    return get_delta() == 0;
+    return (get_delta() == 0) && (accelerator->get_idx() == 0);
 }
 
 void Stepper::zero(int t)

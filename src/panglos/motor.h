@@ -81,7 +81,7 @@ public:
     int get_size() { return size; }
     int get_idx() { return idx; }
     State get_state() { return state; }
-    bool stopped() { return state == STOP; }
+    bool stopped() { return idx == 0; }
     bool forward() { return dirn_forward; }
 };
 
@@ -110,7 +110,7 @@ private:
     virtual void pause(uint32_t us);
 
 public:
-    Stepper(int cycle, MotorIo* io, uint32_t time=1000, int32_t slow=-1, int steps=-1);
+    Stepper(int cycle, MotorIo* io, uint32_t time=1000, int32_t slow=-1, int steps=2);
     virtual ~Stepper();
 
     virtual int position();

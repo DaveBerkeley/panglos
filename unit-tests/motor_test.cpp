@@ -33,6 +33,13 @@ static void seek_test(Stepper *stepper, int seek)
 
     // should now be in position
     EXPECT_EQ(stepper->position(), seek);
+
+    // However, because of the accel/decel, overshoot etc.
+    // it may not have come to rest yet.
+    while (!stepper->ready())
+    {
+        stepper->poll();
+    }
     EXPECT_EQ(stepper->ready(), true);
 }
 
@@ -518,7 +525,6 @@ TEST(Motor, AccelDecel)
     // check accel forwards
     v = accel.go(true);
     EXPECT_EQ(v, 0);
-    EXPECT_FALSE(accel.stopped());
     v = accel.go(true);
     EXPECT_EQ(v, 20);
     v = accel.go(true);
@@ -558,7 +564,6 @@ TEST(Motor, AccelDecel)
     // start it going again. should start with min_p
     v = accel.go(true);
     EXPECT_EQ(v, 0);
-    EXPECT_FALSE(accel.stopped());
     EXPECT_TRUE(accel.forward());
 
     v = accel.go(true);
@@ -654,12 +659,11 @@ TEST(Motor, AccelDecel)
 
 TEST(Motor, Near)
 {
-    xxx();
     mock_setup(true);
     int cycle = 360;
     MockPin a(1), b(2), c(3), d(4);
     MotorIo_4 motor(& a, & b, & c, & d);
-    Stepper stepper(cycle, & motor, 1000, 10000, 10);
+    Stepper stepper(cycle, & motor, 1000, 10000, 20);
 
     Accelerator *acc = stepper.accelerator;
 
@@ -695,6 +699,71 @@ TEST(Motor, Near)
     stepper.poll();
     EXPECT_EQ(9, stepper.position());
     EXPECT_EQ(Accelerator::STOP, acc->get_state());
+
+    mock_teardown();
+}
+
+TEST(Motor, Overshoot)
+{
+    mock_setup(true);
+    int cycle = 4096;
+    MockPin a(1), b(2), c(3), d(4);
+    MotorIo_4 motor(& a, & b, & c, & d);
+    Stepper stepper(cycle, & motor, 1000, 10000, 20);
+
+    stepper.seek(2000);
+    while (stepper.position() < 1000)
+    {
+        //PO_DEBUG("p=%d", stepper.position());
+        stepper.poll();
+    }
+
+    EXPECT_EQ(1000, stepper.position());
+
+    // change that target to a few counts away ..
+    stepper.seek(1005);
+
+    int max_p = 0;
+    while (!stepper.ready())
+    {
+        const int p = stepper.position();
+        if (p > max_p)
+        {
+            max_p = p;
+        }
+        //PO_DEBUG("p=%d", p);
+        stepper.poll();
+    }
+    EXPECT_EQ(1005, stepper.position());
+    // check it overshot
+    EXPECT_TRUE(max_p > 1010);
+ 
+    stepper.seek(3000);
+    while (stepper.position() < 2000)
+    {
+        //PO_DEBUG("p=%d", stepper.position());
+        stepper.poll();
+    }
+
+    EXPECT_EQ(2000, stepper.position());
+
+    // change target to a few counts back ..
+    stepper.seek(1995);
+
+    max_p = 0;
+    while (!stepper.ready())
+    {
+        const int p = stepper.position();
+        if (p > max_p)
+        {
+            max_p = p;
+        }
+        //PO_DEBUG("p=%d", p);
+        stepper.poll();
+    }
+    EXPECT_EQ(1995, stepper.position());
+    // check it overshot
+    EXPECT_TRUE(max_p > 2010);
 
     mock_teardown();
 }
