@@ -48,7 +48,7 @@ public:
      *
      */
 
-int _print_num(Output *output, const Format *format, long int number, int base);
+int _print_num(Output *output, const Format *format, unsigned long int number, int base, bool negative);
 
 //  API
 int xvprintf(Output *output, const char* fmt, va_list va);

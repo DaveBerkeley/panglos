@@ -154,7 +154,7 @@ void Format::get(const char **fmt, va_list va)
     }
 
     // check specifier
-    if (strchr("sdfxpc", **fmt))
+    if (strchr("sdufxpc", **fmt))
     {
         specifier = **fmt;
         *fmt += 1;
@@ -165,7 +165,7 @@ void Format::get(const char **fmt, va_list va)
      *
      */
 
-static int __print_num(Output *output, unsigned int number, int base)
+static int __print_num(Output *output, unsigned long int number, int base)
 {
     int count = 0;
     int rem = number % base;
@@ -193,7 +193,7 @@ static int __print_num(Output *output, unsigned int number, int base)
      *  Return number of digits required to print number
      */
 
-static int digits(long unsigned int number, int base)
+static int digits(unsigned long int number, int base)
 {
     // return the number of digits required to represent the number
     if (number == 0)
@@ -231,29 +231,27 @@ static int print_pad(Output *output, const char c, int pad)
      *  Print a number
      */
 
-int _print_num(Output *output, const Format *format, long int number, int base)
+int _print_num(Output *output, const Format *format, unsigned long int n, int base, bool negative)
 {
     int count = 0;
 
     // print leading sign
     if (format->flags == '+')
     {
-        if (number >= 0)
+        if (n && !negative)
         {
             count += output->_putc('+');
         }
     }
 
     // print leading '-'
-    if (number < 0)
+    if (negative)
     {
         count += output->_putc('-');
     }
 
     // TODO : precision field
     // TODO : length field
-
-    const unsigned int n = abs(number);
 
     // optionally pad with leading '0' or ' '
     if ((format->leading == '0') || (format->leading == ' '))
@@ -307,7 +305,20 @@ int xvprintf(Output *output, const char* fmt, va_list va)
             case 'd' :
             {
                 int i = va_arg(va, int);
-                count += _print_num(output, & f, i, 10);
+                if (i < 0)
+                {
+                    count += _print_num(output, & f, -i, 10, true);
+                }
+                else
+                {
+                    count += _print_num(output, & f, i, 10, false);
+                }
+                break;
+            }
+            case 'u' :
+            {
+                unsigned int i = va_arg(va, unsigned int);
+                count += _print_num(output, & f, i, 10, false);
                 break;
             }
             case 'x' :
@@ -317,14 +328,14 @@ int xvprintf(Output *output, const char* fmt, va_list va)
                     count += output->_puts("0x", 2);
                 }
                 int i = va_arg(va, int);
-                count += _print_num(output, & f, i, 16);
+                count += _print_num(output, & f, i, 16, false);
                 break;
             }
             case 'p' :
             {
                 count += output->_puts("0x", 2);
                 void* v = va_arg(va, void*);
-                count += _print_num(output, & f, (long unsigned int) v, 16);
+                count += _print_num(output, & f, (long unsigned int) v, 16, false);
                 break;
             }
             case 'c' :

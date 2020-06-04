@@ -149,7 +149,7 @@ TEST(Printf, Num)
         test(& format, & fmt);
 
         TestOutput out;
-        _print_num(& out, & format, 1234, 10);
+        _print_num(& out, & format, 1234, 10, false);
         EXPECT_STREQ("1234", out.buff);
     }
     {
@@ -158,7 +158,7 @@ TEST(Printf, Num)
         test(& format, & fmt);
 
         TestOutput out;
-        _print_num(& out, & format, 1234, 10);
+        _print_num(& out, & format, 1234, 10, false);
         EXPECT_STREQ("+1234", out.buff);
     }
     {
@@ -167,7 +167,7 @@ TEST(Printf, Num)
         test(& format, & fmt);
 
         TestOutput out;
-        _print_num(& out, & format, -1234, 10);
+        _print_num(& out, & format, 1234, 10, true);
         EXPECT_STREQ("-1234", out.buff);
     }
     {
@@ -176,7 +176,7 @@ TEST(Printf, Num)
         test(& format, & fmt);
 
         TestOutput out;
-        _print_num(& out, & format, 1234, 10);
+        _print_num(& out, & format, 1234, 10, false);
         EXPECT_STREQ("00001234", out.buff);
     }
     {
@@ -185,7 +185,7 @@ TEST(Printf, Num)
         test(& format, & fmt);
 
         TestOutput out;
-        _print_num(& out, & format, 1234, 10);
+        _print_num(& out, & format, 1234, 10, false);
         EXPECT_STREQ("+0001234", out.buff);
     }
     {
@@ -194,8 +194,8 @@ TEST(Printf, Num)
         test(& format, & fmt);
 
         TestOutput out;
-        _print_num(& out, & format, 0x7eadface, 16);
-        EXPECT_STREQ("7eadface", out.buff);
+        _print_num(& out, & format, 0xdeadface, 16, false);
+        EXPECT_STREQ("deadface", out.buff);
     }
 }
 
@@ -245,6 +245,34 @@ TEST(Printf, Test)
         TestOutput out;
         out.printf("hello %d end", 1234);
         EXPECT_STREQ("hello 1234 end", out.buff);
+    }
+
+    // -ve integers
+    {
+        TestOutput out;
+        out.printf("hello %d end", -1234);
+        EXPECT_STREQ("hello -1234 end", out.buff);
+    }
+
+    // zero integers
+    {
+        TestOutput out;
+        out.printf("hello %+d end", 0);
+        EXPECT_STREQ("hello 0 end", out.buff);
+    }
+
+    // +ve integers
+    {
+        TestOutput out;
+        out.printf("hello %+d end", 1);
+        EXPECT_STREQ("hello +1 end", out.buff);
+    }
+
+    // unsigned integers
+    {
+        TestOutput out;
+        out.printf("hello %u end", 0xffffffff);        
+        EXPECT_STREQ("hello 4294967295 end", out.buff);
     }
 
     // hex
