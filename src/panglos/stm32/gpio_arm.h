@@ -12,6 +12,7 @@
 namespace panglos {
 
 GPIO * gpio_create(GPIO_TypeDef *_port, uint16_t _pin, uint32_t mode);
+void   gpio_alloc(GPIO_TypeDef *_port, uint16_t _pin);
 
 } // namespace panglos
 

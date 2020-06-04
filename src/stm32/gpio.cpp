@@ -201,6 +201,11 @@ GPIO * gpio_create(GPIO_TypeDef *port, uint16_t pin, uint32_t mode)
     return new ARM_GPIO(port, pin, mode);
 }
 
+void gpio_alloc(GPIO_TypeDef *port, uint16_t pin)
+{
+    busy(port, pin, true);
+}
+
 }   //  namespace panglos
 
     /*
