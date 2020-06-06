@@ -4,13 +4,6 @@ namespace panglos {
 class DMA
 {
 public:
-#if defined(STM32F4xx)
-    typedef DMA_Stream_TypeDef Instance;
-#endif
-#if defined(STM32F1xx)
-    typedef DMA_Channel_TypeDef Instance;
-#endif
-
     DMA_HandleTypeDef handle;
 
     DMA();
