@@ -5,53 +5,34 @@
 
 #include <panglos/debug.h>
 
+#include <panglos/dma.h>
+
 namespace panglos {
 
     /*
      *
      */
 
-class DMA
+void DMA::init(int irq_level)
 {
-public:
-#if defined(STM32F4xx)
-    typedef DMA_Stream_TypeDef Instance;
-#endif
-#if defined(STM32F1xx)
-    typedef DMA_Channel_TypeDef Instance;
-#endif
+    // enable dma interface ck
+    clock_enable();
 
-    DMA_HandleTypeDef handle;
+    // configure the dma
+    HAL_StatusTypeDef status = HAL_DMA_Init(& handle);
+    ASSERT(status == HAL_OK);
 
-    DMA();
+    // associate dma handle with the device handle
+    link();
 
-    virtual ~DMA() {}
-
-    virtual IRQn_Type get_irq() = 0;
-    virtual void clock_enable() = 0;
-    virtual void link() = 0;
-
-    void init(int irq_level)
-    {
-        // enable dma interface ck
-        clock_enable();
-
-        // configure the dma
-        HAL_StatusTypeDef status = HAL_DMA_Init(& handle);
-        ASSERT(status == HAL_OK);
-
-        // associate dma handle with the device handle
-        link();
-
-        // configure priority and enable NVIC
-        IRQn_Type irq = get_irq();
-        HAL_NVIC_SetPriority(irq, irq_level, 0);
-        HAL_NVIC_EnableIRQ(irq);
-    }
-};
+    // configure priority and enable NVIC
+    IRQn_Type irq = get_irq();
+    HAL_NVIC_SetPriority(irq, irq_level, 0);
+    HAL_NVIC_EnableIRQ(irq);
+}
 
     /*
-     *
+     *  DAC Interface
      */
 
 class DMA_DAC : public DMA
@@ -82,6 +63,7 @@ public:
      */
 
 #if defined(STM32F1xx)
+
 class DMA_DAC1 : public DMA_DAC 
 {
 public:
@@ -101,6 +83,21 @@ public:
         __HAL_RCC_DMA2_CLK_ENABLE();
     }
 };
+
+static DMA_DAC1 *dma_dac1 = 0;
+
+void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac)
+{
+    // TODO
+    ASSERT(0);
+    ASSERT(hdac == & dma_dac1->handle);
+}
+
+extern "C" void DMA2_Channel3_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(dma_dac1);
+}
+
 #endif
 
     /*
@@ -108,6 +105,7 @@ public:
      */
 
 #if defined(STM32F4xx)
+
 class DMA_DAC1 : public DMA_DAC
 {
 public:
@@ -127,6 +125,9 @@ public:
         __HAL_RCC_DMA1_CLK_ENABLE();
     }
 };
+
+//  TODO : interrupt handler
+
 #endif
 
 }   // namespace panglos
