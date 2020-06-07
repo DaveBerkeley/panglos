@@ -11,6 +11,7 @@
 #include <panglos/stm32/gpio_arm.h>
 
 #include <panglos/dac.h>
+#include <panglos/dma.h>
 
 namespace panglos {
 
@@ -71,20 +72,43 @@ public:
     {
         HAL_StatusTypeDef okay = HAL_DAC_Start(& handle, channel);
         ASSERT(okay == HAL_OK);
-        //  HAL_DAC_Start() or HAL_DAC_Start_DMA()
-        //ASSERT(0);
     }
 
     virtual void stop()
     {
-        //  HAL_DAC_Stop() or HAL_DAC_Stop_DMA()
-        ASSERT(0);
+        HAL_StatusTypeDef okay = HAL_DAC_Stop(& handle, channel);
+        ASSERT(okay == HAL_OK);
+    }
+
+    virtual void start_dma(uint32_t *data, uint32_t length)
+    {
+        // TODO : is this the correct 'align' value?
+        HAL_StatusTypeDef okay = HAL_DAC_Start_DMA(& handle, channel, data, length, align);
+        ASSERT(okay == HAL_OK);
+    }
+
+    virtual void stop_dma()
+    {
+        HAL_StatusTypeDef okay = HAL_DAC_Stop_DMA(& handle, channel);
+        ASSERT(okay == HAL_OK);
     }
 
     virtual void set(uint16_t value)
     {
         HAL_StatusTypeDef okay = HAL_DAC_SetValue(& handle, channel, align, value);
         ASSERT(okay == HAL_OK);
+    }
+ 
+    virtual void link(DMA *dma)
+    {
+        ASSERT(dma);
+        DMA_HandleTypeDef *dhma = (DMA_HandleTypeDef *) dma->get_handle();
+        switch (channel)
+        {
+            case DAC_CHANNEL_1 : __HAL_LINKDMA(& handle, DMA_Handle1, *dhma); break;
+            case DAC_CHANNEL_2 : __HAL_LINKDMA(& handle, DMA_Handle2, *dhma); break;
+            default : ASSERT(0);
+        }
     }
 };
 

@@ -6,6 +6,8 @@
 
 namespace panglos {
 
+class DMA;
+
 class xDAC
 {
 public:
@@ -27,9 +29,15 @@ public:
     };
 
     virtual void init() = 0;
+
     virtual void start() = 0;
     virtual void stop() = 0;
+    virtual void start_dma(uint32_t* data, uint32_t Length) = 0;
+    virtual void stop_dma() = 0;
+
     virtual void set(uint16_t value) = 0;
+
+    virtual void link(DMA *dma) = 0;
 
     static xDAC *create(ID id, Channel chan, Align align);
 };
