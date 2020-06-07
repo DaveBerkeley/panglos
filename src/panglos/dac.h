@@ -9,9 +9,21 @@ namespace panglos {
 class xDAC
 {
 public:
+
     enum ID {
         DAC_1,
         //DAC_2
+    };
+
+    enum Channel {
+        CHAN_1,
+        CHAN_2
+    };
+
+    enum Align {
+        ALIGN_8,
+        ALIGN_12_L,
+        ALIGN_12_R,
     };
 
     virtual void init() = 0;
@@ -19,10 +31,7 @@ public:
     virtual void stop() = 0;
     virtual void set(uint16_t value) = 0;
 
-//#define IS_DAC_ALIGN(ALIGN) (((ALIGN) == DAC_ALIGN_12B_R)
-//                             ((ALIGN) == DAC_ALIGN_12B_L)
-//                             ((ALIGN) == DAC_ALIGN_8B_R))
-    static xDAC *create(ID id, uint32_t align);
+    static xDAC *create(ID id, Channel chan, Align align);
 };
 
 }   //  namespace panglos

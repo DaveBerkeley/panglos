@@ -36,7 +36,7 @@ public:
     virtual void init()
     {
         // Mark the pin as allocated
-        gpio_alloc(GPIOA, pin);
+        gpio_alloc(port, pin);
 
         // enable DAC APB clock
         __HAL_DAC_ENABLE(& handle, channel);
@@ -46,24 +46,39 @@ public:
 
         gpio.Pin = pin;
         gpio.Speed = GPIO_SPEED_FREQ_LOW;
-        gpio.Mode = GPIO_MODE_AF_PP;
+        gpio.Mode = GPIO_MODE_ANALOG;
         gpio.Pull = GPIO_PULLUP;
 
         HAL_GPIO_Init(port, & gpio);
 
-        // 
-        // HAL_DAC_Init()
-        // HAL_DAC_ConfigChannel()
+        //  configure handle 
+        HAL_StatusTypeDef okay;
+
+        okay = HAL_DAC_Init(& handle);
+        ASSERT(okay == HAL_OK);
+
+        // configure channel
+        DAC_ChannelConfTypeDef chan;
+
+        chan.DAC_Trigger = DAC_TRIGGER_NONE;
+        chan.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;        
+
+        okay = HAL_DAC_ConfigChannel(& handle, & chan, channel);
+        ASSERT(okay == HAL_OK);
     }
 
     virtual void start()
     {
+        HAL_StatusTypeDef okay = HAL_DAC_Start(& handle, channel);
+        ASSERT(okay == HAL_OK);
         //  HAL_DAC_Start() or HAL_DAC_Start_DMA()
+        //ASSERT(0);
     }
 
     virtual void stop()
     {
         //  HAL_DAC_Stop() or HAL_DAC_Stop_DMA()
+        ASSERT(0);
     }
 
     virtual void set(uint16_t value)
@@ -77,16 +92,50 @@ public:
      *
      */
 
-xDAC * xDAC::create(xDAC::ID id, uint32_t align)
+xDAC *xDAC::create(ID id, Channel chan, Align _align)
 {
-    uint32_t channel = DAC_CHANNEL_1;
-    uint32_t pin = GPIO_PIN_4;
+    uint32_t align = 0;
+    uint32_t channel = 0;
     GPIO_TypeDef *port = GPIOA;
+    uint32_t pin = 0;
+
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    switch (_align)
+    {
+        case ALIGN_8    : align = DAC_ALIGN_8B_R; break;
+        case ALIGN_12_L : align = DAC_ALIGN_12B_L; break;
+        case ALIGN_12_R : align = DAC_ALIGN_12B_R; break;
+        default : ASSERT(0);
+    }
+
+    switch (chan)
+    {
+        case CHAN_1 :
+        {
+            channel = DAC_CHANNEL_1;
+            pin = GPIO_PIN_4;
+            break;
+        }
+        case CHAN_2 :
+        {
+            channel = DAC_CHANNEL_2;
+            pin = GPIO_PIN_5;
+            break;
+        }
+        default : ASSERT(0);
+    }
+
     DAC_TypeDef *instance = 0;
 
     switch (id)
     {
-        case DAC_1 : instance = DAC1; break;
+        case DAC_1 : 
+        {
+            __HAL_RCC_DAC_CLK_ENABLE();
+            instance = DAC1; 
+            break;
+        }
         //case DAC_2 : instance = DAC2; break;
         default : ASSERT(0);
     }
