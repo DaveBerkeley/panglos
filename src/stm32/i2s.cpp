@@ -104,11 +104,16 @@ public:
 
         handle.Instance = SPI1;
         handle.Init.Mode = I2S_MODE_MASTER_RX;
-        handle.Init.Standard = I2S_STANDARD_MSB; // ?????????
-        handle.Init.DataFormat = I2S_DATAFORMAT_32B;
+//#define I2S_STANDARD_PHILIPS             (0x00000000U)
+//#define I2S_STANDARD_MSB                 (0x00000010U)
+//#define I2S_STANDARD_LSB                 (0x00000020U)
+//#define I2S_STANDARD_PCM_SHORT           (0x00000030U)
+//#define I2S_STANDARD_PCM_LONG            (0x000000B0U)
+        handle.Init.Standard = I2S_STANDARD_LSB; // ?????????
+        handle.Init.DataFormat = I2S_DATAFORMAT_24B;
         handle.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
         handle.Init.AudioFreq = I2S_AUDIOFREQ_16K;
-        handle.Init.CPOL = I2S_CPOL_LOW; // ?????????
+        handle.Init.CPOL = I2S_CPOL_HIGH; // ?????????
         handle.Init.ClockSource = I2S_CLOCK_PLL;
         handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
 
@@ -120,9 +125,9 @@ public:
     virtual int rx(uint16_t* data, int len)
     {
         HAL_StatusTypeDef okay;
+        //okay = HAL_I2S_Receive_IT(& handle, data, len);
         okay = HAL_I2S_Receive(& handle, data, len, 100);
-        //ASSERT(okay == HAL_OK);
-        return len;
+        return (okay == HAL_OK) ? len : -1;
     }
 };
 
@@ -131,6 +136,21 @@ I2S * I2S::create(ID id)
     return new Arm_I2S(id);
 }
 
-}   //  namesppace panglos
+}   //  namespace panglos
+
+extern "C" void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+    ASSERT(0);
+}
+
+extern "C" void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+    ASSERT(0);
+}
+
+//extern "C" void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s)
+//{
+//    ASSERT(0);
+//}
 
 //  FIN
