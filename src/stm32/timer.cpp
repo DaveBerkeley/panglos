@@ -23,6 +23,22 @@ static TIM_HandleTypeDef *timer = & htimx[1];
      *
      */
 
+void timer_alloc(unsigned int tim_x)
+{
+    static bool allocated[20];
+
+    ASSERT(tim_x > 0);
+    tim_x -= 1;
+    ASSERT(tim_x < sizeof(allocated));
+
+    ASSERT(!allocated[tim_x]);
+    allocated[tim_x] = true;
+}
+
+    /*
+     *
+     */
+
 static const uint16_t prescaler = 800;
 
 #if defined(STM32F4xx)
@@ -33,11 +49,13 @@ static const uint16_t prescaler = 800;
 
 static void Init_Clock()
 {
+    timer_alloc(2);
     __TIM2_CLK_ENABLE();
 }
 
 static void Init_Timer()
 {
+    timer_alloc(5);
     __HAL_RCC_TIM5_CLK_ENABLE();
     /* TIM5 interrupt Init */
     HAL_NVIC_SetPriority(TIM5_IRQn, 5, 0);
@@ -68,6 +86,7 @@ timer_t timer_now()
 
 static void Init_Clock()
 {
+    timer_alloc(4);
     __HAL_RCC_TIM4_CLK_ENABLE();
     HAL_NVIC_SetPriority(TIM4_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(TIM4_IRQn);
@@ -77,6 +96,7 @@ static void Init_Clock()
 
 static void Init_Timer()
 {
+    timer_alloc(2);
     __HAL_RCC_TIM2_CLK_ENABLE();
     HAL_NVIC_SetPriority(TIM2_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
