@@ -8,7 +8,11 @@ namespace panglos {
 
 class DMA;
 
-class xDAC
+#if defined(DAC)
+#undef DAC
+#endif
+
+class DAC
 {
 public:
 
@@ -32,14 +36,16 @@ public:
 
     virtual void start() = 0;
     virtual void stop() = 0;
-    virtual void start_dma(uint32_t* data, uint32_t Length) = 0;
+    virtual void start_dma(Semaphore *done, uint32_t* data, uint32_t Length) = 0;
     virtual void stop_dma() = 0;
 
     virtual void set(uint16_t value) = 0;
 
     virtual void link(DMA *dma) = 0;
 
-    static xDAC *create(ID id, Channel chan, Align align);
+    virtual uint32_t wait_dma() = 0;
+
+    static DAC *create(ID id, Channel chan, Align align);
 };
 
 }   //  namespace panglos

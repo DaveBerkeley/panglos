@@ -46,6 +46,8 @@ protected:
         IRQn_Type irq = get_irq();
         HAL_NVIC_SetPriority(irq, irq_level, 0);
         HAL_NVIC_EnableIRQ(irq);
+
+        __HAL_DMA_ENABLE(& handle);
     }
 
     void set_p_align(XferSize align)
@@ -81,12 +83,12 @@ public:
     DMA_DAC(XferSize xfer)
     {
         set_m_align(xfer);
-        set_p_align(XFER_16);
+        set_p_align(XFER_32);
 
         handle.Init.Direction = DMA_MEMORY_TO_PERIPH;
         handle.Init.PeriphInc = DMA_PINC_DISABLE;
         handle.Init.MemInc = DMA_MINC_ENABLE;
-        handle.Init.Mode = DMA_NORMAL; // or DMA_CIRCULAR
+        handle.Init.Mode = DMA_NORMAL; // or DMA_CIRCULAR, DMA_PFCTRL (periph flow control)
         handle.Init.Priority = DMA_PRIORITY_HIGH;
     }
 };
@@ -117,18 +119,10 @@ public:
     }
 };
 
-static DMA_DAC1 *dma_dac1 = 0;
-
-void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac)
-{
-    // TODO
-    ASSERT(0);
-    ASSERT(hdac == & dma_dac1->handle);
-}
-
 extern "C" void DMA2_Channel3_IRQHandler(void)
 {
-    HAL_DMA_IRQHandler(dma_dac1);
+    ASSERT(0);
+    //HAL_DMA_IRQHandler(dma_dac1);
 }
 
 #endif
@@ -139,6 +133,8 @@ extern "C" void DMA2_Channel3_IRQHandler(void)
 
 #if defined(STM32F4xx)
 
+static DMA_HandleTypeDef *dma1_s5;
+
 class DMA_DAC1 : public DMA_DAC
 {
 public:
@@ -146,6 +142,12 @@ public:
     :   DMA_DAC(xfer)
     {
         handle.Instance = DMA1_Stream5;
+        dma1_s5 = & handle;
+    }
+
+    virtual ~DMA_DAC1()
+    {
+        dma1_s5 = 0;
     }
 
     virtual IRQn_Type get_irq()
@@ -159,6 +161,12 @@ public:
     }
 };
 
+extern "C" void DMA1_Stream5_IRQHandler(void)
+{
+    ASSERT(dma1_s5);
+    HAL_DMA_IRQHandler(dma1_s5);
+}
+
 //  TODO : interrupt handler
 
 #endif
@@ -167,7 +175,7 @@ public:
      *
      */
 
-DMA * create_DMA_DAC1(DMA::XferSize xfer)
+DMA * DMA::create_DAC1(XferSize xfer)
 {
     return new DMA_DAC1(xfer);
 }

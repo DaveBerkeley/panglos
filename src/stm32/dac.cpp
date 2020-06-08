@@ -15,20 +15,24 @@
 
 namespace panglos {
 
-class Arm_DAC : public xDAC
+class Arm_DAC : public DAC
 {
+public:
+
     DAC_HandleTypeDef handle;
     uint32_t channel;
     GPIO_TypeDef *port;
     uint32_t pin;
     uint32_t align;
+    Semaphore *done;
 
 public:
     Arm_DAC(DAC_TypeDef *instance, uint32_t chan, GPIO_TypeDef *_port, uint32_t _pin, uint32_t _align)
     :   channel(chan),
         port(_port),
         pin(_pin),
-        align(_align)
+        align(_align),
+        done(0)
     {
         memset(& handle, 0, sizeof(handle));
         handle.Instance = instance;
@@ -80,9 +84,10 @@ public:
         ASSERT(okay == HAL_OK);
     }
 
-    virtual void start_dma(uint32_t *data, uint32_t length)
+    virtual void start_dma(Semaphore *_done, uint32_t *data, uint32_t length)
     {
         // TODO : is this the correct 'align' value?
+        done = _done;
         HAL_StatusTypeDef okay = HAL_DAC_Start_DMA(& handle, channel, data, length, align);
         ASSERT(okay == HAL_OK);
     }
@@ -110,13 +115,32 @@ public:
             default : ASSERT(0);
         }
     }
+
+    void converted()
+    {
+        if (done)
+        {
+            done->post();
+        }
+    }
+
+    virtual uint32_t wait_dma()
+    {
+        ASSERT(done);
+        done->wait();
+        done = 0;
+        // Convert HAL error codes into our own?
+        return handle.ErrorCode;
+    }
 };
 
     /*
      *
      */
 
-xDAC *xDAC::create(ID id, Channel chan, Align _align)
+static Arm_DAC *dac1 = 0;
+
+DAC *DAC::create(ID id, Channel chan, Align _align)
 {
     uint32_t align = 0;
     uint32_t channel = 0;
@@ -163,7 +187,72 @@ xDAC *xDAC::create(ID id, Channel chan, Align _align)
         //case DAC_2 : instance = DAC2; break;
         default : ASSERT(0);
     }
-    return new Arm_DAC(instance, channel, port, pin, align);
+
+    Arm_DAC *dac = new Arm_DAC(instance, channel, port, pin, align);
+
+    switch (id)
+    {
+        case DAC_1 : dac1 = dac; break;
+        default : ASSERT(0);
+    }
+
+    return dac;
+}
+
+    /*
+     *  HAL Interrupt handlers
+     */
+
+static void on_irq(DAC_HandleTypeDef *hdac)
+{
+    if (hdac == & dac1->handle)
+    {
+        dac1->converted();
+    }
+    else
+    {
+        ASSERT(0);
+    }
+}
+
+extern "C" void HAL_DAC_ErrorCallbackCh1(DAC_HandleTypeDef *hdac)
+{
+    on_irq(hdac);
+}
+
+extern "C" void HAL_DAC_ErrorCallbackCh2(DAC_HandleTypeDef *hdac)
+{
+    on_irq(hdac);
+}
+
+extern "C" void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef* hdac)
+{
+    on_irq(hdac);
+}
+
+extern "C" void HAL_DAC_ConvCpltCallbackCh2(DAC_HandleTypeDef* hdac)
+{
+    on_irq(hdac);
+}
+
+//extern "C" void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef* hdac)
+//{
+//    ASSERT(0);
+//}
+
+//extern "C" void HAL_DAC_ConvHalfCpltCallbackCh2(DAC_HandleTypeDef* hdac)
+//{
+//    ASSERT(0);
+//}
+
+extern "C" void HAL_DAC_DMAUnderrunCallbackCh1(DAC_HandleTypeDef *hdac)
+{
+    on_irq(hdac);
+}
+
+extern "C" void HAL_DAC_DMAUnderrunCallbackCh2(DAC_HandleTypeDef *hdac)
+{
+    on_irq(hdac);
 }
 
 }   //  namespace panglos

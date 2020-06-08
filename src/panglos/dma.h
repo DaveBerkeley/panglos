@@ -21,13 +21,13 @@ public:
 
     // return the DMA handle
     virtual void *get_handle() = 0;
-};
 
     /*
      *  Hardware specific instances of DMA / Stream / Channel
      */
 
-DMA *create_DMA_DAC1(DMA::XferSize xfer);
+    static DMA *create_DAC1(XferSize xfer);
+};
 
 }   //  namespace panglos
 
