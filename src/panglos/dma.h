@@ -14,6 +14,17 @@ public:
         XFER_32,
     };
 
+    enum Chan {
+        CHAN_0,
+        CHAN_1,
+        CHAN_2,
+        CHAN_3,
+        CHAN_4,
+        CHAN_5,
+        CHAN_6,
+        CHAN_7,
+    };
+
 public:
     virtual ~DMA() {}
 
@@ -26,7 +37,7 @@ public:
      *  Hardware specific instances of DMA / Stream / Channel
      */
 
-    static DMA *create_DAC1(XferSize xfer);
+    static DMA *create_DAC1(XferSize xfer, Chan chan);
 };
 
 }   //  namespace panglos

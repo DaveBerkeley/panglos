@@ -88,10 +88,39 @@ public:
         handle.Init.Direction = DMA_MEMORY_TO_PERIPH;
         handle.Init.PeriphInc = DMA_PINC_DISABLE;
         handle.Init.MemInc = DMA_MINC_ENABLE;
-        handle.Init.Mode = DMA_NORMAL; // or DMA_CIRCULAR, DMA_PFCTRL (periph flow control)
+        //handle.Init.Mode = DMA_NORMAL; // or DMA_CIRCULAR, DMA_PFCTRL (periph flow control)
+        // TODO : ???????????
+        //handle.Init.Mode = DMA_CIRCULAR;
+        handle.Init.Mode = DMA_PFCTRL; //  (periph flow control)
         handle.Init.Priority = DMA_PRIORITY_HIGH;
+
+        handle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+        handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
+        handle.Init.MemBurst = DMA_MBURST_SINGLE;
+        handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
     }
 };
+
+    /*
+     *
+     */
+
+static uint32_t channel(DMA::Chan chan)
+{
+    switch (chan)
+    {
+        case DMA::CHAN_0 : return DMA_CHANNEL_0;
+        case DMA::CHAN_1 : return DMA_CHANNEL_1;
+        case DMA::CHAN_2 : return DMA_CHANNEL_2;
+        case DMA::CHAN_3 : return DMA_CHANNEL_3;
+        case DMA::CHAN_4 : return DMA_CHANNEL_4;
+        case DMA::CHAN_5 : return DMA_CHANNEL_5;
+        case DMA::CHAN_6 : return DMA_CHANNEL_6;
+        case DMA::CHAN_7 : return DMA_CHANNEL_7;
+    }
+    ASSERT(0);
+    return 0;
+} 
 
     /*
      *
@@ -106,6 +135,7 @@ public:
     :   DMA_DAC(xfer)
     {
         handle.Instance = DMA2_Channel3;
+        handle.Init.Channel = DMA_CHANNEL_3;
     }
 
     virtual IRQn_Type get_irq()
@@ -137,11 +167,17 @@ static DMA_HandleTypeDef *dma1_s5;
 
 class DMA_DAC1 : public DMA_DAC
 {
+    // DMA1, Stream 5
+    //  Channel 5 is TIM3_CH2
+    //  Channel 7 is DAC1
+    // See table 28 of RM0390
+
 public:
-    DMA_DAC1(XferSize xfer)
+    DMA_DAC1(XferSize xfer, Chan chan)
     :   DMA_DAC(xfer)
     {
         handle.Instance = DMA1_Stream5;
+        handle.Init.Channel = channel(chan);
         dma1_s5 = & handle;
     }
 
@@ -167,17 +203,15 @@ extern "C" void DMA1_Stream5_IRQHandler(void)
     HAL_DMA_IRQHandler(dma1_s5);
 }
 
-//  TODO : interrupt handler
-
 #endif
 
     /*
      *
      */
 
-DMA * DMA::create_DAC1(XferSize xfer)
+DMA * DMA::create_DAC1(XferSize xfer, Chan chan)
 {
-    return new DMA_DAC1(xfer);
+    return new DMA_DAC1(xfer, chan);
 }
 
 }   // namespace panglos

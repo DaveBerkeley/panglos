@@ -38,7 +38,7 @@ public:
         handle.Instance = instance;
     }
 
-    virtual void init()
+    virtual void init(Timer *timer)
     {
         // Mark the pin as allocated
         gpio_alloc(port, pin);
@@ -52,7 +52,7 @@ public:
         gpio.Pin = pin;
         gpio.Speed = GPIO_SPEED_FREQ_LOW;
         gpio.Mode = GPIO_MODE_ANALOG;
-        gpio.Pull = GPIO_PULLUP;
+        gpio.Pull = GPIO_NOPULL;
 
         HAL_GPIO_Init(port, & gpio);
 
@@ -65,7 +65,27 @@ public:
         // configure channel
         DAC_ChannelConfTypeDef chan;
 
-        chan.DAC_Trigger = DAC_TRIGGER_NONE;
+        // select trigger source
+        uint32_t trigger = DAC_TRIGGER_NONE;
+
+        // TODO : ???????
+        //trigger = DAC_TRIGGER_SOFTWARE;
+
+        if (timer)
+        {
+            switch (timer->get_id())
+            {
+                case Timer::TIMER_2 : trigger = DAC_TRIGGER_T2_TRGO; break;
+                case Timer::TIMER_4 : trigger = DAC_TRIGGER_T4_TRGO; break;
+                case Timer::TIMER_5 : trigger = DAC_TRIGGER_T5_TRGO; break;
+                case Timer::TIMER_6 : trigger = DAC_TRIGGER_T6_TRGO; break;
+                case Timer::TIMER_7 : trigger = DAC_TRIGGER_T7_TRGO; break;
+                case Timer::TIMER_8 : trigger = DAC_TRIGGER_T8_TRGO; break;
+                default : ASSERT_ERROR(0, "timer %d not supported", timer->get_id()+1);
+            }
+        }
+
+        chan.DAC_Trigger = trigger;
         chan.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;        
 
         okay = HAL_DAC_ConfigChannel(& handle, & chan, channel);
@@ -208,11 +228,11 @@ static void on_irq(DAC_HandleTypeDef *hdac)
     if (hdac == & dac1->handle)
     {
         dac1->converted();
+        return;
     }
-    else
-    {
-        ASSERT(0);
-    }
+
+    // TODO 
+    ASSERT(0);
 }
 
 extern "C" void HAL_DAC_ErrorCallbackCh1(DAC_HandleTypeDef *hdac)

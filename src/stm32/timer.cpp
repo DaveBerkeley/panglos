@@ -1,4 +1,6 @@
 
+#include <string.h>
+
 #include <FreeRTOS.h>
 #include <task.h>
 
@@ -23,16 +25,15 @@ static TIM_HandleTypeDef *timer = & htimx[1];
      *
      */
 
-void timer_alloc(unsigned int tim_x)
+void Timer::alloc(Timer::ID id)
 {
     static bool allocated[20];
 
-    ASSERT(tim_x > 0);
-    tim_x -= 1;
-    ASSERT(tim_x < sizeof(allocated));
+    ASSERT(id >= 0);
+    ASSERT(id < sizeof(allocated));
 
-    ASSERT(!allocated[tim_x]);
-    allocated[tim_x] = true;
+    ASSERT_ERROR(!allocated[id], "Timer %d already used", id+1);
+    allocated[id] = true;
 }
 
     /*
@@ -49,13 +50,13 @@ static const uint16_t prescaler = 800;
 
 static void Init_Clock()
 {
-    timer_alloc(2);
+    Timer::alloc(Timer::TIMER_2);
     __TIM2_CLK_ENABLE();
 }
 
 static void Init_Timer()
 {
-    timer_alloc(5);
+    Timer::alloc(Timer::TIMER_5);
     __HAL_RCC_TIM5_CLK_ENABLE();
     /* TIM5 interrupt Init */
     HAL_NVIC_SetPriority(TIM5_IRQn, 5, 0);
@@ -86,7 +87,7 @@ timer_t timer_now()
 
 static void Init_Clock()
 {
-    timer_alloc(4);
+    Timer::alloc(Timer::TIMER_4);
     __HAL_RCC_TIM4_CLK_ENABLE();
     HAL_NVIC_SetPriority(TIM4_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(TIM4_IRQn);
@@ -96,7 +97,7 @@ static void Init_Clock()
 
 static void Init_Timer()
 {
-    timer_alloc(2);
+    Timer::alloc(Timer::TIMER_2);
     __HAL_RCC_TIM2_CLK_ENABLE();
     HAL_NVIC_SetPriority(TIM2_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
@@ -305,6 +306,176 @@ static void hw_clock_init(void)
     ASSERT(status == HAL_OK);
     status = HAL_TIM_Base_Start(clock);
     ASSERT(status == HAL_OK);
+}
+
+    /*
+     *
+     */
+
+class Arm_Timer : public Timer
+{
+    TIM_HandleTypeDef handle;
+    ID id;
+
+public:
+    Arm_Timer(ID _id)
+    :   id(_id)
+    {
+        alloc(id);
+        memset(& handle, 0, sizeof(handle));
+
+        // Set the instance
+        switch (id)
+        {
+            case TIMER_1 : handle.Instance = TIM1;  break;
+            case TIMER_2 : handle.Instance = TIM2;  break;
+            case TIMER_3 : handle.Instance = TIM3;  break;
+            case TIMER_4 : handle.Instance = TIM4;  break;
+            case TIMER_5 : handle.Instance = TIM5;  break;
+            case TIMER_6 : handle.Instance = TIM6;  break;
+            case TIMER_7 : handle.Instance = TIM7;  break;
+            case TIMER_8 : handle.Instance = TIM8;  break;
+            case TIMER_9 : handle.Instance = TIM9;  break;
+            default : ASSERT_ERROR(0, "timer %d not supported", id+1);
+        }
+
+        // Enable the clock
+        switch (id)
+        {
+            case TIMER_1 : __TIM1_CLK_ENABLE();  break;
+            case TIMER_2 : __TIM2_CLK_ENABLE();  break;
+            case TIMER_3 : __TIM3_CLK_ENABLE();  break;
+            case TIMER_4 : __TIM4_CLK_ENABLE();  break;
+            case TIMER_5 : __TIM5_CLK_ENABLE();  break;
+            case TIMER_6 : __TIM6_CLK_ENABLE();  break;
+            case TIMER_7 : __TIM7_CLK_ENABLE();  break;
+            case TIMER_8 : __TIM8_CLK_ENABLE();  break;
+            case TIMER_9 : __TIM9_CLK_ENABLE();  break;
+            default : ASSERT_ERROR(0, "timer %d not supported", id+1);
+        }
+    }
+
+    virtual ID get_id() { return id; }
+
+    virtual uint32_t get_counter()
+    {
+        return __HAL_TIM_GET_COUNTER(& handle);
+    }
+ 
+    virtual void init(uint32_t prescaler, uint32_t period, Chan chan) 
+    {   
+        HAL_StatusTypeDef status;
+
+        // clock is 125 nS pulse (8MHz)
+        // prescaler 0 gives 125 nS
+
+        handle.Init.Prescaler = prescaler;
+        handle.Init.CounterMode = TIM_COUNTERMODE_UP;
+        handle.Init.Period = period;
+        handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+
+        status = HAL_TIM_PWM_Init(& handle);
+        ASSERT(status == HAL_OK);
+
+        TIM_MasterConfigTypeDef sMasterConfig = { 0 };
+
+        uint32_t trigger_out = TIM_TRGO_RESET;
+        switch (chan)
+        {
+            case CHAN_1 : trigger_out = TIM_TRGO_OC1REF;  break;
+            case CHAN_2 : trigger_out = TIM_TRGO_OC2REF;  break;
+            case CHAN_3 : trigger_out = TIM_TRGO_OC3REF;  break;
+            case CHAN_4 : trigger_out = TIM_TRGO_OC4REF;  break;
+            default : ASSERT(0);
+        }
+        sMasterConfig.MasterOutputTrigger = trigger_out;
+
+        sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+        status = HAL_TIMEx_MasterConfigSynchronization(& handle, & sMasterConfig);
+        ASSERT(status == HAL_OK);
+    }
+
+    virtual void start()
+    {
+        HAL_StatusTypeDef status = HAL_TIM_Base_Start(& handle);
+        ASSERT(status == HAL_OK);
+    }    
+
+    static uint32_t channel(Chan chan)
+    {
+        switch (chan)
+        {
+            case CHAN_1 : return TIM_CHANNEL_1;
+            case CHAN_2 : return TIM_CHANNEL_2;
+            case CHAN_3 : return TIM_CHANNEL_3;
+            case CHAN_4 : return TIM_CHANNEL_4;
+            default : ASSERT(0);
+        }
+        return 0;
+    } 
+
+    virtual void enable_dma()
+    {
+        //__HAL_TIM_ENABLE_DMA(& handle, TIM_DMA_TRIGGER);
+        __HAL_TIM_ENABLE_DMA(& handle, TIM_DMA_UPDATE);
+        /// TIMx_CC3_DMA_INST
+    }
+
+    virtual void enable_dma(Chan chan)
+    {
+        switch (chan)
+        {
+            case CHAN_1 : __HAL_TIM_ENABLE_DMA(& handle, TIM_DMA_CC1);  break;
+            case CHAN_2 : __HAL_TIM_ENABLE_DMA(& handle, TIM_DMA_CC2);  break;
+            case CHAN_3 : __HAL_TIM_ENABLE_DMA(& handle, TIM_DMA_CC3);  break;
+            case CHAN_4 : __HAL_TIM_ENABLE_DMA(& handle, TIM_DMA_CC4);  break;
+            default : ASSERT(0);
+        }
+    }
+
+    virtual void start_oc(Chan chan)
+    {
+        HAL_StatusTypeDef okay;
+        okay = HAL_TIM_OC_Start(& handle, channel(chan));
+        ASSERT(okay == HAL_OK);
+    }
+
+    virtual void start_pwm(Chan chan, uint32_t value)
+    {
+        HAL_StatusTypeDef status;
+        TIM_OC_InitTypeDef sConfigOC;
+
+        sConfigOC.OCMode = TIM_OCMODE_PWM1;
+        sConfigOC.Pulse = value;
+        sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+        sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+        status = HAL_TIM_PWM_ConfigChannel(& handle, &sConfigOC, channel(chan));
+        ASSERT(status == HAL_OK);
+
+        status = HAL_TIM_PWM_Start(& handle, channel(chan));
+        ASSERT(status == HAL_OK);
+    }    
+
+    virtual void event()
+    {
+        HAL_StatusTypeDef status;
+        status = HAL_TIM_GenerateEvent(& handle, TIM_EVENTSOURCE_TRIGGER);
+        ASSERT(status == HAL_OK);
+    }    
+};
+
+extern "C" void TIM3_IRQHandler()
+{
+    ASSERT(0);
+}
+
+    /*
+     *
+     */
+
+Timer *Timer::create(Timer::ID id)
+{
+    return new Arm_Timer(id);
 }
 
 } // namespace panglos

@@ -32,7 +32,7 @@ public:
         ALIGN_12_R,
     };
 
-    virtual void init() = 0;
+    virtual void init(Timer *timer) = 0;
 
     virtual void start() = 0;
     virtual void stop() = 0;

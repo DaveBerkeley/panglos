@@ -91,7 +91,7 @@ class ARM_GPIO : public panglos::GPIO
     bool irq_enabled;
 public:
 
-    ARM_GPIO(GPIO_TypeDef *_port, uint16_t _pin, uint32_t mode)
+    ARM_GPIO(GPIO_TypeDef *_port, uint16_t _pin, uint32_t mode, uint32_t alt_fn)
     :   port(_port), pin(_pin), irq_handler(0), irq_arg(0), irq_enabled(false)
     {
         busy(port, pin, true);
@@ -103,6 +103,10 @@ public:
         gpio_init.Pin = pin;
         gpio_init.Speed = GPIO_SPEED_FREQ_LOW;
         gpio_init.Mode = mode;
+#if defined(STM32F4xx)
+        // TODO : provide some similar function for STM32F1xx devices?
+        gpio_init.Alternate = alt_fn;
+#endif
         gpio_init.Pull = GPIO_NOPULL;
 
         HAL_GPIO_Init(port, & gpio_init);
@@ -196,9 +200,9 @@ public:
     }
 };
 
-GPIO * gpio_create(GPIO_TypeDef *port, uint16_t pin, uint32_t mode)
+GPIO *gpio_create(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t alt_fn)
 {
-    return new ARM_GPIO(port, pin, mode);
+    return new ARM_GPIO(port, pin, mode, alt_fn);
 }
 
 void gpio_alloc(GPIO_TypeDef *port, uint16_t pin)

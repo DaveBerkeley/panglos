@@ -47,7 +47,7 @@ static void init_i2s2()
     gpio_alloc(GPIOB, GPIO_PIN_5);
     gpio_alloc(GPIOA, GPIO_PIN_15);
 
-    __HAL_RCC_SPI1_CLK_ENABLE();
+    __HAL_RCC_SPI2_CLK_ENABLE();
 
     GPIO_InitTypeDef  gpio_def;
     gpio_def.Pin       = GPIO_PIN_3 | GPIO_PIN_5;
