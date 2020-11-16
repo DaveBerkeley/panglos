@@ -28,13 +28,24 @@ public:
     };
 
     enum Chan {
+        CHAN_NONE,
         CHAN_1,
         CHAN_2,
         CHAN_3,
         CHAN_4,
     };
 
-    virtual void init(uint32_t prescaler, uint32_t period, Chan chan) = 0;
+    enum Trigger {
+        TRIG_NONE,
+        TRIG_UPDATE,
+        TRIG_1,
+        TRIG_2,
+        TRIG_3,
+        TRIG_4,
+    };
+
+    virtual void init(uint32_t prescaler, uint32_t period) = 0;
+    virtual void set_ms_mode(bool on=false, Trigger out_trig=TRIG_NONE) = 0;
     virtual void start() = 0;
 
     virtual void enable_dma() = 0;

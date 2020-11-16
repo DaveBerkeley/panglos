@@ -362,7 +362,7 @@ public:
         return __HAL_TIM_GET_COUNTER(& handle);
     }
  
-    virtual void init(uint32_t prescaler, uint32_t period, Chan chan) 
+    virtual void init(uint32_t prescaler, uint32_t period) 
     {   
         HAL_StatusTypeDef status;
 
@@ -377,20 +377,30 @@ public:
         status = HAL_TIM_PWM_Init(& handle);
         ASSERT(status == HAL_OK);
 
+        // Turn off Master mode as default
+        set_ms_mode(false, TRIG_NONE);
+    }
+
+    virtual void set_ms_mode(bool master, Trigger trig_out)
+    {
+        HAL_StatusTypeDef status;
         TIM_MasterConfigTypeDef sMasterConfig = { 0 };
 
         uint32_t trigger_out = TIM_TRGO_RESET;
-        switch (chan)
+        switch (trig_out)
         {
-            case CHAN_1 : trigger_out = TIM_TRGO_OC1REF;  break;
-            case CHAN_2 : trigger_out = TIM_TRGO_OC2REF;  break;
-            case CHAN_3 : trigger_out = TIM_TRGO_OC3REF;  break;
-            case CHAN_4 : trigger_out = TIM_TRGO_OC4REF;  break;
+            case TRIG_1         : trigger_out = TIM_TRGO_OC1REF;    break;
+            case TRIG_2         : trigger_out = TIM_TRGO_OC2REF;    break;
+            case TRIG_3         : trigger_out = TIM_TRGO_OC3REF;    break;
+            case TRIG_4         : trigger_out = TIM_TRGO_OC4REF;    break;
+            case TRIG_NONE      : trigger_out = TIM_TRGO_RESET;     break;
+            case TRIG_UPDATE    : trigger_out = TIM_TRGO_UPDATE;    break;
             default : ASSERT(0);
         }
         sMasterConfig.MasterOutputTrigger = trigger_out;
 
-        sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+        uint32_t mode = master ? TIM_MASTERSLAVEMODE_ENABLE : TIM_MASTERSLAVEMODE_DISABLE;
+        sMasterConfig.MasterSlaveMode = mode;
         status = HAL_TIMEx_MasterConfigSynchronization(& handle, & sMasterConfig);
         ASSERT(status == HAL_OK);
     }
