@@ -1,4 +1,6 @@
 
+#if defined(USE_FREE_RTOS)
+
 #include <string.h>
 
 #include <FreeRTOS.h>
@@ -36,5 +38,7 @@ void vApplicationMallocFailedHook()
 {
     Error_Handler();
 }
+
+#endif  //  USE_FREE_RTOS
 
 //  FIN

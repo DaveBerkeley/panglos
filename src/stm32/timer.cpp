@@ -1,6 +1,8 @@
 
 #include <string.h>
 
+#if defined(USE_FREE_RTOS)
+
 #include <FreeRTOS.h>
 #include <task.h>
 
@@ -499,5 +501,22 @@ void Timer_Init()
     panglos::hw_clock_init();
     panglos::hw_timer_init();
 }
+
+#else // USE_FREE_RTOS
+
+#include "../panglos/stm32/stm32fxxx_hal.h"
+
+#include "../panglos/timer.h"
+
+namespace panglos {
+
+timer_t timer_now()
+{
+    return HAL_GetTick();
+}
+
+};  //  namespace panglos
+
+#endif // USE_FREE_RTOS
 
 //  FIN

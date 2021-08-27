@@ -9,6 +9,25 @@
      *  GPIO
      */
 
+static void enable_clock(GPIO_TypeDef *port)
+{
+    if (port == GPIOA) { __HAL_RCC_GPIOA_CLK_ENABLE(); return; }
+    if (port == GPIOB) { __HAL_RCC_GPIOB_CLK_ENABLE(); return; }
+    if (port == GPIOC) { __HAL_RCC_GPIOC_CLK_ENABLE(); return; }
+    if (port == GPIOD) { __HAL_RCC_GPIOD_CLK_ENABLE(); return; }
+    if (port == GPIOE) { __HAL_RCC_GPIOE_CLK_ENABLE(); return; }
+    //if (port == GPIOF) { __HAL_RCC_GPIOF_CLK_ENABLE(); return; }
+    //if (port == GPIOG) { __HAL_RCC_GPIOG_CLK_ENABLE(); return; }
+    //if (port == GPIOH) { __HAL_RCC_GPIOH_CLK_ENABLE(); return; }
+    //if (port == GPIOI) { __HAL_RCC_GPIOI_CLK_ENABLE(); return; }
+    //if (port == GPIOJ) { __HAL_RCC_GPIOJ_CLK_ENABLE(); return; }
+    ASSERT(0);
+}
+
+    /*
+     *
+     */
+
 static inline int pin_to_idx(uint16_t pin)
 {
     switch (pin)
@@ -82,6 +101,42 @@ static void busy(GPIO_TypeDef *port, uint16_t pin, bool mark)
      *
      */
 
+#if defined(STM32F4) || defined(STM32F1)
+
+IRQn_Type pin_to_irq(uint16_t pin)
+{
+    // For the stm32f405xx we have EXTI0_IRQn .. EXTI4_IRQn, EXTI9_5_IRQn, EXTI15_10_IRQn
+    // TODO : does this depend on the processor version? (yes it does)
+    switch (pin)
+    {
+        case GPIO_PIN_0  :  return EXTI0_IRQn;
+        case GPIO_PIN_1  :  return EXTI1_IRQn;
+        case GPIO_PIN_2  :  return EXTI2_IRQn;
+        case GPIO_PIN_3  :  return EXTI3_IRQn;
+        case GPIO_PIN_4  :  return EXTI4_IRQn;
+        case GPIO_PIN_5  :  // fall through
+        case GPIO_PIN_6  :  // fall through
+        case GPIO_PIN_7  :  // fall through
+        case GPIO_PIN_8  :  // fall through
+        case GPIO_PIN_9  :  return EXTI9_5_IRQn;
+        case GPIO_PIN_10 :  // fall through
+        case GPIO_PIN_11 :  // fall through
+        case GPIO_PIN_12 :  // fall through
+        case GPIO_PIN_13 :  // fall through
+        case GPIO_PIN_14 :  // fall through
+        case GPIO_PIN_15 :  return EXTI15_10_IRQn;
+    }
+    ASSERT(0);
+    return (IRQn_Type) 0;
+}
+
+#endif
+
+
+    /*
+     *
+     */
+
 class ARM_GPIO : public panglos::GPIO
 {
     GPIO_TypeDef *port;
@@ -95,6 +150,8 @@ public:
     :   port(_port), pin(_pin), irq_handler(0), irq_arg(0), irq_enabled(false)
     {
         busy(port, pin, true);
+
+        enable_clock(port);
 
         GPIO_InitTypeDef gpio_init = {0};
 
@@ -126,30 +183,7 @@ public:
                 return;
         }
 
-        IRQn_Type irq_type = EXTI0_IRQn;
-
-        // For the stm32f405xx we have EXTI0_IRQn .. EXTI4_IRQn, EXTI9_5_IRQn, EXTI15_10_IRQn
-        // TODO : does this depend on the processor version?
-        switch (pin)
-        {
-            case GPIO_PIN_0  :  irq_type = EXTI0_IRQn; break;
-            case GPIO_PIN_1  :  irq_type = EXTI1_IRQn; break;
-            case GPIO_PIN_2  :  irq_type = EXTI2_IRQn; break;
-            case GPIO_PIN_3  :  irq_type = EXTI3_IRQn; break;
-            case GPIO_PIN_4  :  irq_type = EXTI4_IRQn; break;
-            case GPIO_PIN_5  :  // fall through
-            case GPIO_PIN_6  :  // fall through
-            case GPIO_PIN_7  :  // fall through
-            case GPIO_PIN_8  :  // fall through
-            case GPIO_PIN_9  :  irq_type = EXTI9_5_IRQn; break;
-            case GPIO_PIN_10 :  // fall through
-            case GPIO_PIN_11 :  // fall through
-            case GPIO_PIN_12 :  // fall through
-            case GPIO_PIN_13 :  // fall through
-            case GPIO_PIN_14 :  // fall through
-            case GPIO_PIN_15 :  irq_type = EXTI15_10_IRQn; break;
-            default : ASSERT(0);
-        }
+        IRQn_Type irq_type = pin_to_irq(pin);
 
         // Note :- priority should be >= configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
         HAL_NVIC_SetPriority(irq_type, 6, 0);
@@ -227,6 +261,8 @@ extern "C" void HAL_GPIO_EXTI_Callback(uint16_t pin)
     /*
      *  Interrupt handlers for all pins
      */
+
+#if defined(STM32F4) || defined(STM32F1)
 
 extern "C" void EXTI0_IRQHandler(void)
 {
@@ -310,5 +346,7 @@ extern "C" void EXTI9_5_IRQHandler(void)
         }
     }
 }
+
+#endif
 
 // FIN

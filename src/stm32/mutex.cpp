@@ -1,4 +1,6 @@
 
+#if defined(USE_FREE_RTOS)
+
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
@@ -144,5 +146,7 @@ Semaphore * Semaphore::create()
 {
     return new ArmSemaphore();
 }
+
+#endif  //  USE_FREE_RTOS
 
 //  FIN
