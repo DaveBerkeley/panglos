@@ -7,6 +7,12 @@ designed to be used as a framework to build real-time applications around.
 
 The source is available on [github](https://github.com/DaveBerkeley/panglos).
 
+Panglos is not a complete working system, but it has been used as a template
+for a successful commercial project. Ideally application code should not 
+include any hardware specific or OS specfic code. By using a C++ wrapper layer
+it is possible to unit test the bulk of an application on linux, 
+without needing to test on the target.
+
 It is written as a wrapper around [FreeRTOS][1] 
 and the STM32 HAL. I hope to port it to other platforms.
 
