@@ -11,7 +11,8 @@ Panglos is not a complete working system, but it has been used as a template
 for a successful commercial project. Ideally application code should not 
 include any hardware specific or OS specfic code. By using a C++ wrapper layer
 it is possible to unit test the bulk of an application on linux, 
-without needing to test on the target.
+without having to test on the target.
+You can also run the unit tests on the target, for better coverage.
 
 It is written as a wrapper around [FreeRTOS][1] 
 and the STM32 HAL. I hope to port it to other platforms.
