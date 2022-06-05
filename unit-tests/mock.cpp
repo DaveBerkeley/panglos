@@ -186,6 +186,7 @@ int MockI2C::write(uint8_t addr, const uint8_t* wr, uint32_t len)
     ASSERT(len);
     int reg = wr[0];
     memcpy(& regs[reg], & wr[1], len-1);
+    PO_DEBUG("%#x %#x %#x", addr, wr[0], wr[1]);
     return len;
 }
 
@@ -194,6 +195,9 @@ int MockI2C::write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_
     IGNORE(addr);
     ASSERT(len_wr);
     int reg = wr[0];
+    ASSERT(len_wr == 1);
+    ASSERT(len_rd == 1);
+    PO_DEBUG("%#x %#x %#x", addr, reg, regs[reg]);
     memcpy(& regs[reg], & wr[1], len_wr-1);
     memcpy(rd, & regs[reg], len_rd);
     return len_wr + len_rd;
