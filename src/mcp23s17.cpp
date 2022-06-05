@@ -113,29 +113,9 @@ uint8_t Cache::read()
      * @param addr the address of the device (0..7)
      */
 
-MCP23S17::MCP23S17(SPI *spi, GPIO *cs, uint8_t _addr)
-: dev(0), cache_mutex(0), addr_cmd(0), handler(0)
+MCP23S17::MCP23S17()
+: cache_mutex(0), addr_cmd(0), handler(0)
 {
-    ASSERT(_addr <= 7);
-
-    addr_cmd = 0x40 + (_addr << 1);
-    dev = new SpiDevice(spi, cs, addr_cmd);
-
-    // assume the chip is initialised ...
-
-    // enable the HAEN bit in ICON, to enable A0..2 addressing
-    const uint8_t icon = 0x08 /* HAEN */ | 0x40 /* MIRROR */ ;
-    uint8_t cmd0 = 0x40;
-
-    if (_addr & 0x04)
-    {
-        // See MCP23S17 Rev. A Silicon Errata
-        cmd0 = 0x48;
-    }
-
-    uint8_t cmd[] = { cmd0, R_ICON, icon };
-    spi->write(cmd, sizeof(cmd));
-
     cache_mutex = Mutex::create();
 
     // set the cache
@@ -152,8 +132,6 @@ MCP23S17::MCP23S17(SPI *spi, GPIO *cs, uint8_t _addr)
 
 MCP23S17::~MCP23S17()
 {
-    delete dev;
-    
     // set the cache
     for (int i = 0; i < NUM_CACHES; i++)
     {
@@ -186,24 +164,13 @@ Cache *MCP23S17::get_cache(Register reg)
 
 void MCP23S17::write(Register reg, uint8_t data)
 {
-    dev->write(reg, data);
+    reg_write(reg, data);
 
     Cache *cache = get_cache(reg);
     if (cache)
     {
         cache->write(data);
     }
-}
-
-    /**
-     * @brief hardware (SPI) read of register
-     */
-
-uint8_t MCP23S17::read(Register reg)
-{
-    uint8_t data;
-    dev->read(reg, & data);
-    return data;
 }
 
     /**
@@ -253,7 +220,7 @@ bool MCP23S17::flush_cache(Register reg)
     }
 
     // write to the hardware
-    dev->write(reg, cache->data);
+    reg_write(reg, cache->data);
     // cache is no longer dirty
     cache->dirty = false;
     return true;
@@ -266,43 +233,6 @@ bool MCP23S17::flush_cache(Register reg)
 Dispatch::Callback *MCP23S17::get_interrupt_handler()
 {
     return handler;
-}
-
-    /**
-     * @brief internal function used to dispatch any GPIO interrupts
-     * and clear the hardware status.
-     */
-
-void MCP23S17::_on_interrupt()
-{
-    // find out which port/pin caused the interrupt
-    // clear the interrupt
-    // call the pin's interrupt handler
-
-    // read the INTFx registers. Also read ... GPIOx to clear the irq
-    const uint8_t wr[] = { uint8_t(addr_cmd | 0x01), R_INTFA, 0, 0, 0, 0, 0, 0 };
-    uint8_t rd[sizeof(wr)];
-
-    dev->read(wr, rd, sizeof(wr));
-
-    int idx = 0;
-    for (int port = 0; port < 2; port++)
-    {
-        for (uint8_t mask = 0x01; mask; mask <<= 1)
-        {
-            const bool irq = rd[2+port] & mask;
-            if (irq)
-            {
-                // call any interrupt handler assigned on this pin
-                GPIO *gpio = pins[idx];
-                if (gpio)
-                {
-                    gpio->on_interrupt();
-                }
-            }
-            idx += 1;
-        }
-    }
 }
 
     /**
@@ -546,6 +476,95 @@ GPIO * MCP23S17::make_gpio(Port port, int bit, Mode mode, bool auto_flush)
 {
     ExpandedGpio *gpio = new ExpandedGpio(this, port, bit, mode, auto_flush);
     return gpio;
+}
+
+
+    /*
+     *
+     */
+
+SPI_MCP23S17::SPI_MCP23S17(SPI *spi, GPIO *cs, uint8_t _addr)
+:   MCP23S17(), 
+    dev(0)
+{
+    ASSERT(_addr <= 7);
+
+    addr_cmd = 0x40 + (_addr << 1);
+    dev = new SpiDevice(spi, cs, addr_cmd);
+
+    // assume the chip is initialised ...
+
+    // enable the HAEN bit in ICON, to enable A0..2 addressing
+    const uint8_t icon = 0x08 /* HAEN */ | 0x40 /* MIRROR */ ;
+    uint8_t cmd0 = 0x40;
+
+    if (_addr & 0x04)
+    {
+        // See MCP23S17 Rev. A Silicon Errata
+        cmd0 = 0x48;
+    }
+
+    uint8_t cmd[] = { cmd0, R_ICON, icon };
+    spi->write(cmd, sizeof(cmd));
+
+}
+
+SPI_MCP23S17::~SPI_MCP23S17()
+{
+    delete dev;
+}
+
+    /**
+     * @brief hardware (SPI) read of register
+     */
+
+uint8_t SPI_MCP23S17::read(Register reg)
+{
+    uint8_t data;
+    dev->read(reg, & data);
+    return data;
+}
+
+    /**
+     * @brief internal function used to dispatch any GPIO interrupts
+     * and clear the hardware status.
+     */
+
+void SPI_MCP23S17::_on_interrupt()
+{
+    // find out which port/pin caused the interrupt
+    // clear the interrupt
+    // call the pin's interrupt handler
+
+    // read the INTFx registers. Also read ... GPIOx to clear the irq
+    const uint8_t wr[] = { uint8_t(addr_cmd | 0x01), R_INTFA, 0, 0, 0, 0, 0, 0 };
+    uint8_t rd[sizeof(wr)];
+
+    dev->read(wr, rd, sizeof(wr));
+
+    int idx = 0;
+    for (int port = 0; port < 2; port++)
+    {
+        for (uint8_t mask = 0x01; mask; mask <<= 1)
+        {
+            const bool irq = rd[2+port] & mask;
+            if (irq)
+            {
+                // call any interrupt handler assigned on this pin
+                GPIO *gpio = pins[idx];
+                if (gpio)
+                {
+                    gpio->on_interrupt();
+                }
+            }
+            idx += 1;
+        }
+    }
+}
+
+void SPI_MCP23S17::reg_write(Register reg, uint8_t data)
+{
+    dev->write(reg, data);
 }
 
 }   //  namespace panglos

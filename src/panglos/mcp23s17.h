@@ -40,9 +40,7 @@ public:
 
 class MCP23S17
 {
-private:
-    /// the SPI device
-    SpiDevice *dev;
+protected:
     /// number of registers that are cached
     enum { NUM_CACHES = 2 };
     /// register caches (for the GPIO regs)
@@ -59,8 +57,8 @@ private:
     class Handler;
 
 public:
-    MCP23S17(SPI *spi, GPIO *cs, uint8_t addr);
-    ~MCP23S17();
+    MCP23S17();
+    virtual ~MCP23S17();
 
     /// MCP23S17 has two 8-bit ports
     enum Port {
@@ -98,7 +96,8 @@ public:
         R_GPIOB     = 0x13,
     };
  
-    uint8_t read(Register reg);
+    virtual uint8_t read(Register reg) = 0;
+    virtual void reg_write(Register reg, uint8_t data) = 0;
     void write(Register reg, uint8_t data);
 
     Cache *get_cache(Register reg);
@@ -112,9 +111,29 @@ public:
     // implement Dispatch interface : called from Task on GPIO irq
     Dispatch::Callback *get_interrupt_handler();
 
-    void _on_interrupt();
+    virtual void _on_interrupt() = 0;
     void _set_pin(GPIO *pin, Port port, int bit);
 };
+
+    /*
+     *
+     */
+
+class SPI_MCP23S17 :  public MCP23S17
+{
+    /// the SPI device
+    SpiDevice *dev;
+
+    virtual void _on_interrupt() override;
+    void reg_write(Register reg, uint8_t data) override;
+
+public:
+    SPI_MCP23S17(SPI *spi, GPIO *cs, uint8_t _addr);
+    virtual ~SPI_MCP23S17();
+
+    virtual uint8_t read(Register reg) override;
+};
+
 
 } // namespace panglos
 

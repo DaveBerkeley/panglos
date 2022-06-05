@@ -16,7 +16,7 @@ TEST(MCP23S17, ReadWrite)
 {
     MockPin cs(0);
     MockSpi spi;
-    MCP23S17 chip(& spi, & cs, 0);
+    SPI_MCP23S17 chip(& spi, & cs, 0);
     spi.reset();
 
     // check the write does the expected thing
@@ -42,7 +42,7 @@ TEST(MCP23S17, Cache)
 {
     MockPin cs(0);
     MockSpi spi;
-    MCP23S17 chip(& spi, & cs, 0);
+    SPI_MCP23S17 chip(& spi, & cs, 0);
     spi.reset();
 
     // check the write writes data to cache, not hw
@@ -110,7 +110,7 @@ TEST(MCP23S17, CacheMask)
 {
     MockPin cs(0);
     MockSpi spi;
-    MCP23S17 chip(& spi, & cs, 0);
+    SPI_MCP23S17 chip(& spi, & cs, 0);
     spi.reset();
 
     Cache *cache = chip.get_cache(MCP23S17::R_GPIOA);
@@ -158,7 +158,7 @@ TEST(MCP23S17, GpioAutoFlush)
 {
     MockPin cs(0);
     MockSpi spi;
-    MCP23S17 chip(& spi, & cs, 0);
+    SPI_MCP23S17 chip(& spi, & cs, 0);
     spi.reset();
 
     GPIO *pin = chip.make_gpio(MCP23S17::PORTB, 7, MCP23S17::OUTPUT, true);
@@ -245,7 +245,7 @@ TEST(MCP23S17, GpioNoFlush)
 {
     MockPin cs(0);
     MockSpi spi;
-    MCP23S17 chip(& spi, & cs, 0);
+    SPI_MCP23S17 chip(& spi, & cs, 0);
     spi.reset();
 
     GPIO *pin = chip.make_gpio(MCP23S17::PORTB, 7, MCP23S17::OUTPUT, false);
@@ -330,7 +330,7 @@ TEST(MCP23S17, GpioInput)
 {
     MockPin cs(0);
     MockSpi spi;
-    MCP23S17 chip(& spi, & cs, 0);
+    SPI_MCP23S17 chip(& spi, & cs, 0);
     spi.reset();
 
     GPIO *pin = chip.make_gpio(MCP23S17::PORTB, 7, MCP23S17::OUTPUT, true);
@@ -395,7 +395,7 @@ TEST(MCP23S17, SpiAddr)
     MockPin cs(0);
     MockSpi spi;
     // use a SPI address of 7 (can be 0..7)
-    MCP23S17 chip(& spi, & cs, 7);
+    SPI_MCP23S17 chip(& spi, & cs, 7);
     spi.reset();
 
     GPIO *pin = chip.make_gpio(MCP23S17::PORTB, 7, MCP23S17::OUTPUT, true);
@@ -424,7 +424,7 @@ TEST(MCP23S17, SpiAddrEnable)
 
     {
         MockSpi spi;
-        MCP23S17 chip(& spi, & cs, 3);
+        SPI_MCP23S17 chip(& spi, & cs, 3);
  
         // check the HAEN bit gets set in ICON
         EXPECT_EQ(0x40, spi.buff[0]); // write 
@@ -437,7 +437,7 @@ TEST(MCP23S17, SpiAddrEnable)
     // MCP23S17 Rev. A  Silicon Errata
     {
         MockSpi spi;
-        MCP23S17 chip(& spi, & cs, 7);
+        SPI_MCP23S17 chip(& spi, & cs, 7);
  
         // check the HAEN bit gets set in ICON
         EXPECT_EQ(0x48, spi.buff[0]); // write 
@@ -462,7 +462,7 @@ TEST(MCP23S17, GpioIrq)
 {
     MockPin cs(0);
     MockSpi spi;
-    MCP23S17 chip(& spi, & cs, 0);
+    SPI_MCP23S17 chip(& spi, & cs, 0);
     spi.reset();
 
     const int bit = 4;
