@@ -1,4 +1,5 @@
-a.out
+*.o
+tdd
 obj
 *.swp
 *~
@@ -6,3 +7,4 @@ html
 latex
 secret.h
 tags
+.sconsign.dblite

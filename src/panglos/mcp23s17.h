@@ -2,7 +2,6 @@
 #if !defined(__MCP23S17_H__)
 #define __MCP23S17_H__
 
-#include "spi.h"
 #include "gpio.h"
 #include "mutex.h"
 #include "dispatch.h"
@@ -49,8 +48,6 @@ protected:
     Mutex *cache_mutex;
     /// GPIO objects for each pin created with make_gpio()
     GPIO *pins[16];
-    /// the code/addr used to start each SPI transaction
-    uint8_t addr_cmd;
     /// used to expose the Dispatch::Callback interface
     Dispatch::Callback *handler;
 
@@ -106,7 +103,7 @@ public:
     void write_cache(Register reg, uint8_t data);
     bool flush_cache(Register reg);
 
-    GPIO * make_gpio(Port port, int bit, Mode mode, bool auto_flush);
+    GPIO *make_gpio(Port port, int bit, Mode mode, bool auto_flush);
 
     // implement Dispatch interface : called from Task on GPIO irq
     Dispatch::Callback *get_interrupt_handler();
@@ -116,16 +113,21 @@ public:
 };
 
     /*
-     *
+     *  SPI MCP23S17
      */
+
+class SPI;
+class SpiDevice;
 
 class SPI_MCP23S17 :  public MCP23S17
 {
     /// the SPI device
     SpiDevice *dev;
+    /// the code/addr used to start each SPI transaction
+    uint8_t addr_cmd;
 
     virtual void _on_interrupt() override;
-    void reg_write(Register reg, uint8_t data) override;
+    virtual void reg_write(Register reg, uint8_t data) override;
 
 public:
     SPI_MCP23S17(SPI *spi, GPIO *cs, uint8_t _addr);
@@ -134,6 +136,26 @@ public:
     virtual uint8_t read(Register reg) override;
 };
 
+    /*
+     *  I2C MCP23017
+     */
+
+class I2C;
+
+class I2C_MCP23S17 :  public MCP23S17
+{
+    I2C *dev;
+    uint8_t addr_cmd;
+
+    virtual void _on_interrupt() override;
+    virtual void reg_write(Register reg, uint8_t data) override;
+
+public:
+    I2C_MCP23S17(I2C *i2c, uint8_t _addr);
+    virtual ~I2C_MCP23S17();
+
+    virtual uint8_t read(Register reg) override;
+};
 
 } // namespace panglos
 

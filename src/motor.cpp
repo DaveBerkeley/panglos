@@ -134,8 +134,8 @@ Accelerator::Accelerator(int _max_p, int _min_p, int _steps)
     for (int i = 0; i < size; i++)
     {
         const int range = max_p - min_p;
-        const float div = range / float(size);
-        const int v = min_p + int(i * div);
+        const float div = (float) range / float(size);
+        const int v = min_p + i * (int) div;
         table[i] = v;
         ASSERT_ERROR(v >= 0, "i=%d v=%d", i, v);
     }

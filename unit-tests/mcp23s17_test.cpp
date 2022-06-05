@@ -563,4 +563,30 @@ TEST(MCP23S17, GpioIrq)
     EXPECT_EQ(6, spi.in);
 }
 
+    /*
+     *
+     */
+
+TEST(MCP23S17, I2C)
+{
+    MockI2C i2c;
+    I2C_MCP23S17 chip(& i2c, 0);
+
+    // 8-outputs
+
+    GPIO *leds[8];
+    GPIO *switches[8];
+
+    for (int i = 0; i < 8; i++)
+    {
+        GPIO *gpio = chip.make_gpio(MCP23S17::PORTB, i, MCP23S17::INPUT, false);
+        leds[i] = gpio;
+        gpio = chip.make_gpio(MCP23S17::PORTA, i, MCP23S17::OUTPUT, false);
+        switches[i] = gpio;
+    }
+
+    IGNORE(leds);
+    IGNORE(switches);
+}
+
 //  FIN

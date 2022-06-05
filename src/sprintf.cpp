@@ -168,8 +168,8 @@ void Format::get(const char **fmt, va_list va)
 static int __print_num(Output *output, unsigned long int number, int base)
 {
     int count = 0;
-    int rem = number % base;
-    int div = number / base;
+    int rem = (int) (number % base);
+    int div = (int) (number / base);
 
     if (div)
     {
@@ -179,11 +179,11 @@ static int __print_num(Output *output, unsigned long int number, int base)
  
     if (rem > 9)
     {
-        count += output->_putc('a' + rem - 10);
+        count += output->_putc((char)('a' + rem - 10));
     }
     else
     {
-        count += output->_putc('0' + rem);
+        count += output->_putc((char) ('0' + rem));
     }
 
     return count;
@@ -341,20 +341,20 @@ int xvprintf(Output *output, const char* fmt, va_list va)
             case 'c' :
             {
                 int c = va_arg(va, int);
-                count += output->_putc(c);
+                count += output->_putc((char)c);
                 break;
             }
             case 's' :
             {
                 char *s = va_arg(va, char*);
-                int pad = f.width - strlen(s);
+                int pad = (int) (f.width - strlen(s));
 
                 if (f.flags != '-')
                 {
                     print_pad(output, ' ', pad);
                 }
 
-                count += output->_puts(s, strlen(s));
+                count += output->_puts(s, (int) strlen(s));
 
                 if (f.flags == '-')
                 {

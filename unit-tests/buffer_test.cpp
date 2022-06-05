@@ -135,7 +135,7 @@ static void * add_fn(void *arg)
 
     for (int i = 0; i < 100; i++)
     {
-        int len = strlen(info->tx);
+        int len = (int) strlen(info->tx);
         info->b->add((uint8_t*) info->tx, len);
         usleep(500);
     }

@@ -7,6 +7,7 @@
 #include <panglos/event.h>
 #include <panglos/gpio.h>
 #include <panglos/spi.h>
+#include <panglos/i2c.h>
 
 void mock_setup(bool event_thread);
 void mock_teardown();
@@ -81,7 +82,7 @@ public:
     {
         ASSERT(data);
         ASSERT((size+in) < (int) sizeof buff);
-        memcpy(& buff[in], data, size);
+        memcpy(& buff[in], data, (size_t) size);
         in += size;
         return true;
     }
@@ -97,7 +98,7 @@ public:
 
         rd[0] = data[0];
         rd[1] = data[1];
-        memcpy(& rd[2], rd_data, size-2);
+        memcpy(& rd[2], rd_data, (size_t) (size-2));
 
         return true;
     }
@@ -112,13 +113,29 @@ public:
     void set_read(const uint8_t *data, int size)
     {
         ASSERT(size < (int) sizeof(rd_data));
-        memcpy(rd_data, data, size);
+        memcpy(rd_data, data, (size_t) size);
     }
 
     void set_read(uint8_t data)
     {
         set_read(& data, 1);
     }
+};
+
+    /*
+     *
+     */
+
+class MockI2C : public panglos::I2C
+{
+public:
+    uint8_t regs[64];
+
+    MockI2C();
+    virtual bool probe(uint8_t addr, uint32_t timeout) override;
+    virtual int write(uint8_t addr, const uint8_t* wr, uint32_t len) override;
+    virtual int write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd) override;
+    virtual int read(uint8_t addr, uint8_t* rd, uint32_t len) override;
 };
 
 //  FIN

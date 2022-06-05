@@ -54,7 +54,7 @@ public:
             delete_mutex = mutex = Mutex::create();
         }
 
-        data = (T*) malloc(size * sizeof(T));
+        data = (T*) malloc((size_t) (size * sizeof(T)));
     }
 
     ~RingBuffer()
@@ -202,7 +202,7 @@ public:
     Buffer(int _size)
     : next(0), size(_size), in(0), out(0)
     {
-        data = (uint8_t*) malloc(size);
+        data = (uint8_t*) malloc((size_t)size);
     }
 
     ~Buffer()
@@ -416,7 +416,7 @@ class BufferOutput : public Output
 
     virtual int _putc(char c)
     {
-        return buffers->add(c, force_size);
+        return buffers->add((uint8_t)c, force_size);
     }
 
 public:

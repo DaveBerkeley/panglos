@@ -13,8 +13,6 @@
 #define PIN_MIN 0
 #define PIN_MAX 14
 
-#define IGNORE(x) ((x) = (x))
-
 //using namespace panglos;
 
 void xxx(){}
@@ -163,6 +161,50 @@ bool pins_match(int num, int start, const int *p)
     }
 
     return true;
+}
+
+    /*
+     *
+     */
+
+MockI2C::MockI2C()
+{
+    memset(regs, 0, sizeof(regs));
+}
+
+bool MockI2C::probe(uint8_t addr, uint32_t timeout)
+{
+    IGNORE(addr);
+    IGNORE(timeout);
+    ASSERT(0);
+    return false;
+}
+
+int MockI2C::write(uint8_t addr, const uint8_t* wr, uint32_t len)
+{
+    IGNORE(addr);
+    ASSERT(len);
+    int reg = wr[0];
+    memcpy(& regs[reg], & wr[1], len-1);
+    return len;
+}
+
+int MockI2C::write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd)
+{
+    IGNORE(addr);
+    ASSERT(len_wr);
+    int reg = wr[0];
+    memcpy(& regs[reg], & wr[1], len_wr-1);
+    memcpy(rd, & regs[reg], len_rd);
+    return len_wr + len_rd;
+}
+
+int MockI2C::read(uint8_t addr, uint8_t* rd, uint32_t len)
+{
+    IGNORE(addr);
+    IGNORE(rd);
+    ASSERT(0);
+    return len;
 }
 
 //  FIN

@@ -2,7 +2,7 @@
 #if !defined(__DEBUG_H__)
 #define __DEBUG_H__
 
-#define IGNORE(x) ((x) = (x))
+#define IGNORE(x) ((void) (x))
 
     /*
      *

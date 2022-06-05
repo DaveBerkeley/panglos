@@ -3,6 +3,8 @@
 
 #include "panglos/debug.h"
 
+#include "panglos/spi.h"
+#include "panglos/i2c.h"
 #include "panglos/mcp23s17.h"
 
 namespace panglos {
@@ -85,7 +87,7 @@ void Cache::clr_mask(uint8_t mask)
 {
     Lock lock(mutex);
 
-    const uint8_t next = data & ~mask;
+    const uint8_t next = (uint8_t) (data & ~mask);
     if (next != data)
     {
         data = next;
@@ -114,7 +116,7 @@ uint8_t Cache::read()
      */
 
 MCP23S17::MCP23S17()
-: cache_mutex(0), addr_cmd(0), handler(0)
+: cache_mutex(0), handler(0)
 {
     cache_mutex = Mutex::create();
 
@@ -261,7 +263,7 @@ ExpandedGpio::ExpandedGpio(MCP23S17 *_chip, MCP23S17::Port _port, int _bit, MCP2
     ASSERT(chip);
     ASSERT((bit >= 0) && (bit <= 7));
 
-    mask = 1 << bit;
+    mask = (uint8_t) (1 << bit);
     MCP23S17::Register iodir_reg = (MCP23S17::Register) 0;
     MCP23S17::Register gppu_reg = (MCP23S17::Register) 0;
     MCP23S17::Register gpinten_reg = (MCP23S17::Register) 0;
@@ -402,7 +404,7 @@ void ExpandedGpio::clr_mask(MCP23S17::Register reg, bool flush)
     }
 
     uint8_t data = chip->read(reg);
-    chip->write(reg, data & ~mask);
+    chip->write(reg, (uint8_t) (data & ~mask));
 }
 
 void ExpandedGpio::set(bool state)
@@ -485,11 +487,12 @@ GPIO * MCP23S17::make_gpio(Port port, int bit, Mode mode, bool auto_flush)
 
 SPI_MCP23S17::SPI_MCP23S17(SPI *spi, GPIO *cs, uint8_t _addr)
 :   MCP23S17(), 
-    dev(0)
+    dev(0),
+    addr_cmd(0)
 {
     ASSERT(_addr <= 7);
 
-    addr_cmd = 0x40 + (_addr << 1);
+    addr_cmd = (uint8_t) (0x40 + (_addr << 1));
     dev = new SpiDevice(spi, cs, addr_cmd);
 
     // assume the chip is initialised ...
@@ -545,7 +548,7 @@ void SPI_MCP23S17::_on_interrupt()
     int idx = 0;
     for (int port = 0; port < 2; port++)
     {
-        for (uint8_t mask = 0x01; mask; mask <<= 1)
+        for (uint8_t mask = 0x01; mask; mask = (uint8_t) (mask << 0x01))
         {
             const bool irq = rd[2+port] & mask;
             if (irq)
@@ -565,6 +568,40 @@ void SPI_MCP23S17::_on_interrupt()
 void SPI_MCP23S17::reg_write(Register reg, uint8_t data)
 {
     dev->write(reg, data);
+}
+
+    /*
+     *  I2C MCP23017 controller
+     */
+
+I2C_MCP23S17::I2C_MCP23S17(I2C *i2c, uint8_t addr)
+:   dev(i2c),
+    addr_cmd(0)
+{
+    ASSERT(i2c);
+    addr_cmd = (uint8_t) (0x40 + (addr << 1));
+}
+
+I2C_MCP23S17::~I2C_MCP23S17()
+{
+}
+
+void I2C_MCP23S17::_on_interrupt()
+{
+    ASSERT(0);
+}
+
+uint8_t I2C_MCP23S17::read(Register reg)
+{
+    uint8_t wr = reg;
+    uint8_t rd;
+    return (uint8_t) dev->write_read(addr_cmd, & wr, 1, & rd, 1);
+}
+
+void I2C_MCP23S17::reg_write(Register reg, uint8_t data)
+{
+    uint8_t cmd[] = { reg, data };
+    dev->write(addr_cmd, cmd, sizeof(cmd));
 }
 
 }   //  namespace panglos
