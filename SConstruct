@@ -10,6 +10,7 @@ files = [
     'src/sprintf.cpp',
     'src/mcp23s17.cpp',
 
+    'unit-tests/stubs.cpp',
     'unit-tests/buffer_test.cpp',
     'unit-tests/cli_test.cpp',
     'unit-tests/deque_test.cpp',

@@ -570,9 +570,86 @@ TEST(MCP23S17, GpioIrq)
 TEST(MCP23S17, I2C)
 {
     MockI2C i2c;
-    i2c.regs[0] = 0xff;
+    i2c.regs[0] = 0xff; // port direction default 
     i2c.regs[1] = 0xff;
     I2C_MCP23S17 chip(& i2c, 0);
+}
+
+    /*
+     *
+     */
+
+class Keyboard
+{
+    MCP23S17 *dev;
+    uint8_t leds;
+public:
+    Keyboard(MCP23S17 *_dev)
+    :   dev(_dev),
+        leds(0xff)
+    {
+        ASSERT(dev);
+    }
+
+    bool init()
+    {
+        dev->write(MCP23S17::R_IODIRA, 0xff); // key input
+        dev->write(MCP23S17::R_GPPUA, 0xff); // pull-up
+        dev->write(MCP23S17::R_GPIOB, leds); // leds all off
+        dev->write(MCP23S17::R_IODIRB, 0x00); // led output
+        return true;
+    }
+
+    void set_led(int idx, bool state)
+    {
+        ASSERT((idx >= 0) && (idx <= 8));
+        const uint8_t mask = (uint8_t) (1 << idx);
+
+        if (!state)
+        {
+            leds |= mask;
+        }
+        else
+        {
+            leds &= (uint8_t) ~mask;
+        }
+        dev->write(MCP23S17::R_GPIOB, (uint8_t) ~leds); 
+    }
+
+    bool get_led(int idx)
+    {
+        ASSERT((idx >= 0) && (idx <= 8));
+        const uint8_t mask = (uint8_t) (1 << idx);
+
+        const uint8_t d = dev->read(MCP23S17::R_GPIOB);
+        return d & mask;        
+    }
+
+    uint8_t read_keys()
+    {
+        const uint8_t d = dev->read(MCP23S17::R_GPIOA);
+        return d;
+    }
+
+    void tick()
+    {
+    }
+};
+
+    /*
+     *
+     */
+
+TEST(MCP23S17, Keyboard)
+{
+    MockI2C i2c;
+    i2c.regs[0] = 0xff; // port direction default 
+    i2c.regs[1] = 0xff;
+    I2C_MCP23S17 chip(& i2c, 0);
+    Keyboard keyboard(& chip);
+
+    keyboard.init();
+
 }
 
 //  FIN

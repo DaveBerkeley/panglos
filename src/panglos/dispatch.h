@@ -6,6 +6,8 @@
 
 namespace panglos {
 
+class Semaphore;
+
 class Dispatch
 {
 public:
