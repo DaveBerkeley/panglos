@@ -15,6 +15,6 @@ doxygen: $(APP)
 	doxygen
 
 valgrind: $(APP)
-	valgrind ./$(APP)
+	valgrind --leak-check=full ./$(APP)
 
 # FIN

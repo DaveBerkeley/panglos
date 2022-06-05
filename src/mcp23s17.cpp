@@ -132,6 +132,18 @@ MCP23S17::MCP23S17()
     handler = new Handler(this);
 }
 
+void MCP23S17::delete_gpios()
+{
+    for (size_t i = 0; i < (sizeof(pins) / sizeof(pins[0])); i++)
+    {
+        if (pins[i])
+        {
+            delete pins[i];
+        }
+        ASSERT(pins[i] == 0);
+    }
+}
+
 MCP23S17::~MCP23S17()
 {
     // set the cache
@@ -142,6 +154,7 @@ MCP23S17::~MCP23S17()
 
     delete cache_mutex;
     delete handler;
+
 }
 
     /**

@@ -104,6 +104,7 @@ public:
     bool flush_cache(Register reg);
 
     GPIO *make_gpio(Port port, int bit, Mode mode, bool auto_flush);
+    void delete_gpios();
 
     // implement Dispatch interface : called from Task on GPIO irq
     Dispatch::Callback *get_interrupt_handler();

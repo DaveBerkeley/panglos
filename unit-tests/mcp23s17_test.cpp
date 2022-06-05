@@ -573,7 +573,6 @@ TEST(MCP23S17, I2C)
     I2C_MCP23S17 chip(& i2c, 0);
 
     // 8-outputs
-
     GPIO *leds[8];
     GPIO *switches[8];
 
@@ -587,6 +586,8 @@ TEST(MCP23S17, I2C)
 
     IGNORE(leds);
     IGNORE(switches);
+
+    chip.delete_gpios();
 }
 
 //  FIN
