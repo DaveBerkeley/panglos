@@ -47,13 +47,13 @@ inline const char *err_lookup(const Code *codes, int err)
 #if defined(__cplusplus)
 extern "C" {
 #endif
-    
+
 void Error_Handler(void);
 uint32_t get_time(void);
 const char *get_task(void);
 void po_log(const char *fmt, ...) __attribute__((format(printf,1,2)));
 
-extern Code Severity_lut[];
+extern const Code Severity_lut[];
 
 #if defined(__cplusplus)
 }
