@@ -64,15 +64,15 @@ extern Code Severity_lut[];
      */
 
 #define _PO_PRINT(level, fmt, ...) \
-        po_log("0x%08x %s %s %s +%d %s() : " fmt "\r\n", \
+        po_log("%d %s %s %s +%d %s() : " fmt "\r\n", \
                 get_time(), get_task(), \
                 err_lookup(Severity_lut, level), \
                 __FILE__, __LINE__, __FUNCTION__, \
                 ## __VA_ARGS__ );
 
-#define PO_DEBUG(fmt, ...) _PO_PRINT(S_DEBUG, fmt, ## __VA_ARGS__ )
-#define PO_ERROR(fmt, ...) _PO_PRINT(S_ERROR, fmt, ## __VA_ARGS__ )
-#define PO_INFO(fmt, ...) _PO_PRINT(S_INFO, fmt, ## __VA_ARGS__ )
+#define PO_DEBUG(fmt, ...)  _PO_PRINT(S_DEBUG, fmt, ## __VA_ARGS__ )
+#define PO_ERROR(fmt, ...)  _PO_PRINT(S_ERROR, fmt, ## __VA_ARGS__ )
+#define PO_INFO(fmt, ...)   _PO_PRINT(S_INFO, fmt, ## __VA_ARGS__ )
 
 #define ASSERT(x)           if (!(x)) { PO_ERROR("assert failed"); Error_Handler(); }
 #define ASSERT_ERROR(x,fmt,...) \
