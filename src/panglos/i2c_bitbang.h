@@ -9,6 +9,7 @@ namespace panglos {
 
 class BitBang_I2C : public I2C
 {
+    Mutex *mutex;
     GPIO *sda;
     GPIO *scl;
     void (*wait_fn)();
@@ -25,7 +26,7 @@ class BitBang_I2C : public I2C
     uint8_t make_cmd(uint8_t addr, bool wr);
 
 public:
-    BitBang_I2C(panglos::GPIO *_scl, panglos::GPIO *_sda, void (*_wait)());
+    BitBang_I2C(Mutex *mutex, GPIO *_scl, GPIO *_sda, void (*_wait)());
 
     virtual bool probe(uint8_t addr, uint32_t timeout) override;
     virtual int write(uint8_t addr, const uint8_t* wr, uint32_t len) override;

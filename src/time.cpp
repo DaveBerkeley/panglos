@@ -3,8 +3,6 @@
 
 #include "panglos/time.h"
 
-//  TODO
-
 namespace panglos {
 
 bool Time::elapsed(tick_t start, tick_t period)
