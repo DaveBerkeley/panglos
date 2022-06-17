@@ -9,6 +9,7 @@ files = [
     'src/spi.cpp',
     'src/sprintf.cpp',
     'src/mcp23s17.cpp',
+    'src/time.cpp',
 
     'unit-tests/stubs.cpp',
     'unit-tests/buffer_test.cpp',
@@ -25,6 +26,7 @@ files = [
     'unit-tests/printf_test.cpp',
     #'unit-tests/rfm12b_test.cpp',
     'unit-tests/select_test.cpp',
+    'unit-tests/time.cpp',
 ]
 
 ccflags = [

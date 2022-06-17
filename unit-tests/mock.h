@@ -8,6 +8,7 @@
 #include <panglos/gpio.h>
 #include <panglos/spi.h>
 #include <panglos/i2c.h>
+#include <panglos/time.h>
 
 void mock_setup(bool event_thread);
 void mock_teardown();
@@ -136,6 +137,27 @@ public:
     virtual int write(uint8_t addr, const uint8_t* wr, uint32_t len) override;
     virtual int write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd) override;
     virtual int read(uint8_t addr, uint8_t* rd, uint32_t len) override;
+};
+
+    /*
+     *  Time / Tick
+     */
+
+void time_set(panglos::Time::tick_t t);
+bool time_set_auto(bool on);
+
+class TickState
+{
+    bool was;
+public:
+    TickState(bool _auto)
+    {
+        was = time_set_auto(_auto);
+    }
+    ~TickState()
+    {
+        time_set_auto(was);
+    }
 };
 
 //  FIN
