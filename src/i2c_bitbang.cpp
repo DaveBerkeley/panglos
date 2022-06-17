@@ -118,8 +118,13 @@ uint8_t BitBang_I2C::make_cmd(uint8_t addr, bool wr)
     return (addr << 1) + (wr ?  0 : 1);
 }
 
-BitBang_I2C::BitBang_I2C(panglos::GPIO *_scl, panglos::GPIO *_sda, void (*_wait)())
-:   sda(_sda),
+    /*
+     *
+     */
+
+BitBang_I2C::BitBang_I2C(Mutex *m, GPIO *_scl, GPIO *_sda, void (*_wait)())
+:   mutex(m),
+    sda(_sda),
     scl(_scl),
     wait_fn(_wait)
 {
@@ -129,6 +134,8 @@ BitBang_I2C::BitBang_I2C(panglos::GPIO *_scl, panglos::GPIO *_sda, void (*_wait)
 
 bool BitBang_I2C::probe(uint8_t addr, uint32_t timeout)
 {
+    Lock lock(mutex);
+
     const bool ok = io_write_read(make_cmd(addr, true), 0, 0, 0, 0);
     //PO_DEBUG("addr=%#x ack=%d", addr, ok);
     return ok;
@@ -136,12 +143,16 @@ bool BitBang_I2C::probe(uint8_t addr, uint32_t timeout)
 
 int BitBang_I2C::write(uint8_t addr, const uint8_t* wr, uint32_t len)
 {
+    Lock lock(mutex);
+
     const bool ok = io_write_read(make_cmd(addr, true), wr, len, 0, 0);
     return ok ? len : 0;
 }
 
 int BitBang_I2C::write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd)
 {
+    Lock lock(mutex);
+
     PO_ERROR("TODO");
     ASSERT(0);
     return 0;
@@ -149,6 +160,8 @@ int BitBang_I2C::write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, ui
 
 int BitBang_I2C::read(uint8_t addr, uint8_t* rd, uint32_t len)
 {
+    Lock lock(mutex);
+
     PO_ERROR("TODO");
     ASSERT(0);
     return 0;

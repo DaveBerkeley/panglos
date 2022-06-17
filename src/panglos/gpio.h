@@ -11,7 +11,7 @@ public:
  
     virtual void set(bool state) = 0;
     virtual bool get() = 0;
-    virtual void toggle() = 0;
+    virtual void toggle() { set(get()); }
 
     virtual void set_interrupt_handler(void (*fn)(void *arg), void *arg) = 0;
     virtual void on_interrupt() = 0;

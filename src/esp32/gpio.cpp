@@ -72,15 +72,13 @@ bool ESP_GPIO::get()
     return state;
 }
 
-void ESP_GPIO::toggle()
-{
-    set(!get());
-}
-
 void ESP_GPIO::set_interrupt_handler(void (*fn)(void *arg), void *arg)
 {
     PO_ERROR("TODO");
     ASSERT(0);
+    // esp_err_t gpio_install_isr_service(int intr_alloc_flags)
+    // esp_err_t gpio_isr_handler_add(gpio_num_t gpio_num, gpio_isr_t isr_handler, void *args)
+    // esp_err_t gpio_isr_handler_remove(gpio_num_t gpio_num)
 }
 
 void ESP_GPIO::on_interrupt()
