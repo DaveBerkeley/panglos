@@ -10,6 +10,7 @@ files = [
     'src/sprintf.cpp',
     'src/mcp23s17.cpp',
     'src/time.cpp',
+    'src/object.cpp',
 
     'unit-tests/stubs.cpp',
     'unit-tests/buffer_test.cpp',
@@ -27,6 +28,7 @@ files = [
     #'unit-tests/rfm12b_test.cpp',
     'unit-tests/select_test.cpp',
     'unit-tests/time.cpp',
+    'unit-tests/object.cpp',
 ]
 
 ccflags = [
