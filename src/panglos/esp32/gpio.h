@@ -10,6 +10,9 @@ class ESP_GPIO : public panglos::GPIO
     bool state;
     bool verbose;
     const char *name;
+
+    void (*irq_handler)(void *arg);
+    void *irq_arg;
 public:
 
     enum Mode {

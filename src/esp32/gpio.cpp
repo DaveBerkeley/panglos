@@ -22,7 +22,9 @@ ESP_GPIO::ESP_GPIO(int _pin, int mode, bool initial_state, bool verbose, const c
 :   pin(_pin),
     output((mode & OP) & !(mode & IP)),
     verbose(verbose),
-    name(_name ? _name : "")
+    name(_name ? _name : ""),
+    irq_handler(0),
+    irq_arg(0)
 {
     int xmode = GPIO_MODE_DISABLE;
     switch (mode & ~(PU | PD))
@@ -72,19 +74,46 @@ bool ESP_GPIO::get()
     return state;
 }
 
+static void gpio_irq_handler(void *arg)
+{
+    ASSERT(arg);
+    GPIO *gpio = (GPIO *) arg;
+    gpio->on_interrupt();
+}
+
+static bool has_irqs;
+
 void ESP_GPIO::set_interrupt_handler(void (*fn)(void *arg), void *arg)
 {
-    PO_ERROR("TODO");
-    ASSERT(0);
-    // esp_err_t gpio_install_isr_service(int intr_alloc_flags)
-    // esp_err_t gpio_isr_handler_add(gpio_num_t gpio_num, gpio_isr_t isr_handler, void *args)
-    // esp_err_t gpio_isr_handler_remove(gpio_num_t gpio_num)
+    esp_err_t err;
+
+    irq_handler = fn;
+    irq_arg = arg;
+
+    if (fn)
+    {
+        if (!has_irqs)
+        {
+            const int intr_alloc_flags = 0; // TODO : check this
+            err = gpio_install_isr_service(intr_alloc_flags);
+            esp_check(err, __LINE__);
+            has_irqs = true;
+        }
+
+        err = gpio_isr_handler_add((gpio_num_t) pin, gpio_irq_handler, this);
+        esp_check(err, __LINE__);
+    }
+    else
+    {
+        err = gpio_isr_handler_remove((gpio_num_t) pin);
+        esp_check(err, __LINE__);
+    }
 }
 
 void ESP_GPIO::on_interrupt()
 {
-    PO_ERROR("TODO");
-    ASSERT(0);
+    ASSERT(irq_handler);
+    irq_handler(irq_arg);
 }
 
 }   //  namepace panglos

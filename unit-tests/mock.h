@@ -59,15 +59,29 @@ public:
 class MockPin : public panglos::GPIO
 {
     int pin;
-public:
-    MockPin(int pin);
 
-    virtual void set(bool state);
-    virtual bool get();
-    virtual void toggle();
+public:
+    enum Irq
+    {
+        NONE,
+        SET,
+        CLR,
+        CHANGE,
+    };
+private:
+
+    enum Irq change;
+
+    void (*irq_fn)(void*);
+    void *irq_arg;
+public:
+    MockPin(int pin, enum Irq change=NONE);
+
+    virtual void set(bool state) override;
+    virtual bool get() override;
+    virtual void toggle() override;
     
-    virtual void set_interrupt_handler(void (*fn)(void*), void *arg);
-    virtual void on_interrupt();
+    virtual void set_interrupt_handler(void (*fn)(void*), void *arg) override;
 };
 
 class MockSpi : public panglos::SPI

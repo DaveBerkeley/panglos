@@ -107,15 +107,32 @@ void mock_teardown()
      *  GPIO
      */
 
-MockPin::MockPin(int p)
-: pin(p)
+MockPin::MockPin(int p, enum Irq _change)
+:   pin(p),
+    change(_change),
+    irq_fn(0),
+    irq_arg(0)
 {
     ASSERT((pin >= PIN_MIN) && (pin <= PIN_MAX));
 }
 
 void MockPin::set(bool state)
 {
+    const bool same = pins[pin] == state;
     pins[pin] = state;
+
+    if (!irq_fn)
+        return;
+    if (same)
+        return;
+    if (change == NONE)
+        return;
+    if ((change == CHANGE) 
+            || ((change == SET) && state)
+            || ((change == CLR) && !state))
+    {
+        irq_fn(irq_arg);
+    }
 }
 
 bool MockPin::get()
@@ -127,13 +144,6 @@ void MockPin::toggle()
 {
     set(!get());
 }
-
-void MockPin::on_interrupt()
-{
-}
-
-static void (*irq_fn)(void*);
-static void *irq_arg;
 
 void MockPin::set_interrupt_handler(void (*fn)(void*), void *arg)
 {
