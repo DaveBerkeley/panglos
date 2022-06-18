@@ -1,7 +1,7 @@
 
-#if !defined(__LIST_H__)
+#if !defined(__PANGLOS_LIST__)
 
-#define __LIST_H__
+#define __PANGLOS_LIST__
 
 #include <stdbool.h>
 
@@ -101,6 +101,6 @@ public:
 
 }   //  namespace
 
-#endif // __LIST_H__
+#endif // __PANGLOS_LIST__
 
 //  FIN

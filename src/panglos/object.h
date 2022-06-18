@@ -1,4 +1,7 @@
 
+#if !defined(__PANGLOS_OBJECT__)
+#define __PANGLOS_OBJECT__
+
 namespace panglos {
 
 class Objects
@@ -14,5 +17,7 @@ public:
 };
 
 }   //  namespace panglos
+
+#endif  //  __PANGLOS_OBJECT__
 
 //  FIN

@@ -70,9 +70,10 @@ extern const Code Severity_lut[];
                 __FILE__, __LINE__, __FUNCTION__, \
                 ## __VA_ARGS__ );
 
-#define PO_DEBUG(fmt, ...)  _PO_PRINT(S_DEBUG, fmt, ## __VA_ARGS__ )
-#define PO_ERROR(fmt, ...)  _PO_PRINT(S_ERROR, fmt, ## __VA_ARGS__ )
-#define PO_INFO(fmt, ...)   _PO_PRINT(S_INFO, fmt, ## __VA_ARGS__ )
+#define PO_DEBUG(fmt, ...)      _PO_PRINT(S_DEBUG, fmt, ## __VA_ARGS__ )
+#define PO_ERROR(fmt, ...)      _PO_PRINT(S_ERROR, fmt, ## __VA_ARGS__ )
+#define PO_INFO(fmt, ...)       _PO_PRINT(S_INFO, fmt, ## __VA_ARGS__ )
+#define PO_WARNING(fmt, ...)   _PO_PRINT(S_WARNING, fmt, ## __VA_ARGS__ )
 
 #define ASSERT(x)           if (!(x)) { PO_ERROR("assert failed"); Error_Handler(); }
 #define ASSERT_ERROR(x,fmt,...) \

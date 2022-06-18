@@ -1,4 +1,7 @@
 
+#if !defined(__PANGLOS_I2C__)
+#define __PANGLOS_I2C__
+
 namespace panglos {
 
 class I2C
@@ -20,5 +23,7 @@ public:
 };
 
 }   //  panglos
+
+#endif  //  __PANGLOS_I2C__
 
 //  FIN

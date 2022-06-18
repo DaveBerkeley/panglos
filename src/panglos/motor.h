@@ -1,6 +1,6 @@
 
-#if !defined(__MOTOR_H__)
-#define __MOTOR_H__
+#if !defined(__PANGLOS_MOTOR__)
+#define __PANGLOS_MOTOR__
 
     /*
      *
@@ -128,6 +128,6 @@ public:
 
 }   //  namespace panglos
 
-#endif // __MOTOR_H__
+#endif // __PANGLOS_MOTOR__
 
 // FIN

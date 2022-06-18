@@ -1,6 +1,6 @@
 
-#if !defined(__MSG_QUEUE_H__)
-#define __MSG_QUEUE_H__
+#if !defined(__PANGLOS_MSG_QUEUE__)
+#define __PANGLOS_MSG_QUEUE__
 
 #include <deque>
 
@@ -96,6 +96,6 @@ public:
 
 }   //  namespace panglos
 
-#endif // __MSG_QUEUE_H__
+#endif // __PANGLOS_MSG_QUEUE__
 
 //  FIN

@@ -1,6 +1,6 @@
 
-#if !defined(__UART_H__)
-#define __UART_H__
+#if !defined(__PANGLOS_UART__)
+#define __PANGLOS_UART__
 
 #include "buffer.h"
 #include "sprintf.h"
@@ -37,6 +37,6 @@ public:
 
 }   //  namespace panglos
 
-#endif // __UART_H__
+#endif // __PANGLOS_UART__
 
 //  FIN

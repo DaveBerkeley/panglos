@@ -1,4 +1,7 @@
 
+#if !defined(__PANGLOS_I2S__)
+#define __PANGLOS_I2S__
+
 namespace panglos {
 
 class I2S
@@ -16,5 +19,7 @@ public:
 };
 
 }   //  namespace panglos
+
+#define //  __PANGLOS_I2C_BITBANG__
 
 // FIN

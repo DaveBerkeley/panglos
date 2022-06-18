@@ -1,6 +1,6 @@
 
-#if !defined(__MCP23S17_H__)
-#define __MCP23S17_H__
+#if !defined(__PANGLOS_MCP23S17__)
+#define __PANGLOS_MCP23S17__
 
 #include "gpio.h"
 #include "mutex.h"
@@ -146,7 +146,7 @@ class I2C;
 class I2C_MCP23S17 :  public MCP23S17
 {
     I2C *dev;
-    uint8_t addr_cmd;
+    uint8_t addr;
 
     virtual void _on_interrupt() override;
     virtual void reg_write(Register reg, uint8_t data) override;
@@ -160,6 +160,6 @@ public:
 
 } // namespace panglos
 
-#endif // __MCP23S17_H__
+#endif // __PANGLOS_MCP23S17__
 
 //  FIN

@@ -1,6 +1,6 @@
 
-#if !defined(__MUTEX_H__)
-#define __MUTEX_H__
+#if !defined(__PANGLOS_MUTEX__)
+#define __PANGLOS_MUTEX__
 
 namespace panglos {
 
@@ -77,6 +77,6 @@ public:
 
 }   //  namespace
 
-#endif // __MUTEX_H__
+#endif // __PANGLOS_MUTEX__
 
 //  FIN

@@ -1,6 +1,6 @@
 
-#if !defined(__TIMER_H__)
-#define __TIMER_H__
+#if !defined(__PANGLOS_TIMER__)
+#define __PANGLOS_TIMER__
 
 #include <stdint.h>
 
@@ -79,6 +79,6 @@ void timer_init();
 
 }   //  namespace panglos
 
-#endif // __TIMER_H__
+#endif // __PANGLOS_TIMER__
 
 //  FIN

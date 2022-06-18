@@ -1,6 +1,6 @@
 
-#if !defined(__SELECT_H__)
-#define __SELECT_H__
+#if !defined(__PANGLOS_SELECT__)
+#define __PANGLOS_SELECT__
 
 #include "deque.h"
 #include "event.h"
@@ -38,6 +38,6 @@ public:
 
 }   //  namespace
 
-#endif // __SELECT_H__
+#endif // __PANGLOS_SELECT__
 
 //  FIN

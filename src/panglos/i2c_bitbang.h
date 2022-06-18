@@ -1,4 +1,7 @@
 
+#if !defined(__PANGLOS_I2C_BITBANG__)
+#define __PANGLOS_I2C_BITBANG__
+
     /*
      *  Bitbang I2C
      */
@@ -13,6 +16,7 @@ class BitBang_I2C : public I2C
     GPIO *sda;
     GPIO *scl;
     void (*wait_fn)();
+    bool verbose;
 
     void wait();
     void start();
@@ -26,7 +30,8 @@ class BitBang_I2C : public I2C
     uint8_t make_cmd(uint8_t addr, bool wr);
 
 public:
-    BitBang_I2C(Mutex *mutex, GPIO *_scl, GPIO *_sda, void (*_wait)());
+    BitBang_I2C(Mutex *mutex, GPIO *_scl, GPIO *_sda, void (*_wait)(), bool verbose=false);
+    ~BitBang_I2C();
 
     virtual bool probe(uint8_t addr, uint32_t timeout) override;
     virtual int write(uint8_t addr, const uint8_t* wr, uint32_t len) override;
@@ -35,5 +40,7 @@ public:
 };
 
 }   //  namespace panglos
+
+#endif  //  __PANGLOS_I2C_BITBANG__
 
 //  FIN

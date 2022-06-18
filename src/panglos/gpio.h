@@ -13,8 +13,8 @@ public:
     virtual bool get() = 0;
     virtual void toggle() { set(get()); }
 
-    virtual void set_interrupt_handler(void (*fn)(void *arg), void *arg) = 0;
-    virtual void on_interrupt() = 0;
+    virtual void set_interrupt_handler(void (*fn)(void *arg), void *arg) { IGNORE(fn); IGNORE(arg); }
+    virtual void on_interrupt() {}
 
     virtual bool flush() { return false; }
 };

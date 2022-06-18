@@ -1,6 +1,6 @@
 
-#if !defined(__SPI_H__)
-#define __SPI_H__
+#if !defined(__PANGLOS_SPI__)
+#define __PANGLOS_SPI__
 
 #include <stdint.h>
 
@@ -50,6 +50,6 @@ public:
 
 }   //  namespace panglos
 
-#endif // __SPI_H__
+#endif // __PANGLOS_SPI__
 
 //  FIN
