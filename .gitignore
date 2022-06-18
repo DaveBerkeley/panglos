@@ -8,3 +8,4 @@ latex
 secret.h
 tags
 .sconsign.dblite
+.gdbinit

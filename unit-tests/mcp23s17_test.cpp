@@ -3,6 +3,10 @@
 
 #include <panglos/debug.h>
 #include <panglos/mcp23s17.h>
+#include <panglos/keyboard.h>
+#include <panglos/i2c_bitbang.h>
+
+#include <panglos/vcd.h>
 
 #include "mock.h"
 
@@ -567,73 +571,245 @@ TEST(MCP23S17, GpioIrq)
      *
      */
 
-TEST(MCP23S17, I2C)
+class _I2C : public I2C
 {
-    MockI2C i2c;
-    i2c.regs[0] = 0xff; // port direction default 
-    i2c.regs[1] = 0xff;
-    I2C_MCP23S17 chip(& i2c, 0);
-}
+    virtual bool probe(uint8_t addr, uint32_t timeout) override
+    {
+        IGNORE(addr);
+        IGNORE(timeout);
+        ASSERT(0);
+        return false;
+    }
+    virtual int write(uint8_t addr, const uint8_t* wr, uint32_t len) override
+    {
+        IGNORE(addr);
+        IGNORE(wr);
+        IGNORE(len);
+        ASSERT(0);
+        return len;
+    }
+    virtual int write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd) override
+    {
+        IGNORE(addr);
+        IGNORE(wr);
+        IGNORE(len_wr);
+        IGNORE(rd);
+        IGNORE(len_rd);
+        ASSERT(0);
+        return len_rd;
+    }
+    virtual int read(uint8_t addr, uint8_t* rd, uint32_t len) override
+    {
+        IGNORE(addr);
+        IGNORE(rd);
+        IGNORE(len);
+        ASSERT(0);
+        return len;
+    }
+};
 
     /*
      *
      */
 
-class Keyboard
+class SlaveGpio : public panglos::GPIO
 {
-    MCP23S17 *dev;
-    uint8_t leds;
+    typedef void (*set_fn)(bool s, void *arg);
+    typedef bool (*get_fn)(void *arg);
+
+    set_fn setf;
+    get_fn getf;
+    void *arg;
+
 public:
-    Keyboard(MCP23S17 *_dev)
-    :   dev(_dev),
-        leds(0xff)
+    SlaveGpio() : setf(0), getf(0), arg(0) { }
+
+    virtual void set(bool s) override
     {
-        ASSERT(dev);
+        ASSERT(setf);
+        return setf(s, arg);
+    }
+    virtual bool get() override
+    {
+        ASSERT(getf);
+        return getf(arg);
     }
 
-    bool init()
+    void set_handlers(set_fn s, get_fn g, void *_arg)
     {
-        dev->write(MCP23S17::R_IODIRA, 0xff); // key input
-        dev->write(MCP23S17::R_GPPUA, 0xff); // pull-up
-        dev->write(MCP23S17::R_GPIOB, leds); // leds all off
-        dev->write(MCP23S17::R_IODIRB, 0x00); // led output
-        return true;
+        setf = s;
+        getf = g;
+        arg = _arg;
     }
+};
 
-    void set_led(int idx, bool state)
+    /*
+     *
+     */
+
+class I2CSlaveSim
+{
+private:
+
+    enum State {
+        IDLE,
+        START,
+        BIT,
+        ACK,
+        ACK_WAIT,
+        STOP,
+    };
+
+    State state;
+    bool sda_state;
+    bool scl_state;
+    int bit;
+    int data;
+    bool verbose;
+
+public:
+    SlaveGpio sda;
+    SlaveGpio scl;
+    VcdWriter *vcd;
+
+    I2CSlaveSim(VcdWriter *_vcd=0, bool _verbose=false)
+    :   state(IDLE),
+        sda_state(true),
+        scl_state(true),
+        bit(0),
+        data(0),
+        verbose(_verbose),
+        vcd(_vcd)
     {
-        ASSERT((idx >= 0) && (idx <= 8));
-        const uint8_t mask = (uint8_t) (1 << idx);
+        sda.set_handlers(set_sda, get_sda, this);
+        scl.set_handlers(set_scl, get_scl, this);
 
-        if (!state)
+        if (vcd)
         {
-            leds |= mask;
+            vcd->add("scl", true, 1);
+            vcd->add("sda", true, 1);
         }
-        else
+    }
+
+private:
+
+    void start()
+    {
+        if (verbose) PO_DEBUG("start");
+        state = START;
+        bit = 0;
+        data = 0;
+    }
+
+    void stop()
+    {
+        if (verbose) PO_DEBUG("stop");
+        state = STOP;
+    }
+
+    void on_sda(bool s)
+    {
+        if (s == sda_state) return;
+        if (verbose) PO_DEBUG("s=%d", s);
+        if (scl_state && sda_state && !s)
         {
-            leds &= (uint8_t) ~mask;
+            // TODO : validate this is a correct transition
+            start();
         }
-        dev->write(MCP23S17::R_GPIOB, (uint8_t) ~leds); 
+        if (scl_state && s && !sda_state)
+        {
+            // TODO : validate this is a correct transition
+            stop();
+        }
+        sda_state = s;
+        if (vcd) vcd->set("sda", get_sda());
     }
-
-    bool get_led(int idx)
+    void on_scl(bool s)
     {
-        ASSERT((idx >= 0) && (idx <= 8));
-        const uint8_t mask = (uint8_t) (1 << idx);
-
-        const uint8_t d = dev->read(MCP23S17::R_GPIOB);
-        return d & mask;        
+        if (vcd) vcd->set("scl", s);
+        if (s == scl_state) return;
+        if (verbose) PO_DEBUG("s=%d", s);
+        switch (state)
+        {
+            case IDLE : break;
+            case START :
+            {
+                if (!s)
+                {
+                    // First clock low
+                    //if (verbose) PO_DEBUG("bit");
+                    state = BIT;
+                }
+                break;
+            }
+            case BIT :
+            {
+                if (s)
+                {
+                    // Clock in data on rising edge
+                    data <<= 1;
+                    data += sda_state ? 1 : 0;
+                    if (verbose) PO_DEBUG("bit=%d rx=%d data=%#x", bit, sda_state, data);
+                    bit += 1;
+                }
+                if ((bit == 8) && !s)
+                {
+                    // last bit : ACK/NAK
+                    if (verbose) PO_DEBUG("rx=%#x", data);
+                    //if (verbose) PO_DEBUG("ack/nack");
+                    state = ACK;
+                }
+                break;
+            }
+            case ACK :
+            {
+                //if (verbose) PO_DEBUG("ack");
+                if (!s)
+                {
+                    //if (verbose) PO_DEBUG("ack wait");
+                    state = ACK_WAIT;
+                }
+                break;
+            }
+            case STOP :
+            {
+                if (verbose) PO_DEBUG("stop");
+                break;
+            }
+            case ACK_WAIT :
+            {
+                //if (verbose) PO_DEBUG("ack wait");
+                break;
+            }
+            default :
+            {
+                if (verbose) PO_ERROR("state=%d", state);
+                ASSERT(0);
+            }
+        }
+        scl_state = s;
+        if (vcd) vcd->set("sda", get_sda());
     }
-
-    uint8_t read_keys()
+    bool get_sda()
     {
-        const uint8_t d = dev->read(MCP23S17::R_GPIOA);
-        return d;
+        const bool s = (state == ACK) ? 0 : 1;
+        // open-drain bus, so the AND of the two signals
+        const bool r = sda_state && s;
+        //if (verbose) PO_DEBUG("get=%d", r);
+        return r;
+    }
+    bool get_scl()
+    {
+        return 1;
     }
 
-    void tick()
-    {
-    }
+    // Callbacks for GPIOs
+    static I2CSlaveSim* pthis(void *arg) { ASSERT(arg); return (I2CSlaveSim *) arg; }
+
+    static void set_sda(bool s, void *arg)  { pthis(arg)->on_sda(s); }
+    static void set_scl(bool s, void *arg)  { pthis(arg)->on_scl(s); }
+    static bool get_sda(void *arg)          { return pthis(arg)->get_sda(); }
+    static bool get_scl(void *arg)          { return pthis(arg)->get_scl(); }
 };
 
     /*
@@ -642,14 +818,22 @@ public:
 
 TEST(MCP23S17, Keyboard)
 {
-    MockI2C i2c;
-    i2c.regs[0] = 0xff; // port direction default 
-    i2c.regs[1] = 0xff;
-    I2C_MCP23S17 chip(& i2c, 0);
+    xxx();
+    //MockPin sda(1);
+    //MockPin scl(1);
+    VcdWriter vcd("/tmp/x.vcd");
+    I2CSlaveSim slave(& vcd, true);
+    //_I2C i2c;
+    BitBang_I2C i2c(0, & slave.scl, & slave.sda, 0, true);
+
+    vcd.write_header();
+
+    i2c.probe(0x20, 1);
+
+    I2C_MCP23S17 chip(& i2c, 0x20);
     Keyboard keyboard(& chip);
 
     keyboard.init();
-
 }
 
 //  FIN

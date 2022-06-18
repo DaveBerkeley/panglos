@@ -587,12 +587,12 @@ void SPI_MCP23S17::reg_write(Register reg, uint8_t data)
      *  I2C MCP23017 controller
      */
 
-I2C_MCP23S17::I2C_MCP23S17(I2C *i2c, uint8_t addr)
+I2C_MCP23S17::I2C_MCP23S17(I2C *i2c, uint8_t _addr)
 :   dev(i2c),
-    addr_cmd(0)
+    addr(_addr)
 {
     ASSERT(i2c);
-    addr_cmd = (uint8_t) (0x40 + (addr << 1));
+    PO_DEBUG("cmd=%#x", addr);
 }
 
 I2C_MCP23S17::~I2C_MCP23S17()
@@ -608,14 +608,14 @@ uint8_t I2C_MCP23S17::read(Register reg)
 {
     uint8_t wr = reg;
     uint8_t rd;
-    dev->write_read(addr_cmd, & wr, 1, & rd, 1);
+    dev->write_read(addr, & wr, 1, & rd, 1);
     return rd;
 }
 
 void I2C_MCP23S17::reg_write(Register reg, uint8_t data)
 {
     uint8_t cmd[] = { reg, data };
-    dev->write(addr_cmd, cmd, sizeof(cmd));
+    dev->write(addr, cmd, sizeof(cmd));
 }
 
 }   //  namespace panglos
