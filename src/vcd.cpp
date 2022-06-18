@@ -64,6 +64,17 @@ VcdWriter::~VcdWriter()
     {
         fclose(close_file);
     }
+
+    // Remove all the traces
+    while (true)
+    {
+        Trace *trace = traces.pop(0);
+        if (!trace)
+        {
+            break;
+        }
+        delete trace;
+    }
 }
 
 void VcdWriter::print(struct Trace *t, bool state, bool inc)
