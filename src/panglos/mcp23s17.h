@@ -80,17 +80,25 @@ public:
     {
         R_IODIRA    = 0x00, // IO Direction
         R_IODIRB    = 0x01,
+        R_IPOLA     = 0x02, // Input Polarity
+        R_IPOLB     = 0x03,
         R_GPINTENA  = 0x04, // Interrupt Enable
         R_GPINTENB  = 0x05,
         R_DEFVALA   = 0x06, // Interrupt compare value
         R_DEFVALB   = 0x07,
-        R_ICON      = 0x0a, // Config
+        R_INTCONA   = 0x08, // Interrupt Control
+        R_INTCONB   = 0x09,
+        R_IOCON     = 0x0a, // Config
         R_GPPUA     = 0x0c, // Pull-ups
         R_GPPUB     = 0x0d,
         R_INTFA     = 0x0e, // Interrupt flag
         R_INTFB     = 0x0f,
+        R_INTCAPA   = 0x10, // Interrupt Capture
+        R_INTCAPB   = 0x11,
         R_GPIOA     = 0x12, // IO
         R_GPIOB     = 0x13,
+        R_OLATA     = 0x14, // 
+        R_OLATB     = 0x15,
     };
  
     virtual uint8_t read(Register reg) = 0;

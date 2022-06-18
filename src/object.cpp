@@ -107,6 +107,8 @@ Objects *Objects::create()
     return new Objects_;
 }
 
+Objects *Objects::objects = 0;
+
 }   //  namespace panglos
 
 //  FIN

@@ -161,14 +161,8 @@ int BitBang_I2C::write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, ui
 {
     Lock lock(mutex);
 
-    PO_ERROR("TODO");
-    IGNORE(addr);
-    IGNORE(wr);
-    IGNORE(len_wr);
-    IGNORE(rd);
-    IGNORE(len_rd);
-    ASSERT(0);
-    return 0;
+    const bool ok = io_write_read(make_cmd(addr, true), wr, len_wr, rd, len_rd);
+    return ok ? len_rd : 0;
 }
 
 int BitBang_I2C::read(uint8_t addr, uint8_t* rd, uint32_t len)

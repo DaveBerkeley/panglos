@@ -816,24 +816,53 @@ private:
      *
      */
 
+static void on_key(void *arg)
+{
+    IGNORE(arg);
+    Keyboard *kb = (Keyboard*) arg;
+    const uint8_t keys = kb->read_keys();
+    PO_DEBUG("keys=%#x", keys);
+}
+
 TEST(MCP23S17, Keyboard)
 {
     xxx();
     //MockPin sda(1);
     //MockPin scl(1);
     VcdWriter vcd("/tmp/x.vcd");
-    I2CSlaveSim slave(& vcd, true);
+    I2CSlaveSim slave(& vcd, false);
     //_I2C i2c;
-    BitBang_I2C i2c(0, & slave.scl, & slave.sda, 0, true);
+    BitBang_I2C i2c(0, & slave.scl, & slave.sda, 0, false);
 
     vcd.write_header();
 
     i2c.probe(0x20, 1);
 
     I2C_MCP23S17 chip(& i2c, 0x20);
-    Keyboard keyboard(& chip);
+    MockPin irq(2, MockPin::CHANGE);
+    irq.set(1);
+
+    Keyboard keyboard(& chip, & irq);
+
+    keyboard.set_key_event(on_key, & keyboard);
 
     keyboard.init();
+
+    PO_DEBUG("irq=0");
+    irq.set(0);
+    PO_DEBUG("irq=1");
+    irq.set(1);
+
+#if 0
+    for (int i = 0; i < 8; i++)
+    {
+        keyboard.set_led(i, true);
+    }
+    for (int i = 0; i < 8; i++)
+    {
+        keyboard.set_led(i, false);
+    }
+#endif
 }
 
 //  FIN

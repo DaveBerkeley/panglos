@@ -14,6 +14,7 @@ public:
     virtual bool remove(const char *name) = 0;
 
     static Objects *create();
+    static Objects* objects; // global store for app
 };
 
 }   //  namespace panglos

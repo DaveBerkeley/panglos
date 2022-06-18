@@ -520,7 +520,7 @@ SPI_MCP23S17::SPI_MCP23S17(SPI *spi, GPIO *cs, uint8_t _addr)
         cmd0 = 0x48;
     }
 
-    uint8_t cmd[] = { cmd0, R_ICON, icon };
+    uint8_t cmd[] = { cmd0, R_IOCON, icon };
     spi->write(cmd, sizeof(cmd));
 
 }
