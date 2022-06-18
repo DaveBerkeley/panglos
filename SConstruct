@@ -11,6 +11,9 @@ files = [
     'src/mcp23s17.cpp',
     'src/time.cpp',
     'src/object.cpp',
+    'src/keyboard.cpp',
+    'src/i2c_bitbang.cpp',
+    'src/vcd.cpp',
 
     'unit-tests/stubs.cpp',
     'unit-tests/buffer_test.cpp',
