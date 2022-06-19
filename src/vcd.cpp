@@ -41,16 +41,17 @@ static int trace_match(struct VcdWriter::Trace *trace, void *arg)
      *
      */
 
-VcdWriter::VcdWriter(const char *path)
+VcdWriter::VcdWriter(const char *_path)
 :   file(0),
     close_file(0),
     id('!'),
     time(0),
     traces(trace_next)
 {
-    if (path)
+    if (_path)
     {
-        close_file = file = fopen(path, "w");
+        path = _path;
+        close_file = file = fopen(_path, "w");
     }
     else
     {
@@ -60,10 +61,7 @@ VcdWriter::VcdWriter(const char *path)
 
 VcdWriter::~VcdWriter()
 {
-    if (close_file)
-    {
-        fclose(close_file);
-    }
+    close();
 
     // Remove all the traces
     while (true)
@@ -75,6 +73,32 @@ VcdWriter::~VcdWriter()
         }
         delete trace;
     }
+}
+
+void VcdWriter::close()
+{
+    if (close_file)
+    {
+        fclose(close_file);
+        close_file = 0;
+    }
+}
+
+bool VcdWriter::sigrok_write(const char *sr_path)
+{
+    ASSERT(sr_path);
+    close();
+
+    char cmd[64];
+    snprintf(cmd, sizeof(cmd), "sigrok-cli -I vcd -i %s -o %s", path.c_str(), sr_path);
+    PO_DEBUG("calling '%s'", cmd);
+    const int err = system(cmd);
+    if (err < 0)
+    {
+        PO_ERROR("sigrok error %d '%s'", errno, strerror(errno));
+        return false;
+    }
+    return true;
 }
 
 void VcdWriter::print(struct Trace *t, bool state, bool inc)
@@ -104,6 +128,7 @@ void VcdWriter::write_header()
         fprintf(file, "$var wire %d %c %s $end\n", t->width, t->id, t->name);            
     }
     fprintf(file, "$upscope $end\n");
+    fprintf(file, "$enddefinitions $end\n");
 
     // print initial state
     fprintf(file, "#0\n");
