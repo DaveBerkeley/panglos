@@ -13,7 +13,7 @@ public:
     virtual void *get(const char *name) = 0;
     virtual bool remove(const char *name) = 0;
 
-    static Objects *create();
+    static Objects *create(bool verbose=false);
     static Objects* objects; // global store for app
 };
 

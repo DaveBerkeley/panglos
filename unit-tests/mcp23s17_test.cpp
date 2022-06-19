@@ -571,47 +571,6 @@ TEST(MCP23S17, GpioIrq)
      *
      */
 
-class _I2C : public I2C
-{
-    virtual bool probe(uint8_t addr, uint32_t timeout) override
-    {
-        IGNORE(addr);
-        IGNORE(timeout);
-        ASSERT(0);
-        return false;
-    }
-    virtual int write(uint8_t addr, const uint8_t* wr, uint32_t len) override
-    {
-        IGNORE(addr);
-        IGNORE(wr);
-        IGNORE(len);
-        ASSERT(0);
-        return len;
-    }
-    virtual int write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd) override
-    {
-        IGNORE(addr);
-        IGNORE(wr);
-        IGNORE(len_wr);
-        IGNORE(rd);
-        IGNORE(len_rd);
-        ASSERT(0);
-        return len_rd;
-    }
-    virtual int read(uint8_t addr, uint8_t* rd, uint32_t len) override
-    {
-        IGNORE(addr);
-        IGNORE(rd);
-        IGNORE(len);
-        ASSERT(0);
-        return len;
-    }
-};
-
-    /*
-     *
-     */
-
 class SlaveGpio : public panglos::GPIO
 {
     typedef void (*set_fn)(bool s, void *arg);
@@ -634,7 +593,6 @@ public:
         ASSERT(getf);
         return getf(arg);
     }
-
     void set_handlers(set_fn s, get_fn g, void *_arg)
     {
         setf = s;
@@ -656,16 +614,31 @@ private:
         START,
         BIT,
         ACK,
-        ACK_WAIT,
         STOP,
     };
+
+    static const LUT state_lut[];
 
     State state;
     bool sda_state;
     bool scl_state;
     int bit;
+    bool first;
     int data;
     bool verbose;
+
+    void set_state(State s)
+    {
+        if (state == s) return;
+        state = s;
+        if (verbose) PO_DEBUG("%s", lut(state_lut, state));
+        if (vcd) 
+        {
+            vcd->set("s0", state & 0x01);
+            vcd->set("s1", state & 0x02);
+            vcd->set("s2", state & 0x04);
+        }
+    }
 
 public:
     SlaveGpio sda;
@@ -677,6 +650,7 @@ public:
         sda_state(true),
         scl_state(true),
         bit(0),
+        first(false),
         data(0),
         verbose(_verbose),
         vcd(_vcd)
@@ -688,23 +662,30 @@ public:
         {
             vcd->add("scl", true, 1);
             vcd->add("sda", true, 1);
+            vcd->add("s0", false, 1);
+            vcd->add("s1", false, 1);
+            vcd->add("s2", false, 1);
         }
     }
 
 private:
 
-    void start()
+    void new_byte()
     {
-        if (verbose) PO_DEBUG("start");
-        state = START;
         bit = 0;
         data = 0;
     }
 
+    void start()
+    {
+        set_state(START);
+        first = true;
+        new_byte();
+    }
+
     void stop()
     {
-        if (verbose) PO_DEBUG("stop");
-        state = STOP;
+        set_state(STOP);
     }
 
     void on_sda(bool s)
@@ -737,8 +718,7 @@ private:
                 if (!s)
                 {
                     // First clock low
-                    //if (verbose) PO_DEBUG("bit");
-                    state = BIT;
+                    set_state(BIT);
                 }
                 break;
             }
@@ -756,29 +736,22 @@ private:
                 {
                     // last bit : ACK/NAK
                     if (verbose) PO_DEBUG("rx=%#x", data);
-                    //if (verbose) PO_DEBUG("ack/nack");
-                    state = ACK;
+                    set_state(ACK);
                 }
                 break;
             }
             case ACK :
             {
-                //if (verbose) PO_DEBUG("ack");
                 if (!s)
                 {
-                    //if (verbose) PO_DEBUG("ack wait");
-                    state = ACK_WAIT;
+                    set_state(BIT);
+                    new_byte();
                 }
                 break;
             }
             case STOP :
             {
                 if (verbose) PO_DEBUG("stop");
-                break;
-            }
-            case ACK_WAIT :
-            {
-                //if (verbose) PO_DEBUG("ack wait");
                 break;
             }
             default :
@@ -795,7 +768,7 @@ private:
         const bool s = (state == ACK) ? 0 : 1;
         // open-drain bus, so the AND of the two signals
         const bool r = sda_state && s;
-        //if (verbose) PO_DEBUG("get=%d", r);
+        if (verbose) PO_DEBUG("get=%d", r);
         return r;
     }
     bool get_scl()
@@ -812,6 +785,16 @@ private:
     static bool get_scl(void *arg)          { return pthis(arg)->get_scl(); }
 };
 
+const LUT I2CSlaveSim::state_lut[] = {
+    {   "IDLE", IDLE, },
+    {   "START", START, },
+    {   "BIT", BIT, },
+    {   "ACK", ACK, },
+    {   "STOP", STOP, },
+    {   0, 0, },
+};
+
+
     /*
      *
      */
@@ -826,12 +809,9 @@ static void on_key(void *arg)
 
 TEST(MCP23S17, Keyboard)
 {
-    xxx();
-    //MockPin sda(1);
-    //MockPin scl(1);
     VcdWriter vcd("/tmp/x.vcd");
+
     I2CSlaveSim slave(& vcd, false);
-    //_I2C i2c;
     BitBang_I2C i2c(0, & slave.scl, & slave.sda, 0, false);
 
     vcd.write_header();
@@ -853,16 +833,7 @@ TEST(MCP23S17, Keyboard)
     PO_DEBUG("irq=1");
     irq.set(1);
 
-#if 0
-    for (int i = 0; i < 8; i++)
-    {
-        keyboard.set_led(i, true);
-    }
-    for (int i = 0; i < 8; i++)
-    {
-        keyboard.set_led(i, false);
-    }
-#endif
+    vcd.sigrok_write("/tmp/x.sr");
 }
 
 //  FIN

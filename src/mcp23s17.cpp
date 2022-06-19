@@ -608,8 +608,9 @@ uint8_t I2C_MCP23S17::read(Register reg)
 {
     uint8_t wr = reg;
     uint8_t rd;
-    dev->write_read(addr, & wr, 1, & rd, 1);
-    return rd;
+    int n = dev->write_read(addr, & wr, 1, & rd, 1);
+    // TODO : log as an error?
+    return (n == 1) ? rd : 0;
 }
 
 void I2C_MCP23S17::reg_write(Register reg, uint8_t data)

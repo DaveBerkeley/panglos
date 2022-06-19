@@ -7,7 +7,7 @@
 
 extern "C" {
 
-const Code Severity_lut[] = {
+const LUT Severity_lut[] = {
     { "NONE", S_NONE, },
     { "CRITICAL", S_CRITICAL, },
     { "ERROR", S_ERROR, },

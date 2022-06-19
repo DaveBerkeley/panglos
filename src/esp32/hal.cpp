@@ -7,7 +7,7 @@
      *
      */
 
-const Code Severity_lut[] = {
+const LUT Severity_lut[] = {
     // Logging Severity
     {   "NONE", S_NONE, },
     {   "CRITICAL", S_CRITICAL, },
@@ -27,14 +27,14 @@ namespace panglos {
 
 void esp_check(esp_err_t err, int line)
 {
-    ASSERT_ERROR(err == ESP_OK, "err=%s line=%d", err_lookup(err_lut, err), line);
+    ASSERT_ERROR(err == ESP_OK, "err=%s line=%d", lut(err_lut, err), line);
 }
 
     /*
      *
      */
 
-const Code err_lut[] = {
+const LUT err_lut[] = {
     // ESP Error Codes
     {   "ESP_OK", ESP_OK, },
     {   "ESP_FAIL", ESP_FAIL, },

@@ -29,11 +29,11 @@ typedef enum {
 typedef struct {
     const char *text;
     int code;
-}   Code;
+}   LUT;
 
-inline const char *err_lookup(const Code *codes, int err)
+inline const char *lut(const LUT *codes, int err)
 {
-    for (const Code *code = codes; code->text; code++)
+    for (const LUT *code = codes; code->text; code++)
     {
         if (code->code == err)
         {
@@ -53,7 +53,7 @@ uint32_t get_time(void);
 const char *get_task(void);
 void po_log(const char *fmt, ...) __attribute__((format(printf,1,2)));
 
-extern const Code Severity_lut[];
+extern const LUT Severity_lut[];
 
 #if defined(__cplusplus)
 }
@@ -66,7 +66,7 @@ extern const Code Severity_lut[];
 #define _PO_PRINT(level, fmt, ...) \
         po_log("%d %s %s %s +%d %s() : " fmt "\r\n", \
                 get_time(), get_task(), \
-                err_lookup(Severity_lut, level), \
+                lut(Severity_lut, level), \
                 __FILE__, __LINE__, __FUNCTION__, \
                 ## __VA_ARGS__ );
 

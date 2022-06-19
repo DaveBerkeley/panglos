@@ -41,12 +41,15 @@ static int match_name(struct Object *item, void *arg)
 class Objects_ : public Objects 
 {
     Mutex *mutex;
+    bool verbose;
 
     List<struct Object*> objects;
 
 public:
-    Objects_()
-    :   objects(next_fn)
+    Objects_(bool _verbose)
+    :   mutex(0),
+        verbose(_verbose),
+        objects(next_fn)
     {
         mutex = Mutex::create();
     }
@@ -69,6 +72,7 @@ public:
 
     virtual void add(const char *name, void *obj) override
     {
+        if (verbose) PO_DEBUG("name=%s obj=%p", name, obj);
         struct Object *item = new struct Object;
         item->next = 0;
         item->name = name;
@@ -85,6 +89,7 @@ public:
 
     virtual bool remove(const char *name) override
     {
+        if (verbose) PO_DEBUG("name=%s", name);
         Lock lock(mutex);
 
         struct Object *item = objects.find(match_name, (void*) name, 0);
@@ -102,9 +107,9 @@ public:
      *  Factory Method
      */
 
-Objects *Objects::create()
+Objects *Objects::create(bool verbose)
 {
-    return new Objects_;
+    return new Objects_(verbose);
 }
 
 Objects *Objects::objects = 0;

@@ -73,6 +73,7 @@ uint8_t BitBang_I2C::io(uint8_t wr, bool *_ack)
         if (d) rd |= 1;
     }
     bool a = ack();
+    if (verbose) PO_DEBUG("%s", a ? "ACK" : "NAK");
     if (_ack) *_ack = a;
     return rd;
 }
