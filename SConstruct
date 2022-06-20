@@ -32,6 +32,7 @@ files = [
     'unit-tests/select_test.cpp',
     'unit-tests/time.cpp',
     'unit-tests/object.cpp',
+    'unit-tests/i2c.cpp',
 ]
 
 ccflags = [
