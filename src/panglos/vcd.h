@@ -24,7 +24,7 @@ private:
     panglos::List<Trace*> traces;
 
     Trace *find(const char *name);
-    void print(Trace *t, bool state, bool inc);
+    void print(Trace *t, bool state);
 
 public:
 
@@ -35,6 +35,7 @@ public:
     void add(const char *name, bool state, int width);
     void write_header();
     void set(const char *name, bool state);
+    void tick();
 
     // spawn sigrok-cli to convert vcd into sr
     bool sigrok_write(const char *sr_path);

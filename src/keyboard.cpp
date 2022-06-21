@@ -125,8 +125,7 @@ bool Keyboard::get_led(int idx)
 
 uint8_t Keyboard::read_keys()
 {
-    const uint8_t d = dev->read(MCP23S17::R_GPIOA);
-    return d;
+    return dev->read(MCP23S17::R_GPIOA);
 }
 
 }   //  namespace panglos

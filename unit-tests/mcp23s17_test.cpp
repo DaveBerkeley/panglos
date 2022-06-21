@@ -8,6 +8,7 @@
 
 #include <panglos/vcd.h>
 
+#include "i2c_utils.h"
 #include "mock.h"
 
 using namespace panglos;
@@ -571,40 +572,6 @@ TEST(MCP23S17, GpioIrq)
      *
      */
 
-class SlaveGpio : public panglos::GPIO
-{
-    typedef void (*set_fn)(bool s, void *arg);
-    typedef bool (*get_fn)(void *arg);
-
-    set_fn setf;
-    get_fn getf;
-    void *arg;
-
-public:
-    SlaveGpio() : setf(0), getf(0), arg(0) { }
-
-    virtual void set(bool s) override
-    {
-        ASSERT(setf);
-        return setf(s, arg);
-    }
-    virtual bool get() override
-    {
-        ASSERT(getf);
-        return getf(arg);
-    }
-    void set_handlers(set_fn s, get_fn g, void *_arg)
-    {
-        setf = s;
-        getf = g;
-        arg = _arg;
-    }
-};
-
-    /*
-     *
-     */
-
 class I2CSlaveSim
 {
 private:
@@ -641,8 +608,8 @@ private:
     }
 
 public:
-    SlaveGpio sda;
-    SlaveGpio scl;
+    SimGpio sda;
+    SimGpio scl;
     VcdWriter *vcd;
 
     I2CSlaveSim(VcdWriter *_vcd=0, bool _verbose=false)
@@ -719,6 +686,7 @@ private:
                 {
                     // First clock low
                     set_state(BIT);
+                    new_byte();
                 }
                 break;
             }
@@ -799,7 +767,7 @@ const LUT I2CSlaveSim::state_lut[] = {
      *
      */
 
-static void on_key(void *arg)
+void on_key(void *arg)
 {
     IGNORE(arg);
     Keyboard *kb = (Keyboard*) arg;
@@ -811,13 +779,14 @@ TEST(MCP23S17, Keyboard)
 {
     VcdWriter vcd("/tmp/x.vcd");
 
-    I2CSlaveSim slave(& vcd, false);
-    BitBang_I2C i2c(0, & slave.scl, & slave.sda, 0, false);
+    I2CSlaveSim slave(& vcd, true);
+    BitBang_I2C i2c(0, & slave.scl, & slave.sda, 0, 0, true);
 
     vcd.write_header();
 
     i2c.probe(0x20, 1);
 
+#if 1
     I2C_MCP23S17 chip(& i2c, 0x20);
     MockPin irq(2, MockPin::CHANGE);
     irq.set(1);
@@ -832,7 +801,7 @@ TEST(MCP23S17, Keyboard)
     irq.set(0);
     PO_DEBUG("irq=1");
     irq.set(1);
-
+#endif
     vcd.sigrok_write("/tmp/x.sr");
 }
 

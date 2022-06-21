@@ -77,10 +77,17 @@ VcdWriter::~VcdWriter()
 
 void VcdWriter::close()
 {
+    // terminate the trace
+    if (file)
+    {
+        fprintf(file, "#%d\n", time+100);
+    }
+
     if (close_file)
     {
         fclose(close_file);
         close_file = 0;
+        file = 0;
     }
 }
 
@@ -101,11 +108,15 @@ bool VcdWriter::sigrok_write(const char *sr_path)
     return true;
 }
 
-void VcdWriter::print(struct Trace *t, bool state, bool inc)
+void VcdWriter::print(struct Trace *t, bool state)
 {
     fprintf(file, "#%d\n", time);
     fprintf(file, "%d%c\n", state, t->id);
-    if (inc) time += 1000;
+}
+
+void VcdWriter::tick()
+{
+    time += 1000;
 }
 
 VcdWriter::Trace *VcdWriter::find(const char *name)
@@ -135,7 +146,7 @@ void VcdWriter::write_header()
     fprintf(file, "$dumpvars\n");
     for (struct Trace *t = traces.head; t; t = t->next)
     {
-        print(t, t->state, false);
+        print(t, t->state);
     }    
     fprintf(file, "$end\n");
 }
@@ -156,7 +167,7 @@ void VcdWriter::set(const char *name, bool state)
     struct Trace *t = find(name);
     ASSERT(t);
 
-    print(t, state, true);
+    print(t, state);
 }
 
 }   //  namespace panglos
