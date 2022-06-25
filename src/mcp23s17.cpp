@@ -608,9 +608,19 @@ void I2C_MCP23S17::_on_interrupt()
 bool I2C_MCP23S17::read(Register reg, uint8_t *data)
 {
     ASSERT(data);
+
+    Lock lock(dev->mutex);
+
     uint8_t wr = reg;
-    int n = dev->write_read(addr, & wr, 1, data, 1);
-    return n == 1;
+    int n = dev->write(addr, & wr, 1);
+    if (n != 1)
+    {
+        PO_ERROR("bad write to addr=%#x", addr);
+        return false;
+    }
+
+    const bool ok = dev->read(addr, data, 1);
+    return ok;
 }
 
 void I2C_MCP23S17::reg_write(Register reg, uint8_t data)

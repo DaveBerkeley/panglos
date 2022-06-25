@@ -45,11 +45,6 @@ public:
 };
 
 
-Mutex *Mutex::create()
-{
-    return new ArmMutex();
-}
-
     /*
      *
      */
@@ -80,9 +75,16 @@ public:
     }
 };
 
-Mutex *Mutex::create_critical_section()
+Mutex *Mutex::create(enum Mutex::Type type)
 {
-    return new ArmCriticalSection();
+    switch (type)
+    {
+        case TASK_LOCK          : return new ArmMutex;
+        case CRITICAL_SECTION   : return new ArmCriticalSection;
+        case RECURSIVE :
+        default : ASSERT(0);
+    }
+    return 0;
 }
 
     /*

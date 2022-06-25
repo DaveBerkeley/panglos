@@ -76,6 +76,7 @@ public:
     };
 
     /// Hardware map of device's registers
+    //  Note :- this requires the IOCON register to be set to BANK=0
     enum Register
     {
         R_IODIRA    = 0x00, // IO Direction

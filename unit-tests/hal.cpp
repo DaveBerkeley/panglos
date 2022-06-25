@@ -40,13 +40,9 @@ private:
     }
 };
 
-Mutex* Mutex::create()
+Mutex* Mutex::create(Mutex::Type type)
 {
-    return new LinuxMutex();
-}
-
-Mutex* Mutex::create_critical_section()
-{
+    IGNORE(type);
     return new LinuxMutex();
 }
 

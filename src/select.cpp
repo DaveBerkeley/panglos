@@ -18,7 +18,7 @@ Select::Select(int _size)
 : mutex(0), semaphore(0), queue(Semaphore::next_fn), captured(0), size(_size) // semaphores(next_fn)
 {
     // Semaphores may be posted in an interrupt, so use critical section
-    mutex = Mutex::create_critical_section();
+    mutex = Mutex::create(Mutex::CRITICAL_SECTION);
     semaphore = Semaphore::create();
 
     captured = (Semaphore**) malloc(sizeof(Semaphore*) * size);

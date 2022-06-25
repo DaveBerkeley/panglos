@@ -12,8 +12,15 @@ public:
     virtual void lock() = 0;
     virtual void unlock() = 0;
 
-    static Mutex *create();
-    static Mutex *create_critical_section();
+    typedef enum {
+        TASK_LOCK,
+        CRITICAL_SECTION,
+        RECURSIVE,
+    }   Type;
+
+    Type get_type();
+
+    static Mutex *create(Type type=TASK_LOCK);
 };
 
     /*
