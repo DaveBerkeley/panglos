@@ -1,16 +1,15 @@
 
-#if defined(USE_FREE_RTOS)
+extern "C" {
+    #include <freertos/FreeRTOS.h>
+    #include <freertos/task.h>
+    #include <freertos/semphr.h>
+}
 
-#include <FreeRTOS.h>
-#include <task.h>
-#include <semphr.h>
+#include "panglos/debug.h"
 
-#include <list>
+#include "panglos/arch.h"
 
-#include "../panglos/debug.h"
-#include "../panglos/mutex.h"
-#include "../panglos/msg_queue.h"
-#include "../panglos/stm32/hal.h"
+#include "panglos/mutex.h"
 
 using namespace panglos;
 
@@ -18,13 +17,13 @@ using namespace panglos;
      * Use FreeRTOS scheduler suspend / resume to implement panglos::Mutex
      */
 
-class ArmMutex : public Mutex
+class FreeRtosMutex : public Mutex
 {
 private:
 
     virtual void lock()
     {
-        if (!IS_IN_IRQ())
+        if (!arch_in_irq())
         {
             vTaskSuspendAll();
         }
@@ -32,14 +31,14 @@ private:
 
     virtual void unlock()
     {
-        if (!IS_IN_IRQ())
+        if (!arch_in_irq())
         {
             xTaskResumeAll();
         }
     }
 
 public:
-    ArmMutex()
+    FreeRtosMutex()
     {
     }
 };
@@ -49,13 +48,14 @@ public:
      *
      */
 
-class ArmCriticalSection : public Mutex
+#if 0
+class FreeRtosCriticalSection : public Mutex
 {
 private:
 
     virtual void lock()
     {
-        if (!IS_IN_IRQ())
+        if (!arch_in_irq())
         {
             taskENTER_CRITICAL();
         }
@@ -63,24 +63,25 @@ private:
 
     virtual void unlock()
     {
-        if (!IS_IN_IRQ())
+        if (!arch_in_irq())
         {
             taskEXIT_CRITICAL();
         }
     }
 
 public:
-    ArmCriticalSection()
+    FreeRtosCriticalSection()
     {
     }
 };
+#endif
 
-Mutex *Mutex::create(enum Mutex::Type type)
+Mutex *Mutex::create(Mutex::Type type)
 {
     switch (type)
     {
-        case TASK_LOCK          : return new ArmMutex;
-        case CRITICAL_SECTION   : return new ArmCriticalSection;
+        case TASK_LOCK          : return new FreeRtosMutex;
+        //case CRITICAL_SECTION   : return new FreeRtosCriticalSection;
         case RECURSIVE :
         default : ASSERT(0);
     }
@@ -91,7 +92,7 @@ Mutex *Mutex::create(enum Mutex::Type type)
      *  Use FreeRTOS Semaphore to implement panglos::Semaphore
      */
 
-class ArmSemaphore : public Semaphore
+class FreeRtosSemaphore : public Semaphore
 {
     PostHook *hook;
     SemaphoreHandle_t handle;
@@ -105,11 +106,11 @@ public:
             return;
         }
 
-        if (IS_IN_IRQ())
+        if (arch_in_irq())
         {
             BaseType_t woken = pdFALSE;
             xSemaphoreGiveFromISR(handle, & woken);
-            portYIELD_FROM_ISR(woken);
+            portYIELD_FROM_ISR();
         }
         else
         {
@@ -120,7 +121,7 @@ public:
     virtual void wait()
     {
         // block until post()
-        ASSERT(!IS_IN_IRQ());
+        ASSERT(!arch_in_irq());
         xSemaphoreTake(handle, portMAX_DELAY);
     }
 
@@ -132,13 +133,13 @@ public:
 public:
     // use Semaphore::create() to make one
 
-    ArmSemaphore()
+    FreeRtosSemaphore()
     : hook(0)
     {
         handle = xSemaphoreCreateCounting(100, 0);
     }
 
-    ~ArmSemaphore()
+    ~FreeRtosSemaphore()
     {
         vSemaphoreDelete(handle);
     }
@@ -146,9 +147,7 @@ public:
 
 Semaphore * Semaphore::create()
 {
-    return new ArmSemaphore();
+    return new FreeRtosSemaphore();
 }
-
-#endif  //  USE_FREE_RTOS
 
 //  FIN

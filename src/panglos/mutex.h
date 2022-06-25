@@ -13,9 +13,9 @@ public:
     virtual void unlock() = 0;
 
     typedef enum {
-        TASK_LOCK,
-        CRITICAL_SECTION,
-        RECURSIVE,
+        TASK_LOCK,          // suspends the scheduler
+        CRITICAL_SECTION,   // disable/enable interrupts
+        RECURSIVE,          // can be called again from the same task
     }   Type;
 
     Type get_type();
