@@ -6,35 +6,27 @@ extern "C" {
 }
 
 #include "panglos/debug.h"
-
 #include "panglos/arch.h"
-
 #include "panglos/mutex.h"
-
-using namespace panglos;
 
     /*
      * Use FreeRTOS scheduler suspend / resume to implement panglos::Mutex
      */
 
-class FreeRtosMutex : public Mutex
+class FreeRtosMutex : public panglos::Mutex
 {
 private:
 
-    virtual void lock()
+    virtual void lock() override
     {
-        if (!arch_in_irq())
-        {
-            vTaskSuspendAll();
-        }
+        ASSERT(!arch_in_irq());
+        vTaskSuspendAll();
     }
 
-    virtual void unlock()
+    virtual void unlock() override
     {
-        if (!arch_in_irq())
-        {
-            xTaskResumeAll();
-        }
+        ASSERT(!arch_in_irq());
+        xTaskResumeAll();
     }
 
 public:
@@ -43,30 +35,56 @@ public:
     }
 };
 
-
     /*
      *
      */
 
-#if 0
-class FreeRtosCriticalSection : public Mutex
+class FreeRtosRecursive : public panglos::Mutex
 {
+    SemaphoreHandle_t handle;
 private:
 
-    virtual void lock()
+    virtual void lock() override
     {
-        if (!arch_in_irq())
-        {
-            taskENTER_CRITICAL();
-        }
+        ASSERT(!arch_in_irq());
+        xSemaphoreTakeRecursive(handle, portMAX_DELAY); 
     }
 
-    virtual void unlock()
+    virtual void unlock() override
     {
-        if (!arch_in_irq())
-        {
-            taskEXIT_CRITICAL();
-        }
+        ASSERT(!arch_in_irq());
+        xSemaphoreGiveRecursive(handle);
+    }
+
+public:
+    FreeRtosRecursive()
+    {
+        handle = xSemaphoreCreateRecursiveMutex();
+    }
+
+    ~FreeRtosRecursive()
+    {
+        vSemaphoreDelete(handle);
+    }
+};
+
+    /*
+     *  Note :- this currently only works with the esp32 freertos port
+     */
+
+class FreeRtosCriticalSection : public panglos::Mutex
+{
+    int irq_status;
+private:
+
+    virtual void lock() override
+    {
+        irq_status = portENTER_CRITICAL_NESTED();
+    }
+
+    virtual void unlock() override
+    {
+        portEXIT_CRITICAL_NESTED(irq_status);
     }
 
 public:
@@ -74,31 +92,18 @@ public:
     {
     }
 };
-#endif
-
-Mutex *Mutex::create(Mutex::Type type)
-{
-    switch (type)
-    {
-        case TASK_LOCK          : return new FreeRtosMutex;
-        //case CRITICAL_SECTION   : return new FreeRtosCriticalSection;
-        case RECURSIVE :
-        default : ASSERT(0);
-    }
-    return 0;
-}
 
     /*
      *  Use FreeRTOS Semaphore to implement panglos::Semaphore
      */
 
-class FreeRtosSemaphore : public Semaphore
+class FreeRtosSemaphore : public panglos::Semaphore
 {
-    PostHook *hook;
+    panglos::PostHook *hook;
     SemaphoreHandle_t handle;
 
 public:
-    virtual void post()
+    virtual void post() override
     {
         if (hook)
         {
@@ -118,14 +123,14 @@ public:
         }
     }
 
-    virtual void wait()
+    virtual void wait() override
     {
         // block until post()
         ASSERT(!arch_in_irq());
         xSemaphoreTake(handle, portMAX_DELAY);
     }
 
-    virtual void set_hook(PostHook *_hook)
+    virtual void set_hook(panglos::PostHook *_hook) override
     {
         hook = _hook;
     }
@@ -145,9 +150,29 @@ public:
     }
 };
 
+    /*
+     *  Factory Functions
+     */
+
+namespace panglos {
+
+Mutex *Mutex::create(Mutex::Type type)
+{
+    switch (type)
+    {
+        case TASK_LOCK        : return new FreeRtosMutex;
+        case CRITICAL_SECTION : return new FreeRtosCriticalSection;
+        case RECURSIVE        : return new FreeRtosRecursive;
+        default : ASSERT(0);
+    }
+    return 0;
+}
+
 Semaphore * Semaphore::create()
 {
-    return new FreeRtosSemaphore();
+    return new FreeRtosSemaphore;
+}
+
 }
 
 //  FIN
