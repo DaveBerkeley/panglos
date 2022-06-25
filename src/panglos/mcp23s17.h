@@ -101,7 +101,7 @@ public:
         R_OLATB     = 0x15,
     };
  
-    virtual uint8_t read(Register reg) = 0;
+    virtual bool read(Register reg, uint8_t *rd) = 0;
     virtual void reg_write(Register reg, uint8_t data) = 0;
     void write(Register reg, uint8_t data);
 
@@ -142,7 +142,7 @@ public:
     SPI_MCP23S17(SPI *spi, GPIO *cs, uint8_t _addr);
     virtual ~SPI_MCP23S17();
 
-    virtual uint8_t read(Register reg) override;
+    virtual bool read(Register reg, uint8_t *rd) override;
 };
 
     /*
@@ -163,7 +163,7 @@ public:
     I2C_MCP23S17(I2C *i2c, uint8_t _addr);
     virtual ~I2C_MCP23S17();
 
-    virtual uint8_t read(Register reg) override;
+    virtual bool read(Register reg, uint8_t *rd) override;
 };
 
 } // namespace panglos

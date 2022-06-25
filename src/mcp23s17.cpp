@@ -397,7 +397,8 @@ void ExpandedGpio::set_mask(MCP23S17::Register reg, bool flush)
         return;
     }
 
-    uint8_t data = chip->read(reg);
+    uint8_t data = 0;
+    chip->read(reg, & data);
     chip->write(reg, data | mask);
 }
 
@@ -416,7 +417,8 @@ void ExpandedGpio::clr_mask(MCP23S17::Register reg, bool flush)
         return;
     }
 
-    uint8_t data = chip->read(reg);
+    uint8_t data = 0;
+    chip->read(reg, & data);
     chip->write(reg, (uint8_t) (data & ~mask));
 }
 
@@ -434,7 +436,7 @@ void ExpandedGpio::set(bool state)
 
 bool ExpandedGpio::get()
 {
-    uint8_t data;
+    uint8_t data = 0;
 
     if (output)
     {
@@ -442,7 +444,7 @@ bool ExpandedGpio::get()
     }
     else
     {
-        data = chip->read(gpio_reg);
+        chip->read(gpio_reg, & data);
     }
 
     return data & mask;
@@ -534,11 +536,10 @@ SPI_MCP23S17::~SPI_MCP23S17()
      * @brief hardware (SPI) read of register
      */
 
-uint8_t SPI_MCP23S17::read(Register reg)
+bool SPI_MCP23S17::read(Register reg, uint8_t *data)
 {
-    uint8_t data;
-    dev->read(reg, & data);
-    return data;
+    const bool ok = dev->read(reg, data);
+    return ok;
 }
 
     /**
@@ -604,13 +605,12 @@ void I2C_MCP23S17::_on_interrupt()
     ASSERT(0);
 }
 
-uint8_t I2C_MCP23S17::read(Register reg)
+bool I2C_MCP23S17::read(Register reg, uint8_t *data)
 {
+    ASSERT(data);
     uint8_t wr = reg;
-    uint8_t rd;
-    int n = dev->write_read(addr, & wr, 1, & rd, 1);
-    // TODO : log as an error?
-    return (n == 1) ? rd : 0;
+    int n = dev->write_read(addr, & wr, 1, data, 1);
+    return n == 1;
 }
 
 void I2C_MCP23S17::reg_write(Register reg, uint8_t data)

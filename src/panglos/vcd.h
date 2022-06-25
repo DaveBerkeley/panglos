@@ -16,6 +16,7 @@ class VcdWriter
     char id;
     int time;
     std::string path;
+    std::string sr_path;
 
 public:
     class Trace;
@@ -28,7 +29,7 @@ private:
 
 public:
 
-    VcdWriter(const char *path);
+    VcdWriter(const char *path, const char *sr_path=0);
     ~VcdWriter();
     void close();
 

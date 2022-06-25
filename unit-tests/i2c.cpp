@@ -24,6 +24,7 @@ class I2CSim
 public:
     SimGpio sda;
     SimGpio scl;
+    SimGpio test;
     
     enum State {
         NONE,
@@ -51,22 +52,38 @@ public:
 
     bool scl_state;
     bool sda_state;
+    bool sda_response;
     int bit;
+    bool stopped;
 
+    VcdWriter *vcd;
     bool verbose;
 
-    I2CSim(bool _verbose=false)
+    I2CSim(VcdWriter *_vcd=0, bool _verbose=false)
     :   sequence(next_seq),
         scl_state(true),
         sda_state(true),
+        sda_response(true),
         bit(0),
+        stopped(true),
+        vcd(_vcd),
         verbose(_verbose)
     {
         sda.set_handlers(set_sda, get_sda, this);
         scl.set_handlers(set_scl, get_scl, this);
+        if (vcd)
+        {
+            vcd->add("sda", true, 1);
+            vcd->add("scl", true, 1);
+            vcd->add("test", true, 1);
+        }
     }
 
-    ~I2CSim() { }
+    ~I2CSim()
+    {
+        // Should have removed all the states
+        EXPECT_FALSE(sequence.head);
+    }
 
     void set_initial(bool _sda, bool _scl)
     {
@@ -92,23 +109,52 @@ public:
 
     void start()
     {
-        if (verbose) PO_DEBUG("START");
-        pop(START);
+        if (verbose) PO_DEBUG("");
+        pop(stopped ? START : RESTART);
+        if (verbose) PO_DEBUG("%s", stopped ? "START" : "RESTART");
+        // TODO : compare to new item->state? 
         bit = -1;
+        stopped = false;
+        sda_response = true;
+        log_sda();
+        test_pulse();
     }
 
-    void next_in_seq()
+    void next_in_seq(enum State s)
     {
         // next byte xfer?
-        if (verbose) PO_DEBUG("STOP");
-        pop(RX);
+        if (verbose) PO_DEBUG("pop %s", lut(state_lut, s));
+        pop(s);
         bit = 0;
+        if (verbose) PO_DEBUG("bit:=%d", bit);
+        struct Seq *item = sequence.head;
+        if (verbose) PO_DEBUG("state=%s", lut(state_lut, item ? item->state : NONE));
     }
 
     void stop()
     {
-        if (verbose) PO_DEBUG("");
+        if (verbose) PO_DEBUG("STOP");
         pop(STOP);
+        stopped = true;
+        sda_response = true;
+        log_sda();
+    }
+
+    void log_sda()
+    {
+        if (!vcd) return;
+        const bool s = sda_state & sda_response;
+        if (!s)
+        {
+            vcd->set("sda", false);
+            return;
+        }
+        if (sda_state == 0)
+        {
+            vcd->set("sda", false);
+            return;
+        }
+        vcd->set("sda", true);
     }
 
     /*
@@ -130,57 +176,94 @@ public:
         }
 
         sda_state = s;
+        log_sda();
     }
+
+    void test_pulse()
+    {
+        if (!vcd)   return;
+        if (verbose) PO_DEBUG("");
+        vcd->set("test", false); 
+        wait(); 
+        vcd->set("test", true);
+        wait(); 
+    }
+
     void set_scl(bool s)
     {
         if (s == scl_state) return;
         if (verbose) PO_DEBUG("s=%d", s);
+        if (vcd) vcd->set("scl", s);
+
+        struct Seq *item = sequence.head;
 
         if (s)
         {
-            // rising edge of clock, read data
+            // rising edge of clock
         }
         else
         {
             // falling edge of clock
-            bit += 1;
+            if (!item)
+            {
+                sda_response = true;
+            }
+            else
+            {
+                if (verbose) PO_DEBUG("state=%s bit=%d data=%#x sda_state=%d, sda_response=%d", 
+                        lut(state_lut, item->state), 
+                        bit, item->data, sda_state, sda_response);
+
+                // peripheral only holds sda low during ACK
+                // or when sending data
+                sda_response = true;
+
+                if (bit == 7)
+                {
+                    // ACK period
+                    EXPECT_TRUE((item->state == RX) || (item->state == TX));
+                    PO_DEBUG("set %s", item->ack ? "ACK" : "NAK");
+                    sda_response = !item->ack;
+
+                    get_sda(); // for VCD
+                }
+
+                if (item && (item->state == TX))
+                {
+                    // need to send data to controller
+                    PO_DEBUG("!!!!!!! bit=%d  !!!!", bit);
+                }
+
+            }
+            log_sda();
+
+            if ((!item) || (item->state != STOP))
+            {
+                bit += 1;
+            }
             if (verbose) PO_DEBUG("bit=%d", bit);
+            if (bit == 9)
+            {
+                if (item)
+                {
+                    next_in_seq(item->state);
+                }
+            }
         }
 
         scl_state = s;
     }
+
     bool get_sda()
     {
+        const bool b = sda_state & sda_response;
+
         struct Seq *item = sequence.head;
-        ASSERT(item);
-        ASSERT((bit >= 0));
-        const uint8_t mask = (uint8_t) (1 << (7 - bit));
+        if (verbose) PO_DEBUG("state=%s bit=%d d=%d data=%#x sda_state=%d sda_response=%d", 
+                        lut(state_lut, item ? item->state : NONE), 
+                        bit, b, item ? item->data : -1, sda_state, sda_response);
 
-        const bool d = item->data & mask;
-
-        if (verbose) PO_DEBUG("state=%s bit=%d mask=%#x d=%d", lut(state_lut, item->state), bit, mask, d);
-
-        switch (item->state)
-        {
-            case RX :
-            {
-                if (mask)
-                {
-                    EXPECT_EQ(d, sda_state); // data bits
-                    return sda_state;
-                }
-                else
-                {
-                    EXPECT_TRUE(sda_state); // ack - Controller should set hi
-                    const bool ack = !item->ack;
-                    next_in_seq();
-                    return ack; // ACK
-                }
-            }
-            default : ASSERT(0);
-        }
-
-        return false;
+        return b;
     }
     bool get_scl()
     {
@@ -190,6 +273,7 @@ public:
     void wait()
     {
         if (verbose) PO_DEBUG("");
+        if (vcd) vcd->tick();
     }
 
         /*
@@ -239,293 +323,18 @@ const LUT I2CSim::state_lut[] = {
     { 0, 0 },
 };
 
-#if 0
-
-static bool verbose = true;
-
-TEST(I2C, BitHi)
-{
-    VcdWriter vcd("/tmp/i2c.vcd");
-
-    I2CSim sim(& vcd, verbose);
-    BitBang_I2C i2c(0, & sim.scl, & sim.sda, wait, & sim, verbose);
-
-    vcd.write_header();    
-
-    // Set initial state
-    sim.scl.set(true);
-    sim.sda.set(true);
-    sim.reset();
-
-    sim.add_data(0xff, false);
-
-    i2c.start();
-    uint8_t rd = i2c.bit_io(1);
-
-    EXPECT_EQ(rd, true);
-
-    I2CSim::State s[] = { 
-        I2CSim::START, 
-        I2CSim::BIT,
-        I2CSim::NONE };
-    sim.verify(s);
-
-    vcd.sigrok_write("/tmp/i2c.sr");    
-}
-
-TEST(I2C, BitLo)
-{
-    VcdWriter vcd("/tmp/i2c.vcd");
-
-    I2CSim sim(& vcd, verbose);
-    BitBang_I2C i2c(0, & sim.scl, & sim.sda, wait, & sim, verbose);
-
-    vcd.write_header();    
-
-    // Set initial state
-    sim.scl.set(true);
-    sim.sda.set(true);
-    sim.reset();
-
-    sim.add_data(0xff, false);
-
-    i2c.start();
-    uint8_t rd = i2c.bit_io(0);
-
-    EXPECT_EQ(rd, false);
-
-    I2CSim::State s[] = { 
-        I2CSim::START, 
-        I2CSim::BIT,
-        I2CSim::NONE };
-    sim.verify(s);
-
-    vcd.sigrok_write("/tmp/i2c.sr");    
-}
-
-TEST(I2C, BitAck)
-{
-    VcdWriter vcd("/tmp/i2c.vcd");
-
-    I2CSim sim(& vcd, verbose);
-    BitBang_I2C i2c(0, & sim.scl, & sim.sda, wait, & sim, verbose);
-
-    vcd.write_header();    
-
-    // Set initial state
-    sim.scl.set(true);
-    sim.sda.set(true);
-    sim.reset();
-
-    sim.add_data(0x00, false);
-
-    i2c.start();
-    uint8_t rd = i2c.bit_io(1);
-
-    EXPECT_EQ(rd, false);
-
-    I2CSim::State s[] = { 
-        I2CSim::START, 
-        I2CSim::BIT,
-        I2CSim::NONE };
-    sim.verify(s);
-
-    vcd.sigrok_write("/tmp/i2c.sr");    
-}
-
-TEST(I2C, BitNak)
-{
-    VcdWriter vcd("/tmp/i2c.vcd");
-
-    I2CSim sim(& vcd, verbose);
-    BitBang_I2C i2c(0, & sim.scl, & sim.sda, wait, & sim, verbose);
-
-    vcd.write_header();    
-
-    // Set initial state
-    sim.scl.set(true);
-    sim.sda.set(true);
-    sim.reset();
-
-    sim.add_data(0xff, true);
-
-    i2c.start();
-    uint8_t rd = i2c.bit_io(1);
-
-    EXPECT_EQ(rd, true);
-
-    I2CSim::State s[] = { 
-        I2CSim::START, 
-        I2CSim::BIT,
-        I2CSim::NONE };
-    sim.verify(s);
-
-    vcd.sigrok_write("/tmp/i2c.sr");    
-}
-
-TEST(I2C, ByteWrite)
-{
-    VcdWriter vcd("/tmp/i2c.vcd");
-
-    I2CSim sim(& vcd, verbose);
-    BitBang_I2C i2c(0, & sim.scl, & sim.sda, wait, & sim, verbose);
-
-    vcd.write_header();    
-
-    // Set initial state
-    sim.scl.set(true);
-    sim.sda.set(true);
-    sim.reset();
-
-    sim.add_data(0xff, false);
-    sim.add_data(0xff, true); // xx
-
-    bool ack = false;
-
-    i2c.start();
-    uint8_t rd = i2c.io(0x40, & ack);
-    i2c.stop();
-
-    EXPECT_TRUE(ack);
-    EXPECT_EQ(rd, 0x40);
-
-    PO_DEBUG("rd=%#x ack=%d", rd, ack);
-
-    I2CSim::State s[] = { 
-        I2CSim::START, 
-        I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, 
-        I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, 
-        I2CSim::ACK,
-        I2CSim::STOP, 
-        I2CSim::NONE };
-    sim.verify(s);
-
-    vcd.sigrok_write("/tmp/i2c.sr");    
-}
-
-TEST(I2C, ByteRead)
-{
-    VcdWriter vcd("/tmp/i2c.vcd");
-
-    I2CSim sim(& vcd, verbose);
-    BitBang_I2C i2c(0, & sim.scl, & sim.sda, wait, & sim, verbose);
-
-    vcd.write_header();    
-
-    // Set initial state
-    sim.scl.set(true);
-    sim.sda.set(true);
-    sim.reset();
-
-    sim.add_data(0xff, false);
-    sim.add_data(0xff, true); // xx
-
-    bool ack = false;
-
-    i2c.start();
-    uint8_t rd = i2c.io(0x41, & ack);
-    i2c.stop();
-
-    EXPECT_TRUE(ack);
-    EXPECT_EQ(rd, 0x41);
-
-    PO_DEBUG("rd=%#x ack=%d", rd, ack);
-
-    I2CSim::State s[] = { 
-        I2CSim::START, 
-        I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, 
-        I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, 
-        I2CSim::ACK,
-        I2CSim::STOP, 
-        I2CSim::NONE 
-    };
-    sim.verify(s);
-
-    vcd.sigrok_write("/tmp/i2c.sr");    
-}
-
-TEST(I2C, ByteNak)
-{
-    I2CSim sim;
-    BitBang_I2C i2c(0, & sim.scl, & sim.sda, wait, & sim, verbose);
-
-    // Set initial state
-    sim.scl.set(true);
-    sim.sda.set(true);
-    sim.reset();
-
-    sim.add_data(0xff, true);
-    sim.add_data(0xff, true); // xx
-
-    bool ack = false;
-
-    i2c.start();
-    uint8_t rd = i2c.io(0xaa, & ack);
-    i2c.stop();
-
-    EXPECT_FALSE(ack);
-
-    PO_DEBUG("rd=%#x ack=%d", rd, ack);
-
-    I2CSim::State s[] = { 
-        I2CSim::START, 
-        I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, 
-        I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, 
-        I2CSim::ACK,
-        I2CSim::STOP, 
-        I2CSim::NONE };
-    sim.verify(s);
-}
-
-TEST(I2C, WriteRead)
-{
-    VcdWriter vcd("/tmp/i2c.vcd");
-
-    I2CSim sim(& vcd, verbose);
-    BitBang_I2C i2c(0, & sim.scl, & sim.sda, wait, & sim, verbose);
-
-    vcd.write_header();    
-
-    // Set initial state
-    sim.scl.set(true);
-    sim.sda.set(true);
-    sim.reset();
-
-    sim.add_data(0xff, false); // op wr
-    sim.add_data(0xff, false); // reg
-    sim.add_data(0xff, false); // restart, op rd
-    sim.add_data(0xaa, false); // rd value
-    sim.add_data(0xff, false); // xx
-
-    uint8_t wr = 0x12;
-    uint8_t rd;
-
-    int n = i2c.write_read(0x40, & wr, 1, & rd, 1);
-
-    vcd.sigrok_write("/tmp/i2c.sr");    
-    
-    EXPECT_EQ(n, 1);
-
-    I2CSim::State s[] = { 
-        I2CSim::START, 
-        I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, 
-        I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, I2CSim::BIT, 
-        I2CSim::ACK,
-        I2CSim::STOP, 
-        I2CSim::NONE
-    };
-    sim.verify(s);
-}
-
-#endif
-
-
 bool verbose = true;
+
+#define VCD_PATH "/tmp/i2c.vcd"
+#define SR_PATH  "/tmp/i2c.sr"
 
 TEST(I2C, Start)
 {
-    I2CSim sim;
+    VcdWriter vcd(VCD_PATH, SR_PATH);
+    I2CSim sim(& vcd, true);
     BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
+
+    vcd.write_header();
 
     sim.add(I2CSim::START);
 
@@ -535,8 +344,11 @@ TEST(I2C, Start)
 
 TEST(I2C, Stop)
 {
-    I2CSim sim;
+    VcdWriter vcd(VCD_PATH, SR_PATH);
+    I2CSim sim(& vcd, true);
     BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
+
+    vcd.write_header();
 
     sim.set_initial(false, false);
     sim.add(I2CSim::STOP);
@@ -547,19 +359,112 @@ TEST(I2C, Stop)
 
 TEST(I2C, Probe)
 {
-    I2CSim sim;
+    VcdWriter vcd(VCD_PATH, SR_PATH);
+    I2CSim sim(& vcd, true);
     BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
 
+    vcd.write_header();
+
+    //  ACK
     sim.add(I2CSim::START);
     sim.add(I2CSim::RX, 0x41, true);
-    //sim.add(I2CSim::RX, 0x12, true);
-    //sim.add(I2CSim::RESTART);
-    //sim.add(I2CSim::RX, 0x41, true);
-    //sim.add(I2CSim::TX, 0xa5, true);
     sim.add(I2CSim::STOP);
 
-    i2c.probe(0x20, 1);
+    bool ok = i2c.probe(0x20, 1);
+    EXPECT_TRUE(ok);
+    EXPECT_TRUE(sim.sequence.empty());
+
+    // NAK
+    sim.add(I2CSim::START);
+    sim.add(I2CSim::RX, 0x41, false);
+    sim.add(I2CSim::STOP);
+
+    ok = i2c.probe(0x20, 1);
+    EXPECT_FALSE(ok);
     EXPECT_TRUE(sim.sequence.empty());
 }
+
+TEST(I2C, ByteWrite)
+{
+    VcdWriter vcd(VCD_PATH, SR_PATH);
+    I2CSim sim(& vcd, true);
+    BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
+
+    vcd.write_header();
+
+    // ACK
+    sim.add(I2CSim::START);
+    sim.add(I2CSim::RX, 0x40, true);
+    sim.add(I2CSim::STOP);
+
+    bool ack = false;
+
+    i2c.start();
+    uint8_t rd = i2c.io(0x40, & ack);
+    i2c.stop();
+
+    EXPECT_EQ(ack, true);
+    EXPECT_EQ(rd, 0x40);
+
+    // NAK
+    sim.add(I2CSim::START);
+    sim.add(I2CSim::RX, 0x66, false);
+    sim.add(I2CSim::STOP);
+
+    i2c.start();
+    rd = i2c.io(0x66, & ack);
+    i2c.stop();
+
+    EXPECT_EQ(ack, false);
+    EXPECT_EQ(rd, 0x66);
+}
+
+TEST(I2C, BytesWrite)
+{
+    VcdWriter vcd(VCD_PATH, SR_PATH);
+    I2CSim sim(& vcd, true);
+    BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
+
+    vcd.write_header();
+
+    // ACK
+    sim.add(I2CSim::START);
+    sim.add(I2CSim::RX, 0x40, true);
+    sim.add(I2CSim::RX, 0xaa, true);
+    sim.add(I2CSim::RX, 0x00, true);
+    sim.add(I2CSim::RX, 0xff, true);
+    sim.add(I2CSim::RX, 0x55, true);
+    sim.add(I2CSim::STOP);
+
+    const uint8_t wr[] = { 0xaa, 0x00, 0xff, 0x55 };
+    int n = i2c.write(0x20, wr, sizeof(wr));
+    EXPECT_EQ(n, 4);
+}
+
+#if 1
+TEST(I2C, WriteRead)
+{
+    VcdWriter vcd(VCD_PATH, SR_PATH);
+    I2CSim sim(& vcd, true);
+    BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
+
+    vcd.write_header();
+
+    // ACK
+    sim.add(I2CSim::START);
+    sim.add(I2CSim::RX, 0x40, true); // select device write
+    sim.add(I2CSim::RX, 0x12, true); // select device write
+    sim.add(I2CSim::RESTART);
+    sim.add(I2CSim::RX, 0x41, true); // 
+    sim.add(I2CSim::TX, 0xab, true);
+    sim.add(I2CSim::STOP);
+
+    const uint8_t wr[] = { 0x12, };
+    uint8_t rd[] = { 0 };
+    int n = i2c.write_read(0x20, wr, sizeof(wr), rd, sizeof(rd));
+    EXPECT_EQ(n, sizeof(rd));
+    EXPECT_EQ(rd[0],  0xab);
+}
+#endif
 
 //  FIN

@@ -178,6 +178,7 @@ bool pins_match(int num, int start, const int *p)
      */
 
 MockI2C::MockI2C()
+: I2C(0)
 {
     memset(regs, 0, sizeof(regs));
 }

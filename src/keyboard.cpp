@@ -81,7 +81,7 @@ bool Keyboard::init(int nkeys)
     dev->write(MCP23S17::R_GPIOB, leds); // leds all off
     dev->write(MCP23S17::R_IODIRB, 0x00); // led outputs
 
-    dev->write(MCP23S17::R_IOCON, 0x00); // bank=0, mirror=0, odr=0, intpol=0
+    dev->write(MCP23S17::R_IOCON, 0x00); // bank=0, mirror=0, odr=0, intpol=0, seqop=0
 
     if (irq)
     {
@@ -119,13 +119,18 @@ bool Keyboard::get_led(int idx)
     ASSERT((idx >= 0) && (idx <= 8));
     const uint8_t mask = (uint8_t) (1 << idx);
 
-    const uint8_t d = dev->read(MCP23S17::R_GPIOB);
-    return d & mask;        
+    uint8_t d = 0;
+    const bool ok = dev->read(MCP23S17::R_GPIOB, & d);
+    if (!ok) PO_ERROR("");
+    return d & mask;
 }
 
 uint8_t Keyboard::read_keys()
 {
-    return dev->read(MCP23S17::R_GPIOA);
+    uint8_t d = 0;
+    const bool ok = dev->read(MCP23S17::R_GPIOA, & d);
+    if (!ok) PO_ERROR("");
+    return ok ? d : 0;
 }
 
 }   //  namespace panglos

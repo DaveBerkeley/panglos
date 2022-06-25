@@ -41,11 +41,12 @@ static int trace_match(struct VcdWriter::Trace *trace, void *arg)
      *
      */
 
-VcdWriter::VcdWriter(const char *_path)
+VcdWriter::VcdWriter(const char *_path, const char *_sr_path)
 :   file(0),
     close_file(0),
     id('!'),
     time(0),
+    sr_path(_sr_path ? _sr_path : ""),
     traces(trace_next)
 {
     if (_path)
@@ -62,6 +63,11 @@ VcdWriter::VcdWriter(const char *_path)
 VcdWriter::~VcdWriter()
 {
     close();
+
+    if (!sr_path.empty())
+    {
+        sigrok_write(sr_path.c_str());
+    }
 
     // Remove all the traces
     while (true)

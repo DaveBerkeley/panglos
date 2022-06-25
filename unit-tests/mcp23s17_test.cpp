@@ -33,7 +33,8 @@ TEST(MCP23S17, ReadWrite)
 
     uint8_t data;
     spi.set_read(0x55);
-    data = chip.read(MCP23S17::R_GPIOA);
+    const bool ok = chip.read(MCP23S17::R_GPIOA, & data);
+    EXPECT_TRUE(ok);
     EXPECT_EQ(0x41, spi.buff[0]);
     EXPECT_EQ(0x12, spi.buff[1]);
     EXPECT_EQ(0x55, data);
