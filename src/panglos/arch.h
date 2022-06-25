@@ -8,8 +8,12 @@
      *  but could be used on different processor architectures.
      */
 
-#if defined(ARCH_RISC32)
+#if defined(ARCH_RISCV32)
 #include "panglos/riscv32/arch.h"
+#endif
+
+#if defined(ARCH_ESPRESSIF)
+#include "panglos/espressif/arch.h"
 #endif
 
 //  FIN

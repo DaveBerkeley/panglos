@@ -58,7 +58,7 @@ ESP_GPIO::ESP_GPIO(int _pin, int mode, bool initial_state, bool verbose, const c
 ESP_GPIO::~ESP_GPIO()
 {
     PO_ERROR("TODO");
-    ASSERT(0);
+    //ASSERT(0);
 }
 
 void ESP_GPIO::set(bool _state)

@@ -5,6 +5,8 @@
 
 //#include "panglos/arch.h"
 
+#if defined(ARCH_RISCV32)
+
 extern "C" {
 
 void arch_in_irq()
@@ -15,5 +17,7 @@ void arch_in_irq()
 }
 
 }
+
+#endif  //  ARCH_RISCV32
 
 //  FIN
