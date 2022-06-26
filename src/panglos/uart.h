@@ -2,8 +2,7 @@
 #if !defined(__PANGLOS_UART__)
 #define __PANGLOS_UART__
 
-#include "buffer.h"
-#include "sprintf.h"
+#include "panglos/io.h"
 
 namespace panglos {
 
@@ -11,28 +10,9 @@ namespace panglos {
      *
      */
 
-class UART : public Output
+class UART : public IO
 {
-public:
-    enum Id {
-        UART_1 = 0,
-        UART_2 = 1,
-        UART_3 = 2,
-        UART_4 = 3,
-    };
-
-    virtual ~UART() { }
-
-    // implement Output interface
-    virtual int _putc(char c) = 0;
-    virtual int _puts(const char *s, int n) = 0;
-    virtual int send(const char* data, int n) = 0;
-
-    virtual uint32_t get_error() { return 0; }
-
-    typedef RingBuffer<uint8_t> Buffer;
-
-    static UART *create(Id id, int baud, Buffer *b, int irq_level=5);
+    // Do we even need a UART class?
 };
 
 }   //  namespace panglos

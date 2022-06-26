@@ -7,13 +7,16 @@ files = [
     'src/motor.cpp',
     'src/select.cpp',
     'src/spi.cpp',
-    'src/sprintf.cpp',
     'src/mcp23s17.cpp',
     'src/time.cpp',
     'src/object.cpp',
     'src/keyboard.cpp',
     'src/i2c_bitbang.cpp',
     'src/vcd.cpp',
+    'src/io.cpp',
+
+    # https://github.com/eyalroz/printf
+    'lib/printf/src/printf/printf.c',
 
     'unit-tests/stubs.cpp',
     'unit-tests/buffer_test.cpp',
@@ -27,7 +30,7 @@ files = [
     'unit-tests/mock.cpp',
     'unit-tests/motor_test.cpp',
     'unit-tests/msg_queue_test.cpp',
-    'unit-tests/printf_test.cpp',
+    #'unit-tests/printf_test.cpp',
     #'unit-tests/rfm12b_test.cpp',
     'unit-tests/select_test.cpp',
     'unit-tests/time.cpp',
@@ -52,6 +55,7 @@ ccflags = [
 
 cpppath = [
     'src',
+    'lib/printf/src',
 ]
 
 cflags = [
