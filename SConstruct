@@ -28,7 +28,6 @@ files = [
     'unit-tests/mock.cpp',
     'unit-tests/motor_test.cpp',
     'unit-tests/msg_queue_test.cpp',
-    #'unit-tests/printf_test.cpp',
     #'unit-tests/rfm12b_test.cpp',
     'unit-tests/select_test.cpp',
     'unit-tests/time.cpp',
