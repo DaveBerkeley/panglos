@@ -1,6 +1,5 @@
 
 files = [
-    'src/cli.cpp',
     'src/dispatch.cpp',
     'src/event.cpp',
     'src/list.cpp',
@@ -20,7 +19,6 @@ files = [
 
     'unit-tests/stubs.cpp',
     'unit-tests/buffer_test.cpp',
-    'unit-tests/cli_test.cpp',
     'unit-tests/deque_test.cpp',
     'unit-tests/dispatch_test.cpp',
     'unit-tests/event_test.cpp',

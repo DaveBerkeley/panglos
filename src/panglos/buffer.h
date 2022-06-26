@@ -8,7 +8,7 @@
 #include "mutex.h"
 #include "event.h"
 #include "deque.h"
-#include "sprintf.h"
+#include "io.h"
 
 namespace panglos {
 
@@ -409,7 +409,7 @@ public:
      *
      */
 
-class BufferOutput : public Output
+class BufferOutput : public Out
 {
     Buffers *buffers;
     int force_size;
