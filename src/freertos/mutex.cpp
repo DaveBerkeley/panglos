@@ -74,17 +74,17 @@ public:
 
 class FreeRtosCriticalSection : public panglos::Mutex
 {
-    int irq_status;
+    uint32_t old;
 private:
 
     virtual void lock() override
     {
-        irq_status = portENTER_CRITICAL_NESTED();
+        old = arch_disable_irq();
     }
 
     virtual void unlock() override
     {
-        portEXIT_CRITICAL_NESTED(irq_status);
+        arch_restore_irq(old);
     }
 
 public:
