@@ -32,6 +32,8 @@ public:
 
     virtual void set_interrupt_handler(void (*fn)(void *arg), void *arg) override;
     virtual void on_interrupt() override;
+
+    static void mark_used(int pin);
 };
 
 }   //  namespace panglos
