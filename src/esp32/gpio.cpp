@@ -20,9 +20,16 @@ namespace panglos {
 
 static uint32_t used;
 
+static uint32_t pin_mask(int pin)
+{
+    ASSERT(pin != 0xffffffff);
+
+    return 1L << pin;
+}
+
 void ESP_GPIO::mark_used(int pin)
 {
-    uint32_t mask = 1L << pin;
+    const uint32_t mask = pin_mask(pin);
     if (mask & used)
     {
         PO_ERROR("pin=%d", pin);
@@ -30,6 +37,16 @@ void ESP_GPIO::mark_used(int pin)
     }
     used |= mask;
 }
+
+void ESP_GPIO::mark_unused(int pin)
+{
+    const uint32_t mask = pin_mask(pin);
+    used &= ~mask;
+}
+
+    /*
+     *
+     */
 
 ESP_GPIO::ESP_GPIO(int _pin, int mode, bool initial_state, bool verbose, const char *_name)
 :   pin(_pin),
@@ -67,6 +84,7 @@ ESP_GPIO::ESP_GPIO(int _pin, int mode, bool initial_state, bool verbose, const c
 ESP_GPIO::~ESP_GPIO()
 {
     PO_ERROR("TODO");
+    mark_unused(pin);
     //ASSERT(0);
 }
 

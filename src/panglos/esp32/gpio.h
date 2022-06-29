@@ -34,6 +34,7 @@ public:
     virtual void on_interrupt() override;
 
     static void mark_used(int pin);
+    static void mark_unused(int pin);
 };
 
 }   //  namespace panglos
