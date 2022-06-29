@@ -46,7 +46,7 @@ public:
     void run()
     {
         ASSERT(fn);
-        PO_DEBUG("fn=%p arg=%#x", fn, arg);
+        PO_DEBUG("fn=%p arg=%p", fn, arg);
         fn(arg);
         dead->post();
     }
