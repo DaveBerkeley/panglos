@@ -11,14 +11,17 @@
 
 namespace panglos {
 
-Keyboard::Keyboard(MCP23S17 *_dev, GPIO *_irq)
+Keyboard::Keyboard(MCP23S17 *_dev, GPIO *_irq, bool _verbose)
 :   dev(_dev),
     irq(_irq),
     leds(0xff),
     on_key(0),
-    on_key_arg(0)
+    on_key_arg(0),
+    verbose(_verbose)
 {
     ASSERT(dev);
+
+    if (verbose) PO_DEBUG("this=%p dev=%p irq=%p", this, dev, irq);
 
     if (irq)
     {
@@ -28,6 +31,7 @@ Keyboard::Keyboard(MCP23S17 *_dev, GPIO *_irq)
 
 Keyboard::~Keyboard()
 {
+    if (verbose) PO_DEBUG("");
     if (irq)
     {
         irq->set_interrupt_handler(0, 0);
@@ -68,14 +72,15 @@ void Keyboard::on_interrupt(void *arg)
 
 bool Keyboard::init(int nkeys)
 {
+    if (verbose) PO_DEBUG("");
     ASSERT(nkeys);
     ASSERT(nkeys <= 8);
 
     const uint8_t mask = (uint8_t)((1 << nkeys) - 1);
     ASSERT(mask);
 
-    // LEDs on port A outputs
-    // Keys on port B inputs
+    // Keys on port A inputs
+    // LEDs on port B outputs
     dev->write(MCP23S17::R_IODIRA, mask); // key inputs
     dev->write(MCP23S17::R_GPPUA, mask); // pull-up
     dev->write(MCP23S17::R_GPIOB, leds); // leds all off
@@ -86,8 +91,9 @@ bool Keyboard::init(int nkeys)
     if (irq)
     {
         // Configure to generate interrupts on key change
-        dev->write(MCP23S17::R_GPINTENB, mask); // enable interrupt on change for inputs
-        dev->write(MCP23S17::R_INTCONB, 0); // 0=compare to previous pin value for change
+        dev->write(MCP23S17::R_DEFVALA, mask);
+        dev->write(MCP23S17::R_INTCONA, mask); // 0=compare to previous pin value for change
+        dev->write(MCP23S17::R_GPINTENA, mask); // enable interrupt on change for inputs
     }
 
     return true;
@@ -131,6 +137,13 @@ uint8_t Keyboard::read_keys()
     const bool ok = dev->read(MCP23S17::R_GPIOA, & d);
     if (!ok) PO_ERROR("");
     return ok ? d : 0;
+}
+
+void Keyboard::clear_interrupt()
+{
+    uint8_t d = 0;
+    const bool ok = dev->read(MCP23S17::R_INTCAPA, & d);
+    if (!ok) PO_ERROR("");
 }
 
 }   //  namespace panglos

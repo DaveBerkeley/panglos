@@ -18,11 +18,12 @@ class Keyboard
     void (*on_key)(void *arg);
     void *on_key_arg;
 
+    bool verbose;
+
     static void on_interrupt(void *arg);
-    void on_interrupt();
 
 public:
-    Keyboard(MCP23S17 *_dev, GPIO *irq);
+    Keyboard(MCP23S17 *_dev, GPIO *irq, bool verbose);
     ~Keyboard();
 
     bool init(int nkeys=8);
@@ -32,6 +33,9 @@ public:
     uint8_t read_keys();
 
     void set_key_event(void (*fn)(void *arg), void *arg);
+
+    void on_interrupt();
+    void clear_interrupt();
 };
 
 }   //  namespace panglos
