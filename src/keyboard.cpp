@@ -25,7 +25,7 @@ Keyboard::Keyboard(MCP23S17 *_dev, GPIO *_irq, bool _verbose)
 
     if (irq)
     {
-        irq->set_interrupt_handler(on_interrupt, this);
+        irq->set_interrupt_handler(GPIO::CHANGE, on_interrupt, this);
     }
 }
 
@@ -34,7 +34,7 @@ Keyboard::~Keyboard()
     if (verbose) PO_DEBUG("");
     if (irq)
     {
-        irq->set_interrupt_handler(0, 0);
+        irq->set_interrupt_handler(GPIO::OFF, 0, 0);
     }
 }
 
@@ -50,12 +50,7 @@ void Keyboard::set_key_event(void (*fn)(void *arg), void *arg)
 
 void Keyboard::on_interrupt()
 {
-    if (!on_key)
-    {
-        PO_ERROR("no handler set");
-        return;
-    }
-
+    ASSERT(on_key);
     on_key(on_key_arg);
 }
 
@@ -92,7 +87,7 @@ bool Keyboard::init(int nkeys)
     {
         // Configure to generate interrupts on key change
         dev->write(MCP23S17::R_DEFVALA, mask);
-        dev->write(MCP23S17::R_INTCONA, mask); // 0=compare to previous pin value for change
+        dev->write(MCP23S17::R_INTCONA, 0); // 0=compare to previous pin value for change
         dev->write(MCP23S17::R_GPINTENA, mask); // enable interrupt on change for inputs
     }
 
@@ -105,7 +100,7 @@ bool Keyboard::init(int nkeys)
 
 void Keyboard::set_led(int idx, bool state)
 {
-    //PO_DEBUG("idx=%d state=%d", idx, state);
+    if (verbose) PO_DEBUG("idx=%d state=%d", idx, state);
     ASSERT((idx >= 0) && (idx <= 8));
     const uint8_t mask = (uint8_t) (1 << idx);
 
@@ -117,7 +112,7 @@ void Keyboard::set_led(int idx, bool state)
     {
         leds &= (uint8_t) ~mask;
     }
-    dev->write(MCP23S17::R_GPIOB, (uint8_t) ~leds); 
+    dev->write(MCP23S17::R_GPIOB, (uint8_t) leds); 
 }
 
 bool Keyboard::get_led(int idx)

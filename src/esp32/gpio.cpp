@@ -18,11 +18,11 @@
 
 namespace panglos {
 
-static uint32_t used;
+static uint64_t used;
 
 static uint32_t pin_mask(int pin)
 {
-    ASSERT(pin != 0xffffffff);
+    ASSERT(pin >= 0);
 
     return 1L << pin;
 }
@@ -114,19 +114,21 @@ static void gpio_irq_handler(void *arg)
     gpio->on_interrupt();
 }
 
-static bool has_irqs;
+static bool has_irqs = false;
 
-void ESP_GPIO::set_interrupt_handler(void (*fn)(void *arg), void *arg)
+void ESP_GPIO::set_interrupt_handler(enum Interrupt irq, void (*fn)(void *arg), void *arg)
 {
+    PO_DEBUG("irq=%d fn=%p arg=%p", irq, fn, arg);
     esp_err_t err;
 
     irq_handler = fn;
     irq_arg = arg;
 
-    if (fn)
+    if (fn && (irq != OFF))
     {
         if (!has_irqs)
         {
+            PO_INFO("gpio_install_isr_service()");
             const int intr_alloc_flags = 0; // TODO : check this
             err = gpio_install_isr_service(intr_alloc_flags);
             esp_check(err, __LINE__);
@@ -134,6 +136,20 @@ void ESP_GPIO::set_interrupt_handler(void (*fn)(void *arg), void *arg)
         }
 
         err = gpio_isr_handler_add((gpio_num_t) pin, gpio_irq_handler, this);
+        esp_check(err, __LINE__);
+
+        gpio_int_type_t type = GPIO_INTR_DISABLE;
+
+        switch (irq)
+        {
+            case OFF    : type = GPIO_INTR_DISABLE; break;
+            case RISE   : type = GPIO_INTR_POSEDGE; break;
+            case FALL   : type = GPIO_INTR_NEGEDGE; break;
+            case CHANGE : type = GPIO_INTR_ANYEDGE; break;
+            default : ASSERT(0);
+        }
+ 
+        err = gpio_set_intr_type((gpio_num_t) pin, type);
         esp_check(err, __LINE__);
     }
     else
