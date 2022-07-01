@@ -12,7 +12,7 @@
 #include "panglos/riscv32/arch.h"
 #endif
 
-#if defined(ARCH_ESPRESSIF)
+#if defined(ARCH_XTENSA)
 #include "panglos/espressif/arch.h"
 #endif
 

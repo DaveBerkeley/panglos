@@ -5,7 +5,7 @@
 
 #include "panglos/arch.h"
 
-#if defined(ARCH_ESPRESSIF)
+#if defined(ARCH_XTENSA)
 
 extern "C" bool arch_in_irq()
 {
