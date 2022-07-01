@@ -25,7 +25,7 @@ Keyboard::Keyboard(MCP23S17 *_dev, GPIO *_irq, bool _verbose)
 
     if (irq)
     {
-        irq->set_interrupt_handler(GPIO::CHANGE, on_interrupt, this);
+        irq->set_interrupt_handler(GPIO::FALL, on_interrupt, this);
     }
 }
 

@@ -13,7 +13,7 @@
 #endif
 
 #if defined(ARCH_XTENSA)
-#include "panglos/espressif/arch.h"
+#include "panglos/xtensa/arch.h"
 #endif
 
 //  FIN
