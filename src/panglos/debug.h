@@ -51,7 +51,7 @@ extern "C" {
 void Error_Handler(void);
 uint32_t get_time(void);
 const char *get_task(void);
-void po_log(const char *fmt, ...) __attribute__((format(printf,1,2)));
+void po_log(Severity s, const char *fmt, ...) __attribute__((format(printf,2,3)));
 
 extern const LUT Severity_lut[];
 
@@ -64,7 +64,7 @@ extern const LUT Severity_lut[];
      */
 
 #define _PO_PRINT(level, fmt, ...) \
-        po_log("%d %s %s %s +%d %s() : " fmt "\r\n", \
+        po_log(level, "%d %s %s %s +%d %s() : " fmt "\r\n", \
                 get_time(), get_task(), \
                 lut(Severity_lut, level), \
                 __FILE__, __LINE__, __FUNCTION__, \

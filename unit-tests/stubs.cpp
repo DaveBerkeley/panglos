@@ -35,8 +35,9 @@ const char *get_task(void)
     return "todo";
 }
 
-void po_log(const char *fmt, ...)
+void po_log(Severity s, const char *fmt, ...)
 {
+    IGNORE(s);
     va_list ap;
     va_start(ap, fmt);
     vprintf(fmt, ap);
