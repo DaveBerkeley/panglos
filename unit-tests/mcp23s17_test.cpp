@@ -516,7 +516,7 @@ TEST(MCP23S17, GpioIrq)
     spi.reset();
 
     int count = 0;
-    pin->set_interrupt_handler(on_irq, & count);
+    pin->set_interrupt_handler(GPIO::CHANGE, on_irq, & count);
 
     const uint8_t zero[2] = { 0, 0 };
     spi.set_read(zero, sizeof(zero));

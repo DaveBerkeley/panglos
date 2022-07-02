@@ -218,7 +218,7 @@ public:
         HAL_GPIO_TogglePin(port, pin);
     }
 
-    virtual void set_interrupt_handler(void (*fn)(void *arg), void *arg)
+    virtual void set_interrupt_handler(enum Interrupt irq, void (*fn)(void *arg), void *arg)
     {
         ASSERT(irq_enabled); // mode must be GPIO_MODE_IT_*
         irq_handler = fn;

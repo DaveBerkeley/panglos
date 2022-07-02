@@ -23,7 +23,7 @@ class Keyboard
     static void on_interrupt(void *arg);
 
 public:
-    Keyboard(MCP23S17 *_dev, GPIO *irq, bool verbose);
+    Keyboard(MCP23S17 *_dev, GPIO *irq, bool verbose=false);
     ~Keyboard();
 
     bool init(int nkeys=8);

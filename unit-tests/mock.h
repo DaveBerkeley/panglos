@@ -81,7 +81,7 @@ public:
     virtual bool get() override;
     virtual void toggle() override;
     
-    virtual void set_interrupt_handler(void (*fn)(void*), void *arg) override;
+    virtual void set_interrupt_handler(enum Interrupt irq, void (*fn)(void*), void *arg) override;
 };
 
 class MockSpi : public panglos::SPI

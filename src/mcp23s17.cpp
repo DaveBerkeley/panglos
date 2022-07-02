@@ -35,14 +35,14 @@ public:
     void set_mask(MCP23S17::Register reg, bool flush=false);
     void clr_mask(MCP23S17::Register reg, bool flush=false);
 
-    virtual void set(bool state);
-    virtual bool get();
-    virtual void toggle();
-    virtual bool flush();
+    virtual void set(bool state) override;
+    virtual bool get() override;
+    virtual void toggle() override;
+    virtual bool flush() override;
 
-    virtual void set_interrupt_handler(void (*fn)(void *arg), void *arg);
+    virtual void set_interrupt_handler(enum Interrupt irq, void (*fn)(void *arg), void *arg) override;
 
-    virtual void on_interrupt();
+    virtual void on_interrupt() override;
 };
 
     /*
@@ -465,8 +465,9 @@ bool ExpandedGpio::flush()
     return false;
 }
 
-void ExpandedGpio::set_interrupt_handler(void (*fn)(void *arg), void *_arg)
+void ExpandedGpio::set_interrupt_handler(enum Interrupt irq, void (*fn)(void *arg), void *_arg)
 {
+    IGNORE(irq); // TODO
     fn_irq = fn;
     arg = _arg;
 }

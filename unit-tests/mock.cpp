@@ -145,8 +145,9 @@ void MockPin::toggle()
     set(!get());
 }
 
-void MockPin::set_interrupt_handler(void (*fn)(void*), void *arg)
+void MockPin::set_interrupt_handler(enum Interrupt irq, void (*fn)(void*), void *arg)
 {
+    IGNORE(irq); // TODO
     irq_fn = fn;
     irq_arg = arg;
 }
