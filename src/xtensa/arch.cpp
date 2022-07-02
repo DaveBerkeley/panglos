@@ -1,4 +1,6 @@
 
+#if defined(ARCH_XTENSA)
+
 #include <stdint.h>
 
 extern "C" {
@@ -11,8 +13,6 @@ extern "C" {
 #include "panglos/debug.h"
 
 #include "panglos/arch.h"
-
-#if defined(ARCH_XTENSA)
 
 extern "C" bool arch_in_irq()
 {
@@ -29,6 +29,6 @@ extern "C" void arch_restore_irq(uint32_t s)
     return xt_int_enable_mask(s);
 }
 
-#endif  //  ARCH_ESPRESSIF
+#endif  //  ARCH_XTENSA
 
 //  FIN
