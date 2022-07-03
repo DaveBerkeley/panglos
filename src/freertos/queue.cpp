@@ -8,6 +8,7 @@ extern "C" {
 
 #include "panglos/arch.h"
 
+#include "panglos/freertos/queue.h"
 #include "panglos/queue.h"
 
 namespace panglos {
@@ -15,17 +16,27 @@ namespace panglos {
 class RTOS_Queue : public Queue
 {
     QueueHandle_t handle;
+    bool delete_me;
 
 public:
     RTOS_Queue(int size, int num)
+    :   delete_me(true)
     {
         handle = xQueueCreate(num, size);
         ASSERT(handle);
     }
+    RTOS_Queue(QueueHandle_t _handle)
+    :   delete_me(false)
+    {
+        handle = _handle;
+    }
 
     ~RTOS_Queue()
     {
-        vQueueDelete(handle);
+        if (delete_me)
+        {
+            vQueueDelete(handle);
+        }
     }
 
     virtual bool get(Message *msg, int timeout) override
@@ -64,6 +75,11 @@ public:
 Queue *Queue::create(int size, int num)
 {
     return new RTOS_Queue(size, num);
+}
+
+Queue *queue_wrap(QueueHandle_t handle)
+{
+    return new RTOS_Queue(handle);
 }
 
 }   //  namespace panglos

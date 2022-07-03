@@ -33,7 +33,7 @@ public:
     virtual void set_event_handler(void (*fn)(Event *ev, void *arg), void *arg);
 };
 
-class IO : public Out, In { };
+class IO : public Out, public In { };
 
     /*
      *
