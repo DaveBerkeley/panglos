@@ -55,6 +55,8 @@ public:
     int printf(const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
     void tx(char c);
+
+    static int xprintf(void *, const char *fmt, va_list va);
 };
 
 }   //  namespace panglos

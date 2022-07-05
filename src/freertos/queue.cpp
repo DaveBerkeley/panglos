@@ -70,6 +70,11 @@ public:
         }
         return ok == pdTRUE;
     }
+
+    virtual int queued()
+    {
+        return uxQueueMessagesWaiting(handle);
+    }
 };
 
 Queue *Queue::create(int size, int num)

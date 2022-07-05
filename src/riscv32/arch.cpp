@@ -26,8 +26,7 @@ void arch_in_irq()
 
 uint32_t arch_disable_irq()
 {
-    asm volatile("csrr a0, mstatus");
-    asm volatile("csrci mstatus, 0x8");
+    asm volatile("csrrci a0, mstatus, 0x8");
     asm volatile("ret");
     return 0;
 }

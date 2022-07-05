@@ -15,6 +15,8 @@ public:
 
     virtual bool get(Message *msg, int timeout) = 0;
     virtual bool put(Message *) = 0;
+
+    virtual int queued() = 0;
 };
 
 }   //  namespace panglos

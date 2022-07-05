@@ -57,6 +57,13 @@ int FmtOut::printf(const char *fmt, va_list va)
     return vfctprintf(xputc, this, fmt, va);
 }
 
+int FmtOut::xprintf(void *arg, const char *fmt, va_list va)
+{
+    ASSERT(arg);
+    FmtOut *fo = (FmtOut*) arg;
+    return fo->printf(fmt, va);
+}
+
 int FmtOut::printf(const char *fmt, ...)
 {
     va_list va;
