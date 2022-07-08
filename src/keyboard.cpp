@@ -98,7 +98,7 @@ bool Keyboard::init(int nkeys)
      *
      */
 
-void Keyboard::set_led(int idx, bool state)
+void Keyboard::set_led(int idx, bool state, bool flush)
 {
     if (verbose) PO_DEBUG("idx=%d state=%d", idx, state);
     ASSERT((idx >= 0) && (idx <= 8));
@@ -112,7 +112,11 @@ void Keyboard::set_led(int idx, bool state)
     {
         leds &= (uint8_t) ~mask;
     }
-    dev->write(MCP23S17::R_GPIOB, (uint8_t) leds); 
+
+    if (flush)
+    {
+        dev->write(MCP23S17::R_GPIOB, (uint8_t) leds); 
+    }
 }
 
 bool Keyboard::get_led(int idx)
@@ -124,6 +128,11 @@ bool Keyboard::get_led(int idx)
     const bool ok = dev->read(MCP23S17::R_GPIOB, & d);
     if (!ok) PO_ERROR("");
     return d & mask;
+}
+
+void Keyboard::led_flush()
+{
+    dev->write(MCP23S17::R_GPIOB, (uint8_t) leds); 
 }
 
 uint8_t Keyboard::read_keys()

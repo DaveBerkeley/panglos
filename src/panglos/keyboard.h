@@ -27,8 +27,9 @@ public:
     ~Keyboard();
 
     bool init(int nkeys=8);
-    void set_led(int idx, bool state);
+    void set_led(int idx, bool state, bool flush);
     bool get_led(int idx);
+    void led_flush();
 
     uint8_t read_keys();
 
