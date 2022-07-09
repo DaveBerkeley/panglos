@@ -41,6 +41,7 @@ files = [
     'unit-tests/object.cpp',
     'unit-tests/i2c.cpp',
     'unit-tests/logger.cpp',
+    'unit-tests/io.cpp',
 ]
 
 ccflags = [

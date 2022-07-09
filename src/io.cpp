@@ -75,6 +75,96 @@ int FmtOut::printf(const char *fmt, ...)
     return n;
 }
 
+    /*
+     *
+     */
+
+CharOut::CharOut(char *_data, int n)
+:   data(_data),
+    size(n),
+    idx(0)
+{
+}
+
+int CharOut::tx(const char* _data, int n)
+{
+    for (int i = 0; i < n; i++)
+    {
+        if (idx >= size)
+        {
+            return i;
+        }
+
+        data[idx] = *_data++;
+        idx += 1;
+        if (idx < size)
+        {
+            data[idx] = '\0';
+        }
+    }
+    return n;        
+}
+
+void CharOut::reset()
+{
+    idx = 0;
+    data[0] = '\0';
+}
+
+    /*
+     *
+     */
+
+void LineOut::tx_flush()
+{
+    if (!idx) return;
+
+    out->tx(data, idx);
+    idx = 0;
+}
+
+int LineOut::tx(const char* _data, int n)
+{
+    for (int i = 0; i < n; i++)
+    {
+        if (idx >= size)
+        {
+            tx_flush();
+        }
+
+        char c = *_data++;
+
+        data[idx] = c;
+        idx += 1;
+
+        if ((c == '\n') || (c == '\r'))
+        {
+            if (no_eol)
+            {
+                idx -= 1;
+            }
+            tx_flush();
+        }
+    }
+    return n;        
+}
+
+LineOut::LineOut(int _size, Out *_out, bool _no_eol)
+:   data(0),
+    size(_size),
+    idx(0),
+    out(_out),
+    no_eol(_no_eol)
+{
+    data = new char[size];
+}
+
+LineOut::~LineOut()
+{
+    tx_flush();
+    delete[] data;
+}
+
 }   //  namespace panglos
 
 //  FIN

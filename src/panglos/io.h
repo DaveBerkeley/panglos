@@ -57,6 +57,46 @@ public:
     static int xprintf(void *, const char *fmt, va_list va);
 };
 
+    /*
+     *
+     */
+
+class CharOut : public Out
+{
+    char *data;
+    int size;
+    int idx;
+
+    virtual int tx(const char* _data, int n) override;
+
+public:
+    CharOut(char *_data, int n);
+
+    void reset();
+};
+
+    /*
+     *
+     */
+
+class LineOut : public Out
+{
+    char *data;
+    int size;
+    int idx;
+    Out *out;
+    bool no_eol;
+
+    virtual int tx(const char* _data, int n) override;
+
+public:
+    LineOut(int _size, Out *_out, bool _no_eol);
+    ~LineOut();
+
+    virtual void tx_flush() override;
+};
+
+
 }   //  namespace panglos
 
 #endif  //  __PANGLOS_IO__
