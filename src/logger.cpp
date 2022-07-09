@@ -34,10 +34,11 @@ int Logging::Logger::match_out(struct Logging::Logger *logger, void *arg)
      *
      */
 
-Logging::Logging(Severity s)
+Logging::Logging(Severity s, Mutex *_mutex)
 :   severity(s),
     loggers(Logger::get_next),
-    irq_logger(0)
+    irq_logger(0),
+    mutex(_mutex)
 {
 }
 
@@ -70,19 +71,21 @@ void Logging::add_irq(Out *out, Severity s)
     irq_logger = logger;
 }
 
-void Logging::add(Out *out, Severity s, Mutex *mutex)
+void Logging::add(Out *out, Severity s, Mutex *_mutex)
 {
     struct Logger *logger = new struct Logger;
     logger->next = 0;
     logger->out = out;
     logger->severity = s;
-    logger->mutex = mutex;
+    logger->mutex = _mutex;
 
     loggers.push(logger, mutex);
 }
 
 bool Logging::remove(Out *out)
 {
+    Lock lock(mutex);
+
     struct Logger *logger = loggers.find(Logger::match_out, out, 0);
 
     if (!logger)
@@ -116,6 +119,8 @@ void Logging::log(Severity s, const char *fmt, va_list ap)
         return;
     }
 
+    Lock lock(mutex);
+
     for (struct Logger *logger = loggers.head; logger; logger = logger->next)
     {
         if (s > logger->severity)
@@ -136,7 +141,7 @@ void Logging::log(Severity s, const char *fmt, va_list ap)
 
 int Logging::count()
 {
-    return loggers.size(0);
+    return loggers.size(mutex);
 }
 
     /*

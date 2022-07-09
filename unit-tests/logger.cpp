@@ -46,7 +46,7 @@ public:
 TEST(Logger, Remove)
 {
     bool ok;
-    Logging *logging = new Logging(S_DEBUG);
+    Logging *logging = new Logging(S_DEBUG, 0);
 
     EXPECT_EQ(logging->count(), 0);
 
@@ -73,7 +73,7 @@ TEST(Logger, Remove)
 
 TEST(Logger, Severity)
 {
-    Logging *logging = new Logging(S_DEBUG);
+    Logging *logging = new Logging(S_DEBUG, 0);
 
     StringOut out;
 
@@ -107,7 +107,8 @@ static void thread_test(void *arg)
 
 TEST(Logger, Threads)
 {
-    Logging *logging = new Logging(S_DEBUG);
+    Mutex *global = Mutex::create();
+    Logging *logging = new Logging(S_DEBUG, global);
 
     StringOut out;
 
@@ -136,11 +137,12 @@ TEST(Logger, Threads)
 
     delete logging;
     delete mutex;
+    delete global;
 }
 
 TEST(Logger, Irq)
 {
-    Logging *logging = new Logging(S_DEBUG);
+    Logging *logging = new Logging(S_DEBUG, 0);
 
     StringOut out;
 
@@ -157,6 +159,50 @@ TEST(Logger, Irq)
     arch_set_in_irq(was);
 
     delete logging;
+}
+
+    /*
+     *
+     */
+
+struct ThreadAddInfo {
+    Logging *logging;
+};
+
+static void thread_add(void *arg)
+{
+    ASSERT(arg);
+    struct ThreadAddInfo *info = (struct ThreadAddInfo*) arg;
+    Logging *logging = info->logging;
+
+    StringOut out;
+    
+    Mutex *mutex = Mutex::create();
+    logging->add(& out, S_INFO, mutex);
+
+    Logging::printf(logging, S_INFO, "%p\n", logging);
+
+    logging->remove(& out);
+    delete mutex;
+};
+
+TEST(Logger, ThreadAdd)
+{
+    Mutex *global = Mutex::create();
+    Logging *logging = new Logging(S_DEBUG, global);
+
+    const int n = 200;
+    ThreadPool pool("x", n);
+
+    struct ThreadAddInfo info = {
+        .logging = logging,
+    };
+
+    pool.start(thread_add, & info);
+    pool.join();
+
+    delete logging;
+    delete global;
 }
 
 //  FIN

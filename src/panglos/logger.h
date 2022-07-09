@@ -34,9 +34,10 @@ class Logging
     Severity severity;
     List<struct Logger*> loggers;
     struct Logger *irq_logger;
+    Mutex *mutex;
 
 public:
-    Logging(Severity s);
+    Logging(Severity s, Mutex *mutex);
     ~Logging();
 
     Severity set_severity(Severity s);
