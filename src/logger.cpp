@@ -37,10 +37,8 @@ int Logging::Logger::match_out(struct Logging::Logger *logger, void *arg)
 Logging::Logging(Severity s)
 :   severity(s),
     loggers(Logger::get_next),
-    mutex(0),
     irq_logger(0)
 {
-    mutex = Mutex::create();
 }
 
 Logging::~Logging()
@@ -55,8 +53,6 @@ Logging::~Logging()
         delete logger;
     }
     delete irq_logger;
-
-    delete mutex;
 }
 
     /*
@@ -74,20 +70,19 @@ void Logging::add_irq(Out *out, Severity s)
     irq_logger = logger;
 }
 
-void Logging::add(Out *out, Severity s)
+void Logging::add(Out *out, Severity s, Mutex *mutex)
 {
     struct Logger *logger = new struct Logger;
     logger->next = 0;
     logger->out = out;
     logger->severity = s;
+    logger->mutex = mutex;
 
     loggers.push(logger, mutex);
 }
 
 bool Logging::remove(Out *out)
 {
-    Lock lock(mutex);
-
     struct Logger *logger = loggers.find(Logger::match_out, out, 0);
 
     if (!logger)
@@ -121,14 +116,14 @@ void Logging::log(Severity s, const char *fmt, va_list ap)
         return;
     }
 
-    Lock lock(mutex);
-
     for (struct Logger *logger = loggers.head; logger; logger = logger->next)
     {
         if (s > logger->severity)
         {
             continue;
         }
+
+        Lock lock(logger->mutex);
 
         FmtOut formatter(logger->out, 0);
         formatter.printf(fmt, ap);
@@ -141,7 +136,7 @@ void Logging::log(Severity s, const char *fmt, va_list ap)
 
 int Logging::count()
 {
-    return loggers.size(mutex);
+    return loggers.size(0);
 }
 
     /*

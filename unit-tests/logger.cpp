@@ -52,7 +52,7 @@ TEST(Logger, Remove)
 
     StringOut out;
 
-    logging->add(& out, S_INFO);
+    logging->add(& out, S_INFO, 0);
     EXPECT_EQ(logging->count(), 1);
 
     ok = logging->remove(& out);
@@ -77,7 +77,7 @@ TEST(Logger, Severity)
 
     StringOut out;
 
-    logging->add(& out, S_INFO);
+    logging->add(& out, S_INFO, 0);
 
     Logging::printf(logging, S_DEBUG, "debug %d\n", 2345);
     EXPECT_STREQ("", out.get());
@@ -111,7 +111,8 @@ TEST(Logger, Threads)
 
     StringOut out;
 
-    logging->add(& out, S_INFO);
+    Mutex *mutex = Mutex::create();
+    logging->add(& out, S_INFO, mutex);
 
     const int n = 200;
     ThreadPool pool("x", n);
@@ -134,6 +135,7 @@ TEST(Logger, Threads)
     EXPECT_STREQ(s.c_str(), out.get());
 
     delete logging;
+    delete mutex;
 }
 
 TEST(Logger, Irq)

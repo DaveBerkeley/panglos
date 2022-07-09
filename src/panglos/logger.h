@@ -24,6 +24,7 @@ class Logging
     struct Logger {
         struct Logger *next;
         Out *out;
+        Mutex *mutex;
         Severity severity;
 
         static struct Logger **get_next(struct Logger *item);
@@ -32,7 +33,6 @@ class Logging
 
     Severity severity;
     List<struct Logger*> loggers;
-    Mutex *mutex;
     struct Logger *irq_logger;
 
 public:
@@ -40,7 +40,7 @@ public:
     ~Logging();
 
     Severity set_severity(Severity s);
-    void add(Out *out, Severity s);
+    void add(Out *out, Severity s, Mutex *mutex);
     void add_irq(Out *out, Severity s);
     bool remove(Out *out);
 
