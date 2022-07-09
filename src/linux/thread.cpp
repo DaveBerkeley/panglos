@@ -1,14 +1,33 @@
 
 #include <string>
+#include <map>
 
 #include <stddef.h>
 #include <pthread.h>
 
 #include "panglos/debug.h"
+#include "panglos/mutex.h"
 
 #include "panglos/thread.h"
 
 using namespace panglos;
+
+class NativeThread;
+
+typedef std::map<pthread_t, NativeThread*> Map;
+
+static Map map;
+static Mutex *mutex = 0;
+
+static void tidy_up()
+{
+    delete mutex;
+    mutex = 0;
+}
+
+    /*
+     *
+     */
 
 class NativeThread : public Thread
 {
@@ -22,11 +41,17 @@ public:
         thread(0),
         fn(0)
     {
+        if (!mutex)
+        {
+            mutex = Mutex::create();
+            atexit(tidy_up);
+        }
     }
 
     virtual ~NativeThread()
     {
-
+        Lock lock(mutex);
+        map.erase(thread);
     }
 
     static void *wrap(void *arg)
@@ -45,12 +70,20 @@ public:
         arg = _arg;
         int err = pthread_create(& thread, 0, wrap, this);
         ASSERT(err == 0);
+
+        Lock lock(mutex);
+        map[thread] = this;
     }
 
-    virtual void join()
+    virtual void join() override
     {
         int err = pthread_join(thread, 0);
         ASSERT(err == 0);
+    }
+
+    virtual const char *get_name() override
+    {
+        return name.c_str();
     }
 };
 
@@ -61,6 +94,13 @@ Thread *Thread::create(const char *name, size_t stack, Priority priority)
     IGNORE(stack);
     IGNORE(priority);
     return new NativeThread(name);
+}
+
+Thread *Thread::get_current()
+{
+    pthread_t pthread = pthread_self();
+    Lock lock(mutex);
+    return map[pthread];
 }
 
 }   //  namespace panglos

@@ -4,6 +4,9 @@
 #include <stdarg.h>
 
 #include "panglos/debug.h"
+#include "panglos/thread.h"
+
+using namespace panglos;
 
 extern "C" {
 
@@ -32,7 +35,8 @@ uint32_t get_time(void)
 
 const char *get_task(void)
 {
-    return "todo";
+    Thread *thread = Thread::get_current();
+    return thread ? thread->get_name() : "unknown";
 }
 
 void po_log(Severity s, const char *fmt, ...)

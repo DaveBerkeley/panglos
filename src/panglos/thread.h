@@ -19,6 +19,10 @@ public:
 
     virtual void start(void (*fn)(void *arg), void *arg) = 0;
     virtual void join() = 0;
+
+    virtual const char *get_name() = 0;
+
+    static Thread *get_current();
 };
 
 class ThreadPool
