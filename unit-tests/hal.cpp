@@ -7,47 +7,6 @@
 
 #include "mock.h"
 
-namespace panglos {
-
-class LinuxMutex : public Mutex
-{
-    pthread_mutex_t mutex;
-
-public:
-    LinuxMutex()
-    {
-        int err = pthread_mutex_init(& mutex, 0);
-        ASSERT(err == 0);
-    }
-
-private:
-    virtual ~LinuxMutex()
-    {
-        int err = pthread_mutex_destroy(& mutex);
-        ASSERT(err == 0);
-    };
-
-    virtual void lock()
-    {
-        int err = pthread_mutex_lock(& mutex);
-        ASSERT(err == 0);
-    }
-
-    virtual void unlock()
-    {
-        int err = pthread_mutex_unlock(& mutex);
-        ASSERT(err == 0);
-    }
-};
-
-Mutex* Mutex::create(Mutex::Type type)
-{
-    IGNORE(type);
-    return new LinuxMutex();
-}
-
-}   //  namespace panglos
-
     /*
      *
      */

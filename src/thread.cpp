@@ -6,7 +6,7 @@
 namespace panglos {
 
     /*
-     *
+     *  ThreadPool
      */
 
 ThreadPool::ThreadPool(const char *name, int n, size_t stack, Thread::Priority p)
@@ -14,6 +14,7 @@ ThreadPool::ThreadPool(const char *name, int n, size_t stack, Thread::Priority p
     count(n)
 {
     threads = new Thread* [n];
+
     for (int i = 0; i < count; i++)
     {
         threads[i] = Thread::create(name, stack, p);

@@ -19,6 +19,7 @@ files = [
     # for test environment
     'src/linux/arch.cpp',
     'src/linux/thread.cpp',
+    'src/linux/mutex.cpp',
 
     # https://github.com/eyalroz/printf
     'lib/printf/src/printf/printf.c',
