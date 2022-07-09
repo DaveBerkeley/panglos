@@ -8,7 +8,7 @@
 
 #include "panglos/thread.h"
 
-namespace panglos {
+using namespace panglos;
 
 class NativeThread : public Thread
 {
@@ -53,6 +53,8 @@ public:
         ASSERT(err == 0);
     }
 };
+
+namespace panglos {
 
 Thread *Thread::create(const char *name, size_t stack, Priority priority)
 {

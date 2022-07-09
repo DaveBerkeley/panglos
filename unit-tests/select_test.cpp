@@ -1,11 +1,10 @@
 
-#include <pthread.h>
-
 #include <map>
 
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
+#include <panglos/thread.h>
 #include <panglos/select.h>
 
 #include "mock.h"
@@ -18,7 +17,7 @@ static Map map;
 
 static Semaphore *dead = 0;
 
-static void *task(void *arg)
+static void task(void *arg)
 {
     ASSERT(arg);
     Select *sel = (Select*) arg;
@@ -34,14 +33,11 @@ static void *task(void *arg)
         }
         map[sem] = true;
     }
-
-    return 0;
 }
 
 TEST(Select, Test)
 {
-    pthread_t thread;
-    int err;
+    Thread *thread;
 
     const int num = 4;
     Semaphore *sems[num];
@@ -60,8 +56,8 @@ TEST(Select, Test)
 
         sel.add(dead);
 
-        err = pthread_create(& thread, 0, task, & sel);
-        EXPECT_EQ(0, err);
+        thread = Thread::create("xx");
+        thread->start(task, & sel);
 
         sems[1]->post();
         sems[0]->post();
@@ -71,8 +67,8 @@ TEST(Select, Test)
         // terminate
         dead->post();
 
-        err = pthread_join(thread, 0);
-        EXPECT_EQ(0, err);
+        thread->join();
+        delete thread;
 
         EXPECT_EQ(true, map[sems[0]]);
         EXPECT_EQ(true, map[sems[1]]);

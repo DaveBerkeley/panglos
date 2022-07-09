@@ -4,7 +4,7 @@
 #include <panglos/debug.h>
 #include <panglos/mutex.h>
 
-namespace panglos {
+using namespace panglos;
 
 class NativeMutex : public Mutex
 {
@@ -36,6 +36,8 @@ private:
         ASSERT(err == 0);
     }
 };
+
+namespace panglos {
 
 Mutex* Mutex::create(Mutex::Type type)
 {

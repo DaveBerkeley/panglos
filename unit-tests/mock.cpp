@@ -1,5 +1,4 @@
 
-#include <pthread.h>
 #include <sys/select.h>
 
 #include <gtest/gtest.h>
@@ -7,13 +6,14 @@
 #include <panglos/debug.h>
 #include <panglos/event.h>
 #include <panglos/timer.h>
+#include <panglos/thread.h>
 
 #include "mock.h"
 
 #define PIN_MIN 0
 #define PIN_MAX 14
 
-//using namespace panglos;
+using namespace panglos;
 
 void xxx(){}
 
@@ -55,11 +55,11 @@ void timer_init()
 
 } // namespace panglos
 
-static pthread_t thread;
+static Thread *thread;
 static bool dead;
 static bool running;
 
-void *event_task(void *arg)
+void event_task(void *arg)
 {
     IGNORE(arg);
 
@@ -71,7 +71,6 @@ void *event_task(void *arg)
         //printf("%d %d\n", cycles, dt);
         IGNORE(dt);
     }
-    return 0;
 }
 
 void mock_setup(bool event_thread)
@@ -88,8 +87,8 @@ void mock_setup(bool event_thread)
     }
 
     dead = false;
-    int err = pthread_create(& thread, 0, event_task, 0);
-    EXPECT_EQ(0, err);
+    thread = Thread::create("event");
+    thread->start(event_task, 0);
 }
 
 void mock_teardown()
@@ -98,8 +97,9 @@ void mock_teardown()
 
     if (running)
     {
-        int err = pthread_join(thread, 0);
-        EXPECT_EQ(0, err);
+        thread->join();
+        delete thread;
+        thread = 0;
     }
 }
 

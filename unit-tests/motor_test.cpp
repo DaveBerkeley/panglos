@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
+#include <panglos/thread.h>
 #include <panglos/motor.h>
 
 #include "mock.h"
@@ -769,7 +770,7 @@ TEST(Motor, Overshoot)
     mock_teardown();
 }
 
-#if 0
+#if 1
 
     /*
      *
@@ -972,24 +973,20 @@ public:
      *
      */
 
-static void *run_sched(void *arg)
+static void run_sched(void *arg)
 {
     ASSERT(arg);
     Scheduler *sched = (Scheduler*) arg;
     sched->run();
-    return 0;
 }
 
 TEST(Schedule, Test)
 {
-    xxx();
     mock_setup(true);
     Scheduler scheduler(& event_queue, 10);
 
-    int err;
-    pthread_t thread;
-    err = pthread_create(& thread, 0, run_sched, & scheduler);
-    EXPECT_EQ(0, err);
+    Thread *thread = Thread::create("xx");
+    thread->start(run_sched, & scheduler);
 
     Semaphore *s = Semaphore::create();
     MotorThread *m = new MotorThread(& scheduler, s, 2000000);
@@ -997,8 +994,8 @@ TEST(Schedule, Test)
     sleep(1);
     scheduler.kill();
 
-    err = pthread_join(thread, 0);
-    EXPECT_EQ(0, err);
+    thread->join();
+    delete thread;
 
     delete m;
     delete s;

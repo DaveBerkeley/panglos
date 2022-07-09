@@ -1,9 +1,8 @@
 
-#include <pthread.h>
-
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
+#include <panglos/thread.h>
 #include <panglos/mutex.h>
 #include <panglos/list.h>
 
@@ -311,13 +310,13 @@ TEST(List, VisitFind)
      */
 
 typedef struct {
-    pthread_t thread;
+    Thread *thread;
     List<Item*> *list;
     Mutex *mutex;
     int n;
 }   PushInfo;
 
-static void *push_thread(void *arg)
+static void push_thread(void *arg)
 {
     ASSERT(arg);
     PushInfo *pi = (PushInfo*) arg;
@@ -329,11 +328,9 @@ static void *push_thread(void *arg)
         item->visited = false;
         pi->list->add_sorted(item, cmp, pi->mutex);
     }
-
-    return 0;
 }
 
-static void *remove_thread(void *arg)
+static void remove_thread(void *arg)
 {
     ASSERT(arg);
     PushInfo *pi = (PushInfo*) arg;
@@ -365,8 +362,6 @@ static void *remove_thread(void *arg)
             }
         }
     }
-
-    return 0;
 }
 
     /*
@@ -382,7 +377,6 @@ TEST(List, Thread)
     const int adds = 100;
     PushInfo push[num];
     PushInfo pop[num];
-    int err;
 
     for (int i = 0; i < num; i++)
     {
@@ -390,8 +384,8 @@ TEST(List, Thread)
         pi->n = adds;
         pi->mutex = mutex;
         pi->list = & list;
-        err = pthread_create(& pi->thread, 0, push_thread, pi);
-        EXPECT_EQ(0, err);
+        pi->thread = Thread::create("push");
+        pi->thread->start(push_thread, pi);
     }
 
     for (int i = 0; i < num; i++)
@@ -400,16 +394,21 @@ TEST(List, Thread)
         pi->n = adds;
         pi->mutex = mutex;
         pi->list = & list;
-        err = pthread_create(& pi->thread, 0, remove_thread, pi);
-        EXPECT_EQ(0, err);
+        pi->thread = Thread::create("pop");
+        pi->thread->start(remove_thread, pi);
     }
 
     for (int i = 0; i < num; i++)
     {
-        err = pthread_join(push[i].thread, 0);
-        EXPECT_EQ(0, err);
-        err = pthread_join(pop[i].thread, 0);
-        EXPECT_EQ(0, err);
+        Thread *thread;
+
+        thread = push[i].thread;
+        thread->join();
+        delete thread;
+
+        thread = pop[i].thread;
+        thread->join();
+        delete thread;
     }
 
     delete mutex;
