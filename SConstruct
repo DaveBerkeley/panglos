@@ -15,10 +15,13 @@ files = [
     'src/io.cpp',
     'src/logger.cpp',
 
+    # for test environment
+    'src/linux/arch.cpp',
+    'src/linux/thread.cpp',
+
     # https://github.com/eyalroz/printf
     'lib/printf/src/printf/printf.c',
 
-    'src/linux/arch.cpp',
     'unit-tests/stubs.cpp',
     'unit-tests/buffer_test.cpp',
     'unit-tests/deque_test.cpp',

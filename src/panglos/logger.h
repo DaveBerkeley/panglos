@@ -46,6 +46,9 @@ public:
 
     void log(Severity s, const char *fmt, va_list ap);
     int count();
+
+    static void printf(Logging *logging, Severity s, const char *fmt, ...)
+                __attribute__((format(printf, 3, 4)));
 };
 
 extern Logging *logger;

@@ -15,7 +15,7 @@ public:
         Low,
     }   Priority;
 
-    static Thread *create(const char *name, size_t stack, Priority priority=Medium);
+    static Thread *create(const char *name, size_t stack=0, Priority priority=Medium);
 
     virtual void start(void (*fn)(void *arg), void *arg) = 0;
     virtual void join() = 0;

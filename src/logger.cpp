@@ -144,6 +144,19 @@ int Logging::count()
     return loggers.size(mutex);
 }
 
+    /*
+     *
+     */
+
+void Logging::printf(Logging *logging, Severity s, const char *fmt, ...)
+{
+    ASSERT(logging);
+    va_list ap;
+    va_start(ap, fmt);
+    logging->log(s, fmt, ap);
+    va_end(ap);
+}
+
 }   //  namespace panglos
 
 //  FIN
