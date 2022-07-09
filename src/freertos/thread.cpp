@@ -6,10 +6,20 @@ extern "C" {
 
 #include "panglos/debug.h"
 #include "panglos/mutex.h"
-
 #include "panglos/thread.h"
 
 namespace panglos {
+
+    /*
+     *
+     */
+
+class RTOS_Thread;
+
+// Use TLS to save the current thread
+// This assumes that TLS is supported by the port of FreeRTOS
+// True for esp32
+static __thread RTOS_Thread *_this_thread;
 
 class RTOS_Thread : public Thread
 {
@@ -24,15 +34,17 @@ class RTOS_Thread : public Thread
     Semaphore *dead;
 
 public:
+
     RTOS_Thread(const char *_name, size_t _stack, Thread::Priority _pri)
     :   name(_name),
-        stack(_stack),
+        stack(_stack ? _stack : 4000),
         pri(_pri),
         arg(0),
         handle(0),
         dead(0)
     {
         dead = Semaphore::create();
+        _this_thread = this;
     }
 
     ~RTOS_Thread()
@@ -50,7 +62,16 @@ public:
         fn(arg);
         dead->post();
     }
+
+    virtual const char *get_name() override
+    {
+        return name;
+    }
 };
+
+    /*
+     *
+     */
 
 static void thread_run(void *arg)
 {
@@ -81,6 +102,11 @@ void RTOS_Thread::join()
 Thread *Thread::create(const char *name, size_t stack, Thread::Priority pri)
 {
     return new RTOS_Thread(name, stack, pri);
+}
+
+Thread *Thread::get_current()
+{
+    return _this_thread;
 }
 
 }   //  namespace panglos
