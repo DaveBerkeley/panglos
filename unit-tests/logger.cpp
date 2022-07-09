@@ -6,6 +6,8 @@
 #include "panglos/debug.h"
 #include "panglos/io.h"
 #include "panglos/thread.h"
+#include "panglos/linux/arch.h"
+
 #include "panglos/logger.h"
 
 using namespace panglos;
@@ -130,6 +132,27 @@ TEST(Logger, Threads)
     }
 
     EXPECT_STREQ(s.c_str(), out.get());
+
+    delete logging;
+}
+
+TEST(Logger, Irq)
+{
+    Logging *logging = new Logging(S_DEBUG);
+
+    StringOut out;
+
+    logging->add_irq(& out, S_INFO);
+
+    Logging::printf(logging, S_INFO, "hello %s", "world");
+    EXPECT_STREQ("", out.get());
+
+    bool was = arch_set_in_irq(true);
+ 
+    Logging::printf(logging, S_INFO, "hello %s", "world");
+    EXPECT_STREQ("hello world", out.get());
+
+    arch_set_in_irq(was);
 
     delete logging;
 }
