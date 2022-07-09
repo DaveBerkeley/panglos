@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
+#include <panglos/thread.h>
 #include <panglos/buffer.h>
 
 #include "mock.h"
@@ -97,7 +98,7 @@ typedef struct
     bool kill;
 }   Info;
 
-static void * get_fn(void *arg)
+static void get_fn(void *arg)
 {
     ASSERT(arg);
     Info *info = (Info*) arg;
@@ -117,11 +118,9 @@ static void * get_fn(void *arg)
         buff[c] = '\0';
         EXPECT_STREQ(info->tx, (char*) buff);
     }
-
-    return 0;
 }
 
-static void * add_fn(void *arg)
+static void add_fn(void *arg)
 {
     ASSERT(arg);
     Info *info = (Info*) arg;
@@ -141,11 +140,9 @@ static void * add_fn(void *arg)
     }
 
     info->done = true;
- 
-    return 0;
 }
 
-static void * event_fn(void *arg)
+static void event_fn(void *arg)
 {
     ASSERT(arg);
     Info *info = (Info*) arg;
@@ -160,8 +157,6 @@ static void * event_fn(void *arg)
         now += 50;
         mock_timer_set(now);
     }
-
-    return 0;
 }
 
 TEST(RingBuffer, Wait)
@@ -182,21 +177,20 @@ TEST(RingBuffer, Wait)
         .kill = false
     };
 
-    pthread_t add, get, events;
-    int err;
+    Thread *add, *get, *events;
 
-    err = pthread_create(& events, 0, event_fn, & info);
-    ASSERT(err == 0);
+    events = Thread::create("events");
+    events->start(event_fn, & info);
 
     // this should time out, no data in buffer
     bool done = buffer.wait(& q, 100);
     EXPECT_FALSE(done);
 
-    err = pthread_create(& get, 0, add_fn, & info);
-    ASSERT(err == 0);
+    get = Thread::create("get");
+    get->start(add_fn, & info);
 
-    err = pthread_create(& add, 0, get_fn, & info);
-    ASSERT(err == 0);
+    add = Thread::create("add");
+    add->start(get_fn, & info);
 
     while (!info.done)
     {
@@ -204,10 +198,13 @@ TEST(RingBuffer, Wait)
     }
 
     info.dead = true;
-    pthread_join(get, 0);
-    pthread_join(add, 0);
+    get->join();
+    delete get;
+    add->join();
+    delete add;
     info.kill = true;
-    pthread_join(events, 0);
+    events->join();
+    delete events;
 
     delete s;
     mock_teardown();
@@ -231,18 +228,16 @@ TEST(RingBuffer, Timeout)
         .kill = false
     };
 
-    pthread_t events;
-    int err;
-
-    err = pthread_create(& events, 0, event_fn, & info);
-    ASSERT(err == 0);
+    Thread *thread = Thread::create("xx");
+    thread->start(event_fn, & info);
 
     // this should time out, no data in buffer
     bool done = buffer.wait(& q, 1000);
     EXPECT_FALSE(done);
 
     info.kill = true;
-    pthread_join(events, 0);
+    thread->join();
+    delete thread;
 
     delete s;
     mock_teardown();

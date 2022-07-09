@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
+#include <panglos/thread.h>
 #include <panglos/event.h>
 #include <panglos/timer.h>
 
@@ -346,7 +347,7 @@ typedef struct {
     bool dead;
 }   Waiter;
 
-static void* wait_fn(void *arg)
+static void wait_fn(void *arg)
 {
     Waiter *w = (Waiter*) arg;
     Semaphore *s = Semaphore::create();
@@ -369,7 +370,6 @@ static void* wait_fn(void *arg)
     w->dead = true;
 
     delete s;
-    return 0;
 }
 
 TEST(Event, Wait)
@@ -379,9 +379,8 @@ TEST(Event, Wait)
     EventQueue eq(0);
 
     const int num = 5;
-    int err;
 
-    pthread_t threads[num];
+    Thread *threads[num];
     Waiter w[num];
     int t1[] = { 1000, 1000, 1000, -1 };
 
@@ -393,8 +392,8 @@ TEST(Event, Wait)
         w[i].count = 0;
         w[i].dead = false;
 
-        err = pthread_create(& threads[i], 0, wait_fn, & w[i]);
-        ASSERT(err == 0);
+        threads[i] = Thread::create("xx");
+        threads[i]->start(wait_fn, & w[i]);
     }
 
     while (true)
@@ -423,8 +422,8 @@ TEST(Event, Wait)
     // wait for all the threads to terminate
     for (int i = 0; i < num; i++)
     {
-        err = pthread_join(threads[i], 0);
-        ASSERT(err == 0);
+        threads[i]->join();
+        delete threads[i];
     }
 
     mock_teardown();

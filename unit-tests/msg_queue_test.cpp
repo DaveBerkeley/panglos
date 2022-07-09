@@ -1,9 +1,8 @@
 
-#include <pthread.h>
-
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
+#include <panglos/thread.h>
 #include <panglos/msg_queue.h>
 
 using namespace panglos;
@@ -63,7 +62,7 @@ typedef struct {
     int get_count;
 }   ThreadInfo;
 
-static void * put_thread(void *arg)
+static void put_thread(void *arg)
 {
     ASSERT(arg);
     ThreadInfo *ti = (ThreadInfo*) arg;
@@ -75,7 +74,7 @@ static void * put_thread(void *arg)
 
             if (ti->put_count >= ti->do_count)
             {
-                return 0;
+                return;
             }
 
             ti->put_count += 1;
@@ -86,7 +85,7 @@ static void * put_thread(void *arg)
     }
 }
 
-static void * get_thread(void *arg)
+static void get_thread(void *arg)
 {
     ASSERT(arg);
     ThreadInfo *ti = (ThreadInfo*) arg;
@@ -96,7 +95,7 @@ static void * get_thread(void *arg)
         const char *s = ti->mq->wait();
         if (!s)
         {
-            return 0;
+            return;
         }
         EXPECT_STREQ("hello", s);
         ti->get_count += 1;
@@ -116,8 +115,7 @@ TEST(MsgQueue, ThreadSafe)
 
     int put_num = 10, get_num = 10;
     int msgs = 100;
-    pthread_t put[put_num], get[get_num];
-    int err;
+    Thread *get[get_num];
 
     ThreadInfo ti;
     memset(& ti, 0, sizeof(ti));
@@ -133,23 +131,13 @@ TEST(MsgQueue, ThreadSafe)
         memset(& gi[i], 0, sizeof(ThreadInfo));
         gi[i].mq = & mq;
         gi[i].mutex = mutex;
-        err = pthread_create(& get[i], 0, get_thread, & gi[i]);
-        EXPECT_EQ(0, err);
+        get[i] = Thread::create("get");
+        get[i]->start(get_thread, & gi[i]);
     }
 
-    // start lots of put threads
-    for (int i = 0; i < put_num; i++)
-    {
-        err = pthread_create(& put[i], 0, put_thread, & ti);
-        EXPECT_EQ(0, err);
-    }
-
-    // wait for all the put threads to terminate
-    for (int i = 0; i < put_num; i++)
-    {
-        err = pthread_join(put[i], 0);
-        EXPECT_EQ(0, err);
-    }
+    ThreadPool put("put", put_num);
+    put.start(put_thread, & ti);
+    put.join();
 
     // terminate the list for every listener
     for (int i = 0; i < get_num; i++)
@@ -160,8 +148,8 @@ TEST(MsgQueue, ThreadSafe)
     // wait for all the get threads
     for (int i = 0; i < get_num; i++)
     {
-        err = pthread_join(get[i], 0);
-        EXPECT_EQ(0, err);
+        get[i]->join();
+        delete get[i];
     }
 
     int sum = 0;

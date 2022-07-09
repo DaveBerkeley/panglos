@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
+#include <panglos/thread.h>
 #include <panglos/rfm12b.h>
 
 #include "mock.h"
