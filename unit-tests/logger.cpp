@@ -22,7 +22,6 @@ public:
 
     virtual int tx(const char* data, int n) override
     {
-        IGNORE(data);
         text.append(data, n);
         return n;
     }
@@ -93,6 +92,7 @@ TEST(Logger, Severity)
 
 struct ThreadInfo {
     Logging *logging;
+    const char *s;
 };
 
 static void thread_test(void *arg)
@@ -100,7 +100,7 @@ static void thread_test(void *arg)
     ASSERT(arg);
     struct ThreadInfo *ti = (struct ThreadInfo*) arg;
 
-    Logging::printf(ti->logging, S_INFO, "hello %s\n", "world");
+    Logging::printf(ti->logging, S_INFO, "%s", ti->s);
 }
 
 TEST(Logger, Threads)
@@ -111,17 +111,25 @@ TEST(Logger, Threads)
 
     logging->add(& out, S_INFO);
 
-    ThreadPool pool("x", 10);
+    const int n = 200;
+    ThreadPool pool("x", n);
 
     struct ThreadInfo info = {
         .logging = logging,
+        .s = "hello world\n",
     };
 
     pool.start(thread_test, & info);
-
     pool.join();
 
-    PO_DEBUG("%s", out.get());
+    std::string s;
+
+    for (int i = 0; i < n; i++)
+    {
+        s += info.s;
+    }
+
+    EXPECT_STREQ(s.c_str(), out.get());
 
     delete logging;
 }
