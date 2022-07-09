@@ -4,8 +4,6 @@
 
 #include <stdarg.h>
 
-#include "panglos/mutex.h"
-
     /*
      *
      */

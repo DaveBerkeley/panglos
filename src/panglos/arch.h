@@ -16,4 +16,8 @@
 #include "panglos/xtensa/arch.h"
 #endif
 
+#if defined(ARCH_LINUX)
+#include "panglos/linux/arch.h"
+#endif
+
 //  FIN

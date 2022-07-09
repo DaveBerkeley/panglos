@@ -13,10 +13,12 @@ files = [
     'src/i2c_bitbang.cpp',
     'src/vcd.cpp',
     'src/io.cpp',
+    'src/logger.cpp',
 
     # https://github.com/eyalroz/printf
     'lib/printf/src/printf/printf.c',
 
+    'src/linux/arch.cpp',
     'unit-tests/stubs.cpp',
     'unit-tests/buffer_test.cpp',
     'unit-tests/deque_test.cpp',
@@ -33,6 +35,7 @@ files = [
     'unit-tests/time.cpp',
     'unit-tests/object.cpp',
     'unit-tests/i2c.cpp',
+    'unit-tests/logger.cpp',
 ]
 
 ccflags = [
@@ -48,6 +51,7 @@ ccflags = [
 
     '-g',
     '-DGTEST=1',
+    '-DARCH_LINUX=1',
 ]
 
 cpppath = [

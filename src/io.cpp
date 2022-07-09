@@ -6,6 +6,8 @@
 
 #include "panglos/debug.h"
 
+#include "panglos/mutex.h"
+
 #include "panglos/io.h"
 
 extern "C" {
