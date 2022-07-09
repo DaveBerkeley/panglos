@@ -21,6 +21,18 @@ public:
     virtual void join() = 0;
 };
 
+class ThreadPool
+{
+    Thread **threads;
+    int count;
+
+public:
+    ThreadPool(const char *name, int n, size_t stack=0, Thread::Priority p=Thread::Medium);
+    ~ThreadPool();
+    void start(void (*fn)(void *arg), void *arg);
+    void join();
+};
+
 }   //  namespace panglos
 
 #endif  //  __PANGLOS_THREAD__

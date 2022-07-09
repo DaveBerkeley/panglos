@@ -91,59 +91,6 @@ TEST(Logger, Severity)
      *
      */
 
-class ThreadPool
-{
-    Thread **threads;
-    int count;
-
-public:
-    ThreadPool(const char *name, int n, size_t stack=0, Thread::Priority p=Thread::Medium);
-    ~ThreadPool();
-    void start(void (*fn)(void *arg), void *arg);
-    void join();
-};
-
-
-ThreadPool::ThreadPool(const char *name, int n, size_t stack, Thread::Priority p)
-:   threads(0),
-    count(n)
-{
-    threads = new Thread* [n];
-    for (int i = 0; i < count; i++)
-    {
-        threads[i] = Thread::create(name, stack, p);
-    }
-}
-
-ThreadPool::~ThreadPool()
-{
-    for (int i = 0; i < count; i++)
-    {
-        delete threads[i];
-    }
-    delete[] threads;
-}
-
-void ThreadPool::start(void (*fn)(void *), void *arg)
-{
-    for (int i = 0; i < count; i++)
-    {
-        threads[i]->start(fn, arg);
-    }
-}
-
-void ThreadPool::join()
-{
-    for (int i = 0; i < count; i++)
-    {
-        threads[i]->join();
-    }
-}
-
-    /*
-     *
-     */
-
 struct ThreadInfo {
     Logging *logging;
 };

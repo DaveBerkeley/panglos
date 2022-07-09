@@ -14,6 +14,7 @@ files = [
     'src/vcd.cpp',
     'src/io.cpp',
     'src/logger.cpp',
+    'src/thread.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
