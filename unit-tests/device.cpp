@@ -19,6 +19,7 @@ using namespace panglos;
 
 struct DevInit {
     Objects *objects;
+    bool verbose;
 };
 
 static bool hardware_init(const char *name, Device *dev, struct DevInit *di)
@@ -26,18 +27,18 @@ static bool hardware_init(const char *name, Device *dev, struct DevInit *di)
     // simulate hardware initialisation
     ASSERT(di);
     ASSERT(di->objects);
-    PO_DEBUG("%s %s", name, dev->name);
+
+    if (di->verbose) PO_DEBUG("%s %s", name, dev->name);
 
     di->objects->add(dev->name, dev);
 
     return true;
 }
 
-static bool init_gpio(Device *dev, void *arg)
+static struct DevInit * get_di(void *arg)
 {
     ASSERT(arg);
-    struct DevInit *di = (struct DevInit *) arg;
-    return hardware_init("gpio", dev, di);
+    return (struct DevInit *) arg;
 }
 
 class Anything;
@@ -57,10 +58,19 @@ static void check_has(Device *dev, Objects *objects, const char **names)
     }
 }
 
+    /*
+     *
+     */
+
+static bool init_gpio(Device *dev, void *arg)
+{
+    struct DevInit *di = get_di(arg);
+    return hardware_init("gpio", dev, di);
+}
+
 static bool init_i2c(Device *dev, void *arg)
 {
-    ASSERT(arg);
-    struct DevInit *di = (struct DevInit *) arg;
+    struct DevInit *di = get_di(arg);
     Objects *objects = di->objects;
 
     const char *ensure[] = { "scl", "sda", 0 };
@@ -71,8 +81,7 @@ static bool init_i2c(Device *dev, void *arg)
 
 static bool init_mcp23s17(Device *dev, void *arg)
 {
-    ASSERT(arg);
-    struct DevInit *di = (struct DevInit *) arg;
+    struct DevInit *di = get_di(arg);
     Objects *objects = di->objects;
 
     const char *ensure[] = { "i2c", 0 };
@@ -83,8 +92,7 @@ static bool init_mcp23s17(Device *dev, void *arg)
 
 static bool init_keyboard(Device *dev, void *arg)
 {
-    ASSERT(arg);
-    struct DevInit *di = (struct DevInit *) arg;
+    struct DevInit *di = get_di(arg);
     Objects *objects = di->objects;
 
     const char *ensure[] = { "mcp23s17", "reset", "irq", 0 };
@@ -149,8 +157,6 @@ TEST(Device, FindHas)
      *
      */
 
-// List    void add_sorted(T w, int (*cmp)(T a, T b), Mutex *mutex)
-//
 static int list_randomise(Device *a, Device *b)
 {
     IGNORE(a);
@@ -160,38 +166,42 @@ static int list_randomise(Device *a, Device *b)
     return i;
 }
 
-static void list_shuffle(List<Device*> & list)
+static void list_shuffle(List<Device*> & list, Mutex *m=0)
 {
     const int size = list.size(0);
 
     for (int i = 0; i < size; i++)
     {
         Device *dev = list.pop(0);
-        list.add_sorted(dev, list_randomise, 0);
+        ASSERT(dev);
+        list.add_sorted(dev, list_randomise, m);
     }
 }
 
 TEST(Device, Test)
 {
+    bool verbose = false;
+
     for (int i = 0; i < 3; i++)
     {
-        PO_DEBUG("");
+        if (verbose) PO_DEBUG("");
         List<Device*> devices(Device::get_next);
 
         Objects *objects = Objects::create();
 
         struct DevInit di = {
             .objects = objects,
+            .verbose =verbose,
         };
 
         add_devices(devices, & di);
 
         list_shuffle(devices);
 
-        bool verbose = false;
-        Device::init_devices(devices, verbose);
+        bool ok = Device::init_devices(devices, verbose);
+        EXPECT_TRUE(ok);
 
-        // Check we have all the objects
+        // Check all the objects have been initialised
         EXPECT_TRUE(objects->get("scl0"));
         EXPECT_TRUE(objects->get("sda0"));
         EXPECT_TRUE(objects->get("i2c0"));
@@ -200,6 +210,59 @@ TEST(Device, Test)
 
         delete objects;
     }
+}
+
+TEST(Device, Loop)
+{
+    bool verbose = false;
+    List<Device*> devices(Device::get_next);
+
+    Objects *objects = Objects::create();
+
+    struct DevInit di = {
+        .objects = objects,
+        .verbose =verbose,
+    };
+
+    static const char *needs_a[] = { "b", 0 };
+    static const char *needs_b[] = { "a", 0 };
+
+    static Device a("a", needs_a, init_gpio, & di);
+    static Device b("b", needs_b, init_gpio, & di);
+
+    Mutex *m = 0;
+    devices.push(& a, m);
+    devices.push(& b, m);
+
+    bool ok = Device::init_devices(devices, verbose);
+    EXPECT_FALSE(ok);
+
+    delete objects;
+}
+
+TEST(Device, NoSuchDevice)
+{
+    bool verbose = false;
+    List<Device*> devices(Device::get_next);
+
+    Objects *objects = Objects::create();
+
+    struct DevInit di = {
+        .objects = objects,
+        .verbose =verbose,
+    };
+
+    static const char *needs_a[] = { "b", 0 };
+
+    static Device a("a", needs_a, init_gpio, & di);
+
+    Mutex *m = 0;
+    devices.push(& a, m);
+
+    bool ok = Device::init_devices(devices, verbose, 5);
+    EXPECT_FALSE(ok);
+
+    delete objects;
 }
 
 //  FIN

@@ -8,14 +8,15 @@ namespace panglos {
 
 class Device
 {
-    bool init_device(List<Device *> & done, List<Device *> & todo, bool verbose);
+    bool init_device(List<Device *> & done, List<Device *> & todo, bool verbose, int nest);
     static int match_name(Device *dev, void *arg);
-public:
-    const char *name;
+
     const char **needs;
     bool (*init)(Device *dev, void *arg);
     void *arg;
     Device *next;
+public:
+    const char *name;
 
     Device(const char *name, const char **needs, bool (*fn)(Device *, void *), void *arg);
 
@@ -24,7 +25,7 @@ public:
     // List utils
     static Device **get_next(Device *d);
 
-    static bool init_devices(List<Device *> & todo, bool verbose=false, int loops=1000);
+    static bool init_devices(List<Device *> & todo, bool verbose=false, int loops=100);
 };
 
 }   //  namespace panglos

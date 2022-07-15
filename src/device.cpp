@@ -8,11 +8,11 @@
 namespace panglos {
 
 Device::Device(const char *_name, const char **_needs, bool (*fn)(Device *, void*), void *_arg)
-:   name(_name),
-    needs(_needs),
+:   needs(_needs),
     init(fn),
     arg(_arg),
-    next(0)
+    next(0),
+    name(_name)
 {
 }
 
@@ -60,9 +60,15 @@ const char *Device::find_has(const char *part)
      *
      */
 
-bool Device::init_device(List<Device *> & done, List<Device *> & todo, bool verbose)
+bool Device::init_device(List<Device *> & done, List<Device *> & todo, bool verbose, int nest)
 {
-    if (verbose) PO_DEBUG("name=%s", name);
+    if (verbose) PO_DEBUG("name=%s nest=%d", name, nest);
+
+    if (!nest)
+    {
+        PO_ERROR("nest limit exceeded. Loop in device precursors?");
+        return false;
+    }
 
     // Initialise all the devices that this device needs
     if (needs)
@@ -90,7 +96,7 @@ bool Device::init_device(List<Device *> & done, List<Device *> & todo, bool verb
                 return false;
             }
 
-            if (!dev->init_device(done, todo, verbose))
+            if (!dev->init_device(done, todo, verbose, nest - 1))
             {
                 return false;
             }
@@ -122,7 +128,7 @@ bool Device::init_devices(List<Device *> & todo, bool verbose, int loops)
     {
         Device *dev = todo.head;
 
-        if (!dev->init_device(done, todo, verbose))
+        if (!dev->init_device(done, todo, verbose, loops))
         {
             return false;
         }
