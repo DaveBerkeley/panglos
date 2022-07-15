@@ -1,0 +1,205 @@
+
+#include <stdlib.h>
+#include <limits.h>
+
+#include <gtest/gtest.h>
+
+#include "panglos/debug.h"
+
+#include "panglos/object.h"
+#include "panglos/list.h"
+
+#include "panglos/device.h"
+
+    /*
+     *
+     */
+
+using namespace panglos;
+
+struct DevInit {
+    Objects *objects;
+};
+
+static bool hardware_init(const char *name, Device *dev, struct DevInit *di)
+{
+    // simulate hardware initialisation
+    ASSERT(di);
+    ASSERT(di->objects);
+    PO_DEBUG("%s %s", name, dev->name);
+
+    di->objects->add(dev->name, dev);
+
+    return true;
+}
+
+static bool init_gpio(Device *dev, void *arg)
+{
+    ASSERT(arg);
+    struct DevInit *di = (struct DevInit *) arg;
+    return hardware_init("gpio", dev, di);
+}
+
+class Anything;
+
+static void check_has(Device *dev, Objects *objects, const char **names)
+{
+    ASSERT(objects);
+    ASSERT(names);
+
+    for (const char **n = names; *n; n++)
+    {
+        //PO_DEBUG("dev=%s n=%s", dev->name, *n);
+        const char *s = dev->find_has(*n);
+        EXPECT_TRUE(s);
+        Anything *thing = (Anything*) objects->get(s);
+        EXPECT_TRUE(thing);
+    }
+}
+
+static bool init_i2c(Device *dev, void *arg)
+{
+    ASSERT(arg);
+    struct DevInit *di = (struct DevInit *) arg;
+    Objects *objects = di->objects;
+
+    const char *ensure[] = { "scl", "sda", 0 };
+    check_has(dev, objects, ensure);
+
+    return hardware_init("i2c", dev, di);
+}
+
+static bool init_mcp23s17(Device *dev, void *arg)
+{
+    ASSERT(arg);
+    struct DevInit *di = (struct DevInit *) arg;
+    Objects *objects = di->objects;
+
+    const char *ensure[] = { "i2c", 0 };
+    check_has(dev, objects, ensure);
+
+    return hardware_init("mcp23s17", dev, di);
+}
+
+static bool init_keyboard(Device *dev, void *arg)
+{
+    ASSERT(arg);
+    struct DevInit *di = (struct DevInit *) arg;
+    Objects *objects = di->objects;
+
+    const char *ensure[] = { "mcp23s17", "reset", "irq", 0 };
+    check_has(dev, objects, ensure);
+
+    return hardware_init("keyboard", dev, di);
+}
+
+    /*
+     *
+     */
+
+static void add_devices(List<Device*> &devices, struct DevInit *di)
+{
+    static const char *needs_i2c[] = { "sda0", "scl0", 0 };
+    static const char *needs_mcp23s17[] = { "i2c0", 0 };
+    static const char *needs_keyboard[] = { "mcp23s17", "key_reset", "key_irq", 0 };
+
+    static Device sda("sda0", 0, init_gpio, di);
+    static Device scl("scl0", 0, init_gpio, di);
+    static Device i2c("i2c0", needs_i2c, init_i2c, di);
+    static Device mcp23s17("mcp23s17", needs_mcp23s17, init_mcp23s17, di);
+    static Device keyboard("keyboard", needs_keyboard, init_keyboard, di);
+    static Device reset("key_reset", 0, init_gpio, di);
+    static Device irq("key_irq", 0, init_gpio, di);
+
+    Mutex *m = 0;
+    devices.push(& sda, m);
+    devices.push(& keyboard, m);
+    devices.push(& scl, m);
+    devices.push(& mcp23s17, m);
+    devices.push(& i2c, m);
+    devices.push(& reset, m);
+    devices.push(& irq, m);
+}
+
+    /*
+     *
+     */
+
+TEST(Device, FindHas)
+{
+    const char *needs[] = { "sda0", "scl0", 0 };
+    Device i2c = {
+        .name = "i2c0",
+        .needs = needs,
+        .init = 0,
+        .args = 0,
+    };
+
+    const char *s;
+
+    s = i2c.find_has("sda");
+    EXPECT_STREQ(s, "sda0");
+    s = i2c.find_has("sdx");
+    EXPECT_FALSE(s);
+    s = i2c.find_has("scl");
+    EXPECT_STREQ(s, "scl0");
+}
+
+    /*
+     *
+     */
+
+// List    void add_sorted(T w, int (*cmp)(T a, T b), Mutex *mutex)
+//
+static int list_randomise(Device *a, Device *b)
+{
+    IGNORE(a);
+    IGNORE(b);
+    int i = rand();
+    i = (i > (INT_MAX/2)) ? 1 : -1;
+    return i;
+}
+
+static void list_shuffle(List<Device*> & list)
+{
+    const int size = list.size(0);
+
+    for (int i = 0; i < size; i++)
+    {
+        Device *dev = list.pop(0);
+        list.add_sorted(dev, list_randomise, 0);
+    }
+}
+
+TEST(Device, Test)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        PO_DEBUG("");
+        List<Device*> devices(Device::get_next);
+
+        Objects *objects = Objects::create();
+
+        struct DevInit di = {
+            .objects = objects,
+        };
+
+        add_devices(devices, & di);
+
+        list_shuffle(devices);
+
+        bool verbose = false;
+        Device::init_devices(devices, verbose);
+
+        // Check we have all the objects
+        EXPECT_TRUE(objects->get("scl0"));
+        EXPECT_TRUE(objects->get("sda0"));
+        EXPECT_TRUE(objects->get("i2c0"));
+        EXPECT_TRUE(objects->get("keyboard"));
+        EXPECT_TRUE(objects->get("mcp23s17"));
+
+        delete objects;
+    }
+}
+
+//  FIN

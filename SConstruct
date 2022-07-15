@@ -15,6 +15,7 @@ files = [
     'src/io.cpp',
     'src/logger.cpp',
     'src/thread.cpp',
+    'src/device.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
@@ -42,6 +43,7 @@ files = [
     'unit-tests/i2c.cpp',
     'unit-tests/logger.cpp',
     'unit-tests/io.cpp',
+    'unit-tests/device.cpp',
 ]
 
 ccflags = [
