@@ -1,4 +1,7 @@
 
+#include <unistd.h>
+#include <stdlib.h>
+
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
@@ -373,7 +376,11 @@ TEST(List, Thread)
     List<Item*> list(item_next);
     Mutex *mutex = Mutex::create();
 
+#if defined(ARCH_LINUX)
     const int num = 50;
+#else
+    const int num = 5;
+#endif
     const int adds = 100;
     PushInfo push[num];
     PushInfo pop[num];
@@ -400,7 +407,7 @@ TEST(List, Thread)
 
     for (int i = 0; i < num; i++)
     {
-        Thread *thread;
+        panglos::Thread *thread;
 
         thread = push[i].thread;
         thread->join();
