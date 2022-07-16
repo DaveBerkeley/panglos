@@ -441,7 +441,7 @@ TEST(I2C, BytesWrite)
     EXPECT_EQ(n, 4);
 }
 
-#if 1
+#if 0
 TEST(I2C, WriteRead)
 {
     VcdWriter vcd(VCD_PATH, SR_PATH);

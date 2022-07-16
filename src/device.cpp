@@ -62,7 +62,7 @@ const char *Device::find_has(const char *part)
 
 bool Device::init_device(List<Device *> & done, List<Device *> & todo, bool verbose, int nest)
 {
-    if (verbose) PO_DEBUG("name=%s nest=%d", name, nest);
+    if (verbose) PO_DEBUG("name=%s", name);
 
     if (!nest)
     {
