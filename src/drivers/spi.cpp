@@ -1,7 +1,10 @@
 
 #include "panglos/debug.h"
 
-#include "panglos/spi.h"
+#include "panglos/mutex.h"
+#include "panglos/drivers/gpio.h"
+
+#include "panglos/drivers/spi.h"
 
 namespace panglos {
 

@@ -4,9 +4,9 @@
 
 #include "panglos/debug.h"
 
-#include "panglos/gpio.h"
 #include "panglos/event.h"
-#include "panglos/motor.h"
+#include "panglos/drivers/gpio.h"
+#include "panglos/drivers/motor.h"
 
 namespace panglos {
 

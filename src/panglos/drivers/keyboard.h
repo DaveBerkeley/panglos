@@ -5,7 +5,7 @@
 #if !defined(__PANGLOS_KEYBOARD__)
 #define __PANGLOS_KEYBOARD__
 
-#include "panglos/mcp23s17.h"
+#include "panglos/drivers/mcp23s17.h"
 
 namespace panglos {
 

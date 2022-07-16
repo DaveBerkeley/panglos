@@ -5,10 +5,11 @@
 #include <panglos/debug.h>
 #include <panglos/mutex.h>
 #include <panglos/event.h>
-#include <panglos/gpio.h>
-#include <panglos/spi.h>
-#include <panglos/i2c.h>
 #include <panglos/time.h>
+
+#include <panglos/drivers/gpio.h>
+#include <panglos/drivers/spi.h>
+#include <panglos/drivers/i2c.h>
 
 void mock_setup(bool event_thread);
 void mock_teardown();

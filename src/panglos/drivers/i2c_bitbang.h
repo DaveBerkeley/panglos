@@ -6,9 +6,11 @@
      *  Bitbang I2C
      */
 
-#include "panglos/i2c.h"
+#include "panglos/drivers/i2c.h"
 
 namespace panglos {
+
+class GPIO;
 
 class BitBang_I2C : public I2C
 {

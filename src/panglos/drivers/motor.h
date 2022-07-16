@@ -8,10 +8,11 @@
 
 #include <stdint.h>
 
-#include "gpio.h"
-#include "mutex.h"
-
 namespace panglos {
+
+class Mutex;
+class GPIO;
+class Semaphore;
 
     /*
      *  Abstract Stepper Interface

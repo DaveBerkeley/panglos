@@ -7,7 +7,7 @@
 #include "panglos/debug.h"
 #include "panglos/time.h"
 
-#include "panglos/keyboard.h"
+#include "panglos/drivers/keyboard.h"
 
 namespace panglos {
 

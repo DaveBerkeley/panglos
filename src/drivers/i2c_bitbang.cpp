@@ -7,9 +7,9 @@
 
 #include "panglos/debug.h"
 #include "panglos/mutex.h"
-#include "panglos/gpio.h"
+#include "panglos/drivers/gpio.h"
 
-#include "panglos/i2c_bitbang.h"
+#include "panglos/drivers/i2c_bitbang.h"
 
 namespace panglos {
 

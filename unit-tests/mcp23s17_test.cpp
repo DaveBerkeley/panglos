@@ -2,9 +2,9 @@
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
-#include <panglos/mcp23s17.h>
-#include <panglos/keyboard.h>
-#include <panglos/i2c_bitbang.h>
+#include <panglos/drivers/mcp23s17.h>
+#include <panglos/drivers/keyboard.h>
+#include <panglos/drivers/i2c_bitbang.h>
 
 #include <panglos/vcd.h>
 

@@ -5,7 +5,7 @@
 
 #include <panglos/debug.h>
 #include <panglos/thread.h>
-#include <panglos/motor.h>
+#include <panglos/drivers/motor.h>
 
 #include "mock.h"
 

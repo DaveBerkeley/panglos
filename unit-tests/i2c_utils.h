@@ -3,7 +3,7 @@
      *
      */
 
-#include "panglos/gpio.h"
+#include "panglos/drivers/gpio.h"
 
 class SimGpio : public panglos::GPIO
 {

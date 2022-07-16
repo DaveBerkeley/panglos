@@ -3,9 +3,9 @@
 
 #include "panglos/debug.h"
 
-#include "panglos/spi.h"
-#include "panglos/i2c.h"
-#include "panglos/mcp23s17.h"
+#include "panglos/drivers/spi.h"
+#include "panglos/drivers/i2c.h"
+#include "panglos/drivers/mcp23s17.h"
 
 namespace panglos {
 

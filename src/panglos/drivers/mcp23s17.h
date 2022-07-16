@@ -3,8 +3,8 @@
 #define __PANGLOS_MCP23S17__
 
 #include "gpio.h"
-#include "mutex.h"
-#include "dispatch.h"
+#include "panglos/mutex.h"
+#include "panglos/dispatch.h"
 
 namespace panglos {
 

@@ -4,12 +4,11 @@
 
 #include <stdint.h>
 
-#include "gpio.h"
-#include "mutex.h"
-
 namespace panglos {
 
 class SpiDevice;
+class Mutex;
+class GPIO;
 
 class SPI
 {
