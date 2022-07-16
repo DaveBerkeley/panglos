@@ -1,5 +1,5 @@
 
-#include "panglos/gpio.h"
+#include "panglos/drivers/gpio.h"
 
 namespace panglos {
 

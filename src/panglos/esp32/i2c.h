@@ -1,5 +1,5 @@
 
-#include "panglos/i2c.h"
+#include "panglos/drivers/i2c.h"
 
 namespace panglos {
 
