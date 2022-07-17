@@ -324,7 +324,7 @@ const LUT I2CSim::state_lut[] = {
     { 0, 0 },
 };
 
-bool verbose = true;
+bool verbose = false;
 
 #define VCD_PATH "/tmp/i2c.vcd"
 #define SR_PATH  "/tmp/i2c.sr"
@@ -332,7 +332,7 @@ bool verbose = true;
 TEST(I2C, Start)
 {
     VcdWriter vcd(VCD_PATH, SR_PATH);
-    I2CSim sim(& vcd, true);
+    I2CSim sim(& vcd, verbose);
     BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
 
     vcd.write_header();
@@ -346,7 +346,7 @@ TEST(I2C, Start)
 TEST(I2C, Stop)
 {
     VcdWriter vcd(VCD_PATH, SR_PATH);
-    I2CSim sim(& vcd, true);
+    I2CSim sim(& vcd, verbose);
     BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
 
     vcd.write_header();
@@ -361,7 +361,7 @@ TEST(I2C, Stop)
 TEST(I2C, Probe)
 {
     VcdWriter vcd(VCD_PATH, SR_PATH);
-    I2CSim sim(& vcd, true);
+    I2CSim sim(& vcd, verbose);
     BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
 
     vcd.write_header();
@@ -388,7 +388,7 @@ TEST(I2C, Probe)
 TEST(I2C, ByteWrite)
 {
     VcdWriter vcd(VCD_PATH, SR_PATH);
-    I2CSim sim(& vcd, true);
+    I2CSim sim(& vcd, verbose);
     BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
 
     vcd.write_header();
@@ -423,7 +423,7 @@ TEST(I2C, ByteWrite)
 TEST(I2C, BytesWrite)
 {
     VcdWriter vcd(VCD_PATH, SR_PATH);
-    I2CSim sim(& vcd, true);
+    I2CSim sim(& vcd, verbose);
     BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
 
     vcd.write_header();
@@ -446,7 +446,7 @@ TEST(I2C, BytesWrite)
 TEST(I2C, WriteRead)
 {
     VcdWriter vcd(VCD_PATH, SR_PATH);
-    I2CSim sim(& vcd, true);
+    I2CSim sim(& vcd, verbose);
     BitBang_I2C i2c(0, & sim.scl, & sim.sda, I2CSim::wait, & sim, verbose);
 
     vcd.write_header();

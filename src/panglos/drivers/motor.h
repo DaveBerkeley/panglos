@@ -98,7 +98,6 @@ class Stepper
     int target;
     int rotate_to;
     uint32_t period;
-    Semaphore *semaphore;
 
 public:
     Accelerator *accelerator;
@@ -107,8 +106,6 @@ private:
     void set_state(int s);
     void step(bool up);
     int get_delta();
-
-    virtual void pause(uint32_t us);
 
 public:
     Stepper(int cycle, MotorIo* io, uint32_t time=1000, int32_t slow=-1, int steps=2);
@@ -123,7 +120,7 @@ public:
     virtual bool ready();
     virtual void zero(int t=0);
     virtual void set_steps(int s);
-    virtual bool poll();
+    virtual int poll();
     virtual void power(bool on);
 };
 

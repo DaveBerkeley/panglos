@@ -4,7 +4,6 @@
 
 #include "panglos/debug.h"
 
-#include "panglos/event.h"
 #include "panglos/drivers/gpio.h"
 #include "panglos/drivers/motor.h"
 
@@ -258,18 +257,15 @@ Stepper::Stepper(int cycle, MotorIo *io, uint32_t time, int32_t slow, int _steps
     target(0), 
     rotate_to(-1), 
     period(time), 
-    semaphore(0),
     accelerator(0)
 {
     ASSERT(io);
-    semaphore = Semaphore::create();
     accelerator = new Accelerator(time, (slow == -1) ? time : slow, _steps);
 }
 
 Stepper::~Stepper()
 {
     delete accelerator;
-    delete semaphore;
 }
 
 void Stepper::step(bool up)
@@ -398,19 +394,13 @@ int Stepper::get_delta()
     return -d;
 }
 
-void Stepper::pause(uint32_t us)
-{
-    //PO_REPORT("pause %d", us);
-    panglos::event_queue.wait(semaphore, us);
-}
-
-bool Stepper::poll()
+int Stepper::poll()
 {
     const int delta = get_delta();
 
     if ((delta == 0) && (accelerator->stopped()))
     {
-        return false;
+        return 0;
     }
 
     Accelerator::State state = accelerator->get_state();
@@ -437,8 +427,7 @@ bool Stepper::poll()
         target = count;
     }
 
-    pause(period);
-    return true;
+    return period;
 }
 
 }   //  namespace panglos
