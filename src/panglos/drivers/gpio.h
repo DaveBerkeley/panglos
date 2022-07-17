@@ -11,7 +11,7 @@ public:
  
     virtual void set(bool state) = 0;
     virtual bool get() = 0;
-    virtual void toggle() { set(get()); }
+    virtual void toggle() = 0;
 
     enum Interrupt {
         OFF,

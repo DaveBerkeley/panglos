@@ -29,6 +29,7 @@ public:
 
     virtual void set(bool _state) override;
     virtual bool get() override;
+    virtual void toggle() override;
 
     virtual void set_interrupt_handler(enum Interrupt irq, void (*fn)(void *arg), void *arg) override;
     virtual void on_interrupt() override;

@@ -27,6 +27,10 @@ public:
         ASSERT(getf);
         return getf(arg);
     }
+    virtual void toggle()
+    {
+        set(!get());
+    }
     void set_handlers(set_fn s, get_fn g, void *_arg)
     {
         setf = s;

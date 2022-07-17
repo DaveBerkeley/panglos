@@ -50,7 +50,7 @@ void ESP_GPIO::mark_unused(int pin)
 
 ESP_GPIO::ESP_GPIO(int _pin, int mode, bool initial_state, bool verbose, const char *_name)
 :   pin(_pin),
-    output((mode & OP) & !(mode & IP)),
+    output((mode & OP) && !(mode & IP)),
     verbose(verbose),
     name(_name ? _name : ""),
     irq_handler(0),
@@ -105,6 +105,11 @@ bool ESP_GPIO::get()
     const bool state = gpio_get_level((gpio_num_t) pin);
     if (verbose) PO_DEBUG("%s pin=%d state=%d", name, pin, state);
     return state;
+}
+
+void ESP_GPIO::toggle()
+{
+    set(!get());
 }
 
 static void gpio_irq_handler(void *arg)
