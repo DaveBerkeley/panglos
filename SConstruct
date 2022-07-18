@@ -18,6 +18,7 @@ files = [
     'src/drivers/spi.cpp',
     'src/drivers/mcp23s17.cpp',
     'src/drivers/motor.cpp',
+    'src/drivers/ath25.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
@@ -47,6 +48,7 @@ files = [
     'unit-tests/io.cpp',
     'unit-tests/device.cpp',
     'unit-tests/action.cpp',
+    'unit-tests/ath25.cpp',
 ]
 
 ccflags = [
