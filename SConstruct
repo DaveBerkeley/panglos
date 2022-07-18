@@ -11,6 +11,7 @@ files = [
     'src/logger.cpp',
     'src/thread.cpp',
     'src/device.cpp',
+    'src/action.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/keyboard.cpp',
@@ -45,6 +46,7 @@ files = [
     'unit-tests/logger.cpp',
     'unit-tests/io.cpp',
     'unit-tests/device.cpp',
+    'unit-tests/action.cpp',
 ]
 
 ccflags = [
