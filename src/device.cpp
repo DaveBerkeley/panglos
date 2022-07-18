@@ -20,11 +20,6 @@ Device::Device(const char *_name, const char **_needs, bool (*fn)(Device *, void
      *  List utils
      */
 
-Device **Device::get_next(Device *dev)
-{
-    return & dev->next;
-}
-
 int Device::match_name(Device *dev, void *arg)
 {
     ASSERT(arg);

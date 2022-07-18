@@ -7,11 +7,6 @@
 
 namespace panglos {
 
-Action **Action::get_next(Action *item)
-{
-    return & item->next;
-}
-
 Actions::Actions()
 :   actions(Action::get_next),
     mutex(0)

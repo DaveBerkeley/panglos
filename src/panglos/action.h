@@ -14,7 +14,7 @@ public:
     virtual ~Action() { }
     virtual void execute() = 0;
 
-    static Action **get_next(Action *);
+    static Action **get_next(Action *a) { return & a->next; }
 };
 
 class Mutex;

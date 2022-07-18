@@ -23,7 +23,7 @@ public:
     const char *find_has(const char *part);
 
     // List utils
-    static Device **get_next(Device *d);
+    static Device **get_next(Device *d) { return & d->next; }
 
     static bool init_devices(List<Device *> & todo, bool verbose=false, int loops=100);
 };
