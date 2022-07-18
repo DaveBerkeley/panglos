@@ -15,6 +15,9 @@ public:
 
     static Objects *create(bool verbose=false);
     static Objects* objects; // global store for app
+
+    typedef void (*visitor)(const char *name, void *obj, void *arg);
+    static void visit(Objects* objects, visitor fn, void *arg);
 };
 
 }   //  namespace panglos

@@ -72,4 +72,50 @@ TEST(Objects, Leak)
     delete g;
 }
 
+    /*
+     *
+     */
+
+static void test_visit(const char *name, void *obj, void *arg)
+{
+    ASSERT(name);
+    ASSERT(obj);
+    ASSERT(arg);
+
+    int num = 0;
+    int n = sscanf(name, "obj_%d", & num);
+    EXPECT_EQ(1, n);
+    const char *s = (const char *) obj;
+    EXPECT_EQ(s, name);
+
+    bool *found = (bool*) arg;
+    found[num] = true;
+}
+
+TEST(Objects, Visit)
+{
+    Objects *g = Objects::create();
+    ASSERT(g);
+
+    const int num = 10;
+    char name[num][16];
+    bool found[num];
+
+    for (int i = 0; i < num; i++)
+    {
+        found[i] = false;
+        snprintf(name[i], sizeof(name[i]), "obj_%d", i);
+        g->add(name[i], (void*) name[i]);
+    }
+
+    Objects::visit(g, test_visit, found);
+
+    for (int i = 0; i < num; i++)
+    {
+        EXPECT_TRUE(found[i]);
+    }
+
+    delete g;
+}
+
 //  FIN

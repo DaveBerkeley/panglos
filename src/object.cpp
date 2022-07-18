@@ -43,9 +43,9 @@ class Objects_ : public Objects
     Mutex *mutex;
     bool verbose;
 
+public:
     List<struct Object*> objects;
 
-public:
     Objects_(bool _verbose)
     :   mutex(0),
         verbose(_verbose),
@@ -102,6 +102,34 @@ public:
         return ok;
     }
 };
+
+    /*
+     *
+     */
+
+struct VisitArg
+{
+    Objects::visitor fn;
+    void *arg;
+};
+
+static int obj_visitor(Object *obj, void *arg)
+{
+    ASSERT(arg);
+    struct VisitArg *va = (struct VisitArg*) arg;
+    va->fn(obj->name, obj->obj, va->arg);
+    return 0;
+}
+
+void Objects::visit(Objects *objects, visitor fn, void *arg)
+{
+    ASSERT(objects);
+    Objects_ *objs = (Objects_ *) objects;
+    ASSERT(fn);
+
+    struct VisitArg va = { .fn = fn, .arg = arg, };
+    objs->objects.visit(obj_visitor, & va, 0);
+}
 
     /*
      *  Factory Method
