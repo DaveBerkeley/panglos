@@ -20,4 +20,8 @@
 #include "panglos/linux/arch.h"
 #endif
 
+#if defined(ARCH_STM32)
+#include "panglos/stm32/arch.h"
+#endif
+
 //  FIN

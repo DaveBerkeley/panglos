@@ -2,6 +2,8 @@
 #if !defined(__STM32_HAL_H__)
 #define __STM32_HAL_H__
 
+#if 0
+
 #include "stm32fxxx_hal.h"
 
 namespace panglos {
@@ -43,6 +45,8 @@ typedef struct {
 #endif
 
 }   // namespace panglos
+
+#endif
 
 #endif // __STM32_HAL_H__
 

@@ -9,6 +9,8 @@ extern "C" {
 #include "panglos/arch.h"
 #include "panglos/mutex.h"
 
+#include "yield.h"
+
     /*
      * Use FreeRTOS scheduler suspend / resume to implement panglos::Mutex
      */
@@ -115,7 +117,7 @@ public:
         {
             BaseType_t woken = pdFALSE;
             xSemaphoreGiveFromISR(handle, & woken);
-            portYIELD_FROM_ISR();
+            yield_from_isr();
         }
         else
         {

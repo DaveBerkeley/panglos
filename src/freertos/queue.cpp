@@ -11,7 +11,13 @@ extern "C" {
 #include "panglos/freertos/queue.h"
 #include "panglos/queue.h"
 
+#include "yield.h"
+
 namespace panglos {
+
+    /*
+     *
+     */
 
 class RTOS_Queue : public Queue
 {
@@ -61,7 +67,7 @@ public:
             ok = xQueueSendFromISR(handle, msg, & wake);
             if (wake)
             {
-                portYIELD_FROM_ISR();
+                yield_from_isr();
             }
         }
         else
