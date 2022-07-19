@@ -4,6 +4,7 @@
 
 #include "deque.h"
 #include "event.h"
+#include "semaphore.h"
 
 namespace panglos {
 

@@ -6,6 +6,7 @@
 
 #include "debug.h"
 #include "mutex.h"
+#include "semaphore.h"
 #include "event.h"
 #include "deque.h"
 #include "io.h"

@@ -2,14 +2,15 @@
 #include <semaphore.h>
 #include <string.h>
 
-#include <panglos/debug.h>
-#include <panglos/mutex.h>
-#include <panglos/event.h>
-#include <panglos/time.h>
+#include "panglos/debug.h"
+#include "panglos/mutex.h"
+#include "panglos/semaphore.h"
+#include "panglos/event.h"
+#include "panglos/time.h"
 
-#include <panglos/drivers/gpio.h>
-#include <panglos/drivers/spi.h>
-#include <panglos/drivers/i2c.h>
+#include "panglos/drivers/gpio.h"
+#include "panglos/drivers/spi.h"
+#include "panglos/drivers/i2c.h"
 
 void mock_setup(bool event_thread);
 void mock_teardown();
@@ -36,21 +37,6 @@ public:
     virtual void post() { set = true; }
     virtual void wait() {}
     virtual void set_hook(panglos::PostHook*) {}
-};
-
-class LinuxSemaphore : public panglos::Semaphore
-{
-    panglos::PostHook *hook;
-public:
-    sem_t semaphore;
-    int posted;
-
-    LinuxSemaphore();
- 
-    virtual ~LinuxSemaphore();
-    virtual void post();
-    virtual void wait();
-    virtual void set_hook(panglos::PostHook *hook);
 };
 
     /*

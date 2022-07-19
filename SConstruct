@@ -24,6 +24,7 @@ files = [
     'src/linux/arch.cpp',
     'src/linux/thread.cpp',
     'src/linux/mutex.cpp',
+    'src/linux/semaphore.cpp',
 
     # https://github.com/eyalroz/printf
     'lib/printf/src/printf/printf.c',

@@ -4,11 +4,13 @@
 
 #include <stdint.h>
 
-#include "mutex.h"
 #include "timer.h"
 #include "list.h"
 
 namespace panglos {
+
+class Semaphore;
+class Mutex;
 
 class Event
 {

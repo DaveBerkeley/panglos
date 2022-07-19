@@ -1,9 +1,10 @@
 
 #include <gtest/gtest.h>
 
-#include <panglos/debug.h>
-#include <panglos/thread.h>
-#include <panglos/dispatch.h>
+#include "panglos/debug.h"
+#include "panglos/thread.h"
+#include "panglos/semaphore.h"
+#include "panglos/dispatch.h"
 
 using namespace panglos;
 

@@ -5,6 +5,7 @@
 #include <deque>
 
 #include "mutex.h"
+#include "semaphore.h"
 
 namespace panglos {
 

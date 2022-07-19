@@ -2,6 +2,7 @@
 #include "panglos/debug.h"
 
 #include "panglos/list.h"
+#include "panglos/semaphore.h"
 #include "panglos/event.h"
 
 namespace panglos {

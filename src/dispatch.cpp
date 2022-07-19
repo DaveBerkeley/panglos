@@ -1,6 +1,7 @@
 
 #include "panglos/debug.h"
 
+#include "panglos/semaphore.h"
 #include "panglos/dispatch.h"
 
 namespace panglos {
