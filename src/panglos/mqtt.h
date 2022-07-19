@@ -7,6 +7,7 @@
 #define __PANGLOS_MQTT__
 
 #include "panglos/list.h"
+#include "panglos/io.h"
 
 namespace panglos {
 
@@ -56,6 +57,29 @@ public:
     int publish(const char *topic, const char *data, int len, int qos=0, int retain=0);
 
     void app_start(const char *uri);
+};
+
+    /*
+     *
+     */
+
+class MqttOut : public Out
+{
+    MqttClient *mqtt;
+    const char *topic;
+
+public:
+    MqttOut(MqttClient *_mqtt, const char *_topic)
+    :   mqtt(_mqtt),
+        topic(_topic)
+    {
+    }
+
+    virtual int tx(const char* data, int n) override
+    {
+        mqtt->publish(topic, data, n);
+        return n;
+    }
 };
 
 }   //  namespace panglos
