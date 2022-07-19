@@ -6,6 +6,7 @@ extern "C" {
 
 #include "panglos/debug.h"
 #include "panglos/mutex.h"
+#include "panglos/semaphore.h"
 #include "panglos/thread.h"
 
 namespace panglos {
