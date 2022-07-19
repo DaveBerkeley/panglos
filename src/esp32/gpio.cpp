@@ -3,6 +3,8 @@
      *
      */
 
+#if defined(ESP32)
+
 // espidf framework
 #include <driver/gpio.h>
 
@@ -171,5 +173,7 @@ void ESP_GPIO::on_interrupt()
 }
 
 }   //  namepace panglos
+
+#endif  //  ESP32
 
 //  FIN

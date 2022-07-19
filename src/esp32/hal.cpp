@@ -1,4 +1,6 @@
 
+#if defined(ESP32)
+
 #include "panglos/debug.h"
 
 #include "panglos/esp32/hal.h"
@@ -57,5 +59,7 @@ const LUT err_lut[] = {
 };
 
 }   //  namespace panglos
+
+#endif  //  ESP32
 
 //  FIN

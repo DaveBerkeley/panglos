@@ -213,7 +213,7 @@ bool BitBang_I2C::_write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, 
         *rd++ = io(0xff, & ack);
         if (!ack)
         {
-            PO_ERROR("i=%d", i);
+            PO_ERROR("i=%d", (int) i);
             return false;
         }
         n += 1;

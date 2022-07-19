@@ -1,4 +1,6 @@
 
+#if defined(ESP32)
+
 #include <stdint.h>
 
 #include "driver/i2c.h"
@@ -184,5 +186,7 @@ int ESP_I2C::read(uint8_t addr, uint8_t* rd, uint32_t len)
 }
 
 }   //  namespace panglos
+
+#endif  //  ESP32
 
 //  FIN

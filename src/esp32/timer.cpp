@@ -1,4 +1,6 @@
 
+#if defined(ESP32)
+
 #include <esp_timer.h>
 
 #include "panglos/debug.h"
@@ -132,5 +134,7 @@ Timer *Timer::create()
 }
 
 }   //  namespace panglos
+
+#endif  //  ESP32
 
 //  FIN
