@@ -14,8 +14,8 @@ namespace panglos {
 static inline int timer_cmp(timer_t t1, timer_t t2)
 {
     // use signed arithmetic, to allow the time to wrap
-    const int32_t s1 = t1;
-    const int32_t s2 = t2;
+    const int32_t s1 = int32_t(t1);
+    const int32_t s2 = int32_t(t2);
     return s2 - s1;
 }
 
@@ -177,7 +177,7 @@ void EventQueue::wait_absolute(Semaphore *semaphore, timer_t time)
     if (first)
     {
         // may need to reschedule the timer manager task / thread
-        reschedule(time - now);
+        reschedule(d_timer_t(time - now));
     }
 
     event.semaphore->wait();
@@ -199,7 +199,7 @@ void EventQueue::wait(Semaphore *semaphore, d_timer_t d_time)
     }
 
     const timer_t now = panglos::timer_now();
-    return wait_absolute(semaphore, now + d_time);
+    return wait_absolute(semaphore, timer_t(now + timer_t(d_time)));
 }
 
     /*

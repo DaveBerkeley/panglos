@@ -175,8 +175,8 @@ int BitBang_I2C::write(uint8_t addr, const uint8_t* wr, uint32_t len)
 {
     Lock lock(mutex);
 
-    const bool ok = io_write_read(WR(addr), wr, len, 0, 0);
-    return ok ? len : 0;
+    const bool ok = io_write_read(WR(addr), wr, int(len), 0, 0);
+    return ok ? int(len) : 0;
 }
 
 bool BitBang_I2C::_write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd)
@@ -232,7 +232,7 @@ int BitBang_I2C::write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, ui
     start();
     bool ok = _write_read(addr, wr, len_wr, rd, len_rd);
     stop();
-    return ok ? len_rd : 0;
+    return ok ? int(len_rd) : 0;
 }
 
 bool BitBang_I2C::_read(uint8_t addr, uint8_t* rd, uint32_t len)
@@ -267,7 +267,7 @@ int BitBang_I2C::read(uint8_t addr, uint8_t* rd, uint32_t len)
     start();
     bool ok = _read(addr, rd, len);
     stop();
-    return ok ? len : 0;
+    return ok ? int(len) : 0;
 }
 
 }   //  namespace panglos

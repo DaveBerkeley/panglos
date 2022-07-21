@@ -1,4 +1,5 @@
 
+#include <atomic>
 #include <stdlib.h>
 #include <stdarg.h>
 
@@ -92,9 +93,9 @@ typedef struct
     Semaphore *s;
     RingBuffer<uint8_t> *b;
     const char *tx;
-    bool dead;
-    bool running;
-    bool done;
+    std::atomic<bool> dead;
+    std::atomic<bool> running;
+    std::atomic<bool> done;
     bool kill;
 }   Info;
 
@@ -171,11 +172,14 @@ TEST(RingBuffer, Wait)
         .s = s,
         .b = & buffer,
         .tx = "abcdefgh",
-        .dead = false,
-        .running = false,
-        .done = false,
+        //.dead = false,
+        //.running(false),
+        //.done = false,
         .kill = false
     };
+    info.dead = false;
+    info.running = false;
+    info.done = false;
 
     Thread *add, *get, *events;
 
@@ -222,11 +226,11 @@ TEST(RingBuffer, Timeout)
         .s = s,
         .b = & buffer,
         .tx = "abcdefgh",
-        .dead = false,
-        .running = false,
-        .done = false,
         .kill = false
     };
+    info.dead = false;
+    info.running = false;
+    info.done = false;
 
     Thread *thread = Thread::create("xx");
     thread->start(event_fn, & info);

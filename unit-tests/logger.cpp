@@ -24,7 +24,7 @@ public:
 
     virtual int tx(const char* data, int n) override
     {
-        text.append(data, n);
+        text.append(data, size_t(n));
         return n;
     }
 

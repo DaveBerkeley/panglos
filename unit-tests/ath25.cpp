@@ -31,7 +31,7 @@ public:
         EXPECT_EQ(addr, ATH25::ADDR);
         EXPECT_EQ(1, len);
         written = *wr;
-        return len;
+        return int(len);
     }
     virtual int write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd) override
     {
@@ -41,7 +41,7 @@ public:
         IGNORE(len_wr);
         IGNORE(rd);
         IGNORE(len_rd);
-        return len_wr;
+        return int(len_wr);
     }
     virtual int read(uint8_t addr, uint8_t* rd, uint32_t len) override
     {
@@ -51,7 +51,7 @@ public:
         EXPECT_EQ(addr, ATH25::ADDR);
         EXPECT_EQ(sizeof(data), len);
         memcpy(rd, data, len);
-        return len;
+        return int(len);
     }
 };
 

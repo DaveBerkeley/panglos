@@ -1,4 +1,5 @@
 
+#include <atomic>
 #include <stdlib.h>
 
 #include <gtest/gtest.h>
@@ -810,7 +811,7 @@ public:
 
 class Scheduler 
 {
-    bool dead;
+    std::atomic<bool> dead;
     Semaphore *sem_kill;
 
     Mutex *mutex;

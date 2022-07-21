@@ -17,19 +17,19 @@ namespace panglos {
 class VcdWriter::Trace
 {
 public:
-    struct Trace *next;
+    Trace *next;
     const char *name;
     int width;
     bool state;
     char id;
 };
 
-static struct VcdWriter::Trace **trace_next(struct VcdWriter::Trace *trace)
+static VcdWriter::Trace **trace_next(VcdWriter::Trace *trace)
 {
     return & trace->next;
 }
 
-static int trace_match(struct VcdWriter::Trace *trace, void *arg)
+static int trace_match(VcdWriter::Trace *trace, void *arg)
 {
     ASSERT(trace);
     ASSERT(arg);
@@ -114,7 +114,7 @@ bool VcdWriter::sigrok_write(const char *sr_path)
     return true;
 }
 
-void VcdWriter::print(struct Trace *t, bool state)
+void VcdWriter::print(Trace *t, bool state)
 {
     fprintf(file, "#%d\n", time);
     fprintf(file, "%d%c\n", state, t->id);
@@ -139,7 +139,7 @@ void VcdWriter::write_header()
 
     // Print signals
     fprintf(file, "$scope module TOP $end\n");
-    for (struct Trace *t = traces.head; t; t = t->next)
+    for (Trace *t = traces.head; t; t = t->next)
     {
         // $var vary_type size identifier_code reference $end
         fprintf(file, "$var wire %d %c %s $end\n", t->width, t->id, t->name);            
@@ -150,7 +150,7 @@ void VcdWriter::write_header()
     // print initial state
     fprintf(file, "#0\n");
     fprintf(file, "$dumpvars\n");
-    for (struct Trace *t = traces.head; t; t = t->next)
+    for (Trace *t = traces.head; t; t = t->next)
     {
         print(t, t->state);
     }    
@@ -159,7 +159,7 @@ void VcdWriter::write_header()
 
 void VcdWriter::add(const char *name, bool state, int width)
 {
-    struct Trace *trace = new struct Trace;
+    Trace *trace = new Trace;
     trace->next = 0;
     trace->name = name;
     trace->state = state;
@@ -170,7 +170,7 @@ void VcdWriter::add(const char *name, bool state, int width)
 
 void VcdWriter::set(const char *name, bool state)
 {
-    struct Trace *t = find(name);
+    Trace *t = find(name);
     ASSERT(t);
 
     print(t, state);

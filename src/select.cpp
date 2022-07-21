@@ -21,8 +21,8 @@ Select::Select(int _size)
     mutex = Mutex::create(Mutex::CRITICAL_SECTION);
     semaphore = Semaphore::create();
 
-    captured = (Semaphore**) malloc(sizeof(Semaphore*) * size);
-    memset(captured, 0, sizeof(Semaphore*) * size);
+    captured = (Semaphore**) malloc(sizeof(Semaphore*) * size_t(size));
+    memset(captured, 0, sizeof(Semaphore*) * size_t(size));
 }
 
 Select::~Select()
@@ -91,7 +91,7 @@ void Select::remove(Semaphore *s)
 
 Semaphore *Select::wait()
 {
-    if (queue.empty())
+    if (queue.empty(mutex))
     {
         semaphore->wait();
     }

@@ -780,14 +780,13 @@ TEST(MCP23S17, Keyboard)
 {
     VcdWriter vcd("/tmp/x.vcd");
 
-    I2CSlaveSim slave(& vcd, true);
-    BitBang_I2C i2c(0, & slave.scl, & slave.sda, 0, 0, true);
+    I2CSlaveSim slave(& vcd, false);
+    BitBang_I2C i2c(0, & slave.scl, & slave.sda, 0, 0, false);
 
     vcd.write_header();
 
     i2c.probe(0x20, 1);
 
-#if 1
     I2C_MCP23S17 chip(& i2c, 0x20);
     MockPin irq(2, MockPin::CHANGE);
     irq.set(1);
@@ -802,7 +801,7 @@ TEST(MCP23S17, Keyboard)
     irq.set(0);
     PO_DEBUG("irq=1");
     irq.set(1);
-#endif
+
     vcd.sigrok_write("/tmp/x.sr");
 }
 

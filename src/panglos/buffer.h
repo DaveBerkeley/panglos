@@ -55,7 +55,7 @@ public:
             delete_mutex = mutex = Mutex::create();
         }
 
-        data = (T*) malloc((size_t) (size * sizeof(T)));
+        data = (T*) malloc(size_t(size_t(size) * sizeof(T)));
     }
 
     ~RingBuffer()
@@ -123,6 +123,7 @@ public:
 
     bool empty()
     {
+        Lock lock(mutex);
         return in == out;
     }
 
@@ -181,7 +182,7 @@ public:
 
         // The semaphore could be triggered by add() or a timeout
         // or possibly both
-        q->wait(semaphore, timeout);
+        q->wait(semaphore, d_timer_t(timeout));
 
         return !empty();
     }
@@ -313,7 +314,7 @@ public:
 
     void reset()
     {
-        while (!deque.empty())
+        while (!deque.empty(mutex))
         {
             Buffer *b = deque.pop_head(0);
             delete b;

@@ -15,7 +15,7 @@ class Mutex;
 class Event
 {
 public:
-    struct Event *next;
+    Event *next;
     Semaphore *semaphore;
     timer_t time;
 public:

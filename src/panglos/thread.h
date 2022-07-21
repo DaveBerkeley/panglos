@@ -29,6 +29,7 @@ class ThreadPool
 {
     Thread **threads;
     int count;
+    char **names;
 
 public:
     ThreadPool(const char *name, int n, size_t stack=0, Thread::Priority p=Thread::Medium);

@@ -136,12 +136,7 @@ static void add_devices(List<Device*> &devices, struct DevInit *di)
 TEST(Device, FindHas)
 {
     const char *needs[] = { "sda0", "scl0", 0 };
-    Device i2c = {
-        .name = "i2c0",
-        .needs = needs,
-        .init = 0,
-        .args = 0,
-    };
+    Device i2c("i2c0", needs, 0, 0);
 
     const char *s;
 

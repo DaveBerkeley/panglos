@@ -1,7 +1,7 @@
 
 APP = tdd
 
-all: 
+$(APP): 
 	scons
 
 clean:
@@ -16,5 +16,11 @@ doxygen: $(APP)
 
 valgrind: $(APP)
 	valgrind --leak-check=full ./$(APP)
+
+clang: export CC=clang
+clang: export CXX=clang++
+clang: $(APP)
+	scons
+
 
 # FIN

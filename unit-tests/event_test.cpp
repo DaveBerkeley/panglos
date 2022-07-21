@@ -30,7 +30,7 @@ TEST(Event, AddRemove)
     // check that the smallest number is at the front
     for (int i = num; i > 0; i--)
     {
-        Event *ev = new Event(s, i);
+        Event *ev = new Event(s, panglos::timer_t(i));
 
         eq.add(ev);
         EXPECT_EQ(ev, eq.events.head);

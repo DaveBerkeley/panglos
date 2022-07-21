@@ -260,7 +260,7 @@ Stepper::Stepper(int cycle, MotorIo *io, uint32_t time, int32_t slow, int _steps
     accelerator(0)
 {
     ASSERT(io);
-    accelerator = new Accelerator(time, (slow == -1) ? time : slow, _steps);
+    accelerator = new Accelerator(int(time), (slow == -1) ? int(time) : slow, _steps);
 }
 
 Stepper::~Stepper()

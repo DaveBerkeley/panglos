@@ -2,6 +2,8 @@
 #if !defined(__IRQ_TASK_H__)
 #define __IRQ_TASK_H__
 
+#include <atomic>
+
 #include "deque.h"
 
 namespace panglos {
@@ -47,7 +49,7 @@ private:
     Deque<Dispatch::Callback*> deque;
     Mutex *mutex;
     Semaphore *semaphore;
-    bool dead;
+    std::atomic<bool> dead;
 
 public:
     Dispatch();

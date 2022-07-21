@@ -2,7 +2,8 @@
 #if !defined(__DEQUEUE_H__)
 #define __DEQUEUE_H__
 
-#include "list.h"
+#include "panglos/list.h"
+#include "panglos/mutex.h"
 
 namespace panglos {
 
@@ -122,8 +123,9 @@ public:
         return count;
     }
 
-    bool empty()
+    bool empty(Mutex *mutex)
     {
+        Lock lock(mutex);
         return !head;
     }
 

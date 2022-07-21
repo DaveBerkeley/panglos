@@ -25,6 +25,7 @@ files = [
     'src/linux/thread.cpp',
     'src/linux/mutex.cpp',
     'src/linux/semaphore.cpp',
+    'src/linux/queue.cpp',
 
     # https://github.com/eyalroz/printf
     'lib/printf/src/printf/printf.c',
@@ -50,6 +51,7 @@ files = [
     'unit-tests/device.cpp',
     'unit-tests/action.cpp',
     'unit-tests/ath25.cpp',
+    'unit-tests/queue.cpp',
 ]
 
 ccflags = [
@@ -62,6 +64,9 @@ ccflags = [
     '-Wno-missing-field-initializers',
     '-Wno-format-zero-length',
     '-Wformat-security',
+
+    # clang
+    '-Wno-implicit-int-float-conversion',
 
     '-g',
     '-DGTEST=1',
@@ -96,6 +101,26 @@ libpath = [ ]
 
 libs = []
 
-env = Environment(CFLAGS=cflags, CCFLAGS=ccflags, CXXFLAGS=cxxflags, LINKFLAGS=lflags, CPPPATH=cpppath)
+import os
+environ = os.environ
+cc = environ.get('CC', 'gcc')
+cxx = environ.get('CXX', 'g++')
+
+if cc == 'clang':
+    sane = [
+        '-fsanitize=thread',
+        '-fsanitize=alignment',
+        '-fno-sanitize-recover=all',
+    ]
+    for x in sane:
+        cflags  += [ x ]
+        ccflags += [ x ]
+        lflags  += [ x ]
+
+#
+#
+
+env = Environment(CFLAGS=cflags, CCFLAGS=ccflags, CXXFLAGS=cxxflags, LINKFLAGS=lflags, CPPPATH=cpppath, CC=cc, CXX=cxx)
 tdd = env.Program(target='tdd', source=files, LIBS=libs, LIBPATH=libpath)
 
+# FIN

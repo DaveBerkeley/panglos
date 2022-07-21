@@ -1,5 +1,5 @@
 
-//#include <pthread.h>
+#include <atomic>
 #include <semaphore.h>
 
 #include <panglos/debug.h>
@@ -16,7 +16,7 @@ class LinuxSemaphore : public Semaphore
     PostHook *hook;
 public:
     sem_t semaphore;
-    int posted;
+    std::atomic<int> posted;
 
     LinuxSemaphore();
  

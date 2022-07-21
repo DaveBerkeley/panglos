@@ -617,7 +617,7 @@ bool I2C_MCP23S17::read(Register reg, uint8_t *data)
 
 void I2C_MCP23S17::reg_write(Register reg, uint8_t data)
 {
-    uint8_t cmd[] = { reg, data };
+    uint8_t cmd[] = { (uint8_t) reg, data };
     dev->write(addr, cmd, sizeof(cmd));
 }
 

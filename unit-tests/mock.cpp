@@ -1,4 +1,6 @@
 
+#include <atomic>
+
 #include <sys/select.h>
 
 #include <gtest/gtest.h>
@@ -30,7 +32,7 @@ EventQueue event_queue(0);
 static int pins[PIN_MAX];
 static uint64_t elapsed_us;
 
-static panglos::timer_t cycles = 0;
+static std::atomic<panglos::timer_t> cycles;
 
 void mock_timer_set(panglos::timer_t t)
 {
@@ -56,7 +58,7 @@ void timer_init()
 } // namespace panglos
 
 static Thread *thread;
-static bool dead;
+static std::atomic<bool> dead;
 static bool running;
 
 void event_task(void *arg)
@@ -199,7 +201,7 @@ int MockI2C::write(uint8_t addr, const uint8_t* wr, uint32_t len)
     int reg = wr[0];
     memcpy(& regs[reg], & wr[1], len-1);
     PO_DEBUG("%#x %#x %#x", addr, wr[0], wr[1]);
-    return len;
+    return int(len);
 }
 
 int MockI2C::write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd)
@@ -212,7 +214,7 @@ int MockI2C::write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_
     PO_DEBUG("%#x %#x %#x", addr, reg, regs[reg]);
     memcpy(& regs[reg], & wr[1], len_wr-1);
     memcpy(rd, & regs[reg], len_rd);
-    return len_wr + len_rd;
+    return int(len_wr + len_rd);
 }
 
 int MockI2C::read(uint8_t addr, uint8_t* rd, uint32_t len)
@@ -220,7 +222,7 @@ int MockI2C::read(uint8_t addr, uint8_t* rd, uint32_t len)
     IGNORE(addr);
     IGNORE(rd);
     ASSERT(0);
-    return len;
+    return int(len);
 }
 
     /*

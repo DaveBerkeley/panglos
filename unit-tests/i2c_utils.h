@@ -27,7 +27,7 @@ public:
         ASSERT(getf);
         return getf(arg);
     }
-    virtual void toggle()
+    virtual void toggle() override
     {
         set(!get());
     }

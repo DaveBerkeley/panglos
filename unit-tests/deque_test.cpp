@@ -21,7 +21,7 @@ TEST(Deque, Test)
     Deque<Item*> deque(next_fn);
 
     EXPECT_EQ(0, deque.size(0));
-    EXPECT_TRUE(deque.empty());
+    EXPECT_TRUE(deque.empty(0));
 
     Item item1;
 
@@ -35,7 +35,7 @@ TEST(Deque, Test)
     EXPECT_EQ(1, deque.size(0));
     EXPECT_EQ(& item1, deque.head);
     EXPECT_EQ(& item1, deque.tail);
-    EXPECT_FALSE(deque.empty());
+    EXPECT_FALSE(deque.empty(0));
 
     okay = deque.find(& item1, 0);
     EXPECT_TRUE(okay);
@@ -47,7 +47,7 @@ TEST(Deque, Test)
     EXPECT_EQ(2, deque.size(0));
     EXPECT_EQ(& item2, deque.head);
     EXPECT_EQ(& item1, deque.tail);
-    EXPECT_FALSE(deque.empty());
+    EXPECT_FALSE(deque.empty(0));
 
     Item item3;
 
@@ -63,7 +63,7 @@ TEST(Deque, Test)
     EXPECT_EQ(3, deque.size(0));
     EXPECT_EQ(& item3, deque.head);
     EXPECT_EQ(& item1, deque.tail);
-    EXPECT_FALSE(deque.empty());
+    EXPECT_FALSE(deque.empty(0));
 
     Item item4;
 
@@ -81,7 +81,7 @@ TEST(Deque, Test)
     EXPECT_EQ(4, deque.size(0));
     EXPECT_EQ(& item3, deque.head);
     EXPECT_EQ(& item4, deque.tail);
-    EXPECT_FALSE(deque.empty());
+    EXPECT_FALSE(deque.empty(0));
 
     okay = deque.find(& item1, 0);
     EXPECT_TRUE(okay);
@@ -99,7 +99,7 @@ TEST(Deque, Test)
     p = deque.pop_head(0);
     EXPECT_EQ(& item3, (Item*) p);
     EXPECT_EQ(3, deque.size(0));
-    EXPECT_FALSE(deque.empty());
+    EXPECT_FALSE(deque.empty(0));
 
     okay = deque.find(& item1, 0);
     EXPECT_TRUE(okay);
@@ -114,7 +114,7 @@ TEST(Deque, Test)
     p = deque.pop_head(0);
     EXPECT_EQ(& item2, (Item*) p);
     EXPECT_EQ(2, deque.size(0));
-    EXPECT_FALSE(deque.empty());
+    EXPECT_FALSE(deque.empty(0));
 
     okay = deque.find(& item1, 0);
     EXPECT_TRUE(okay);
@@ -129,7 +129,7 @@ TEST(Deque, Test)
     p = deque.pop_head(0);
     EXPECT_EQ(& item1, (Item*) p);
     EXPECT_EQ(1, deque.size(0));
-    EXPECT_FALSE(deque.empty());
+    EXPECT_FALSE(deque.empty(0));
 
     okay = deque.find(& item1, 0);
     EXPECT_FALSE(okay);
@@ -144,7 +144,7 @@ TEST(Deque, Test)
     p = deque.pop_head(0);
     EXPECT_EQ(& item4, (Item*) p);
     EXPECT_EQ(0, deque.size(0));
-    EXPECT_TRUE(deque.empty());
+    EXPECT_TRUE(deque.empty(0));
 
     okay = deque.find(& item1, 0);
     EXPECT_FALSE(okay);
@@ -158,20 +158,20 @@ TEST(Deque, Test)
     // leaves : (empty)
     p = deque.pop_head(0);
     EXPECT_EQ(0, (Item*) p);
-    EXPECT_TRUE(deque.empty());
+    EXPECT_TRUE(deque.empty(0));
 
     // leaves : item1
     deque.push_tail(& item1, 0);
     EXPECT_EQ(1, deque.size(0));
     EXPECT_EQ(& item1, deque.head);
     EXPECT_EQ(& item1, deque.tail);
-    EXPECT_FALSE(deque.empty());
+    EXPECT_FALSE(deque.empty(0));
  
     // leaves : (empty)
     p = deque.pop_head(0);
     EXPECT_EQ(& item1, (Item*) p);
     EXPECT_EQ(0, deque.size(0));
-    EXPECT_TRUE(deque.empty());
+    EXPECT_TRUE(deque.empty(0));
 }
 
     /*

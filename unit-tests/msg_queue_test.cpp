@@ -1,4 +1,7 @@
 
+#include <stdint.h>
+#include <stdlib.h>
+
 #include <gtest/gtest.h>
 
 #include <panglos/debug.h>
@@ -135,7 +138,7 @@ TEST(MsgQueue, ThreadSafe)
         get[i]->start(get_thread, & gi[i]);
     }
 
-    ThreadPool put("put", put_num);
+    ThreadPool put("put_%d", put_num);
     put.start(put_thread, & ti);
     put.join();
 

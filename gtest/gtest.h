@@ -2,6 +2,8 @@
 #if !defined(__PANGLOS_GTEST__)
 #define __PANGLOS_GTEST__
 
+#include <string.h>
+
 #include "panglos/debug.h"
 
     /*
@@ -48,6 +50,8 @@ void test_run();
 #define EXPECT_FALSE(a)     if ((a)) { test_fail(__FILE__, __LINE__, #a); }
 
 #define EXPECT_EQ(a,b) if ((a) != (b)) { test_fail(__FILE__, __LINE__, #a "!=" #b); }
+
+#define EXPECT_STREQ(a, b) if (strcmp((a), (b))) { test_fail(__FILE__, __LINE__, #a "!=" #b); }
 
 #endif  //  __PANGLOS_GTEST__
 

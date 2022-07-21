@@ -4,12 +4,14 @@
 
 namespace panglos {
 
+class Mutex;
+
 class Queue
 {
 public:
     virtual ~Queue() { }
 
-    static Queue *create(int size, int num);
+    static Queue *create(int size, int num, Mutex *mutex);
 
     class Message;
 
