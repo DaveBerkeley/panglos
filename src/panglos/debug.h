@@ -26,27 +26,16 @@ typedef enum {
      *
      */
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef struct {
     const char *text;
     int code;
 }   LUT;
 
-inline const char *lut(const LUT *codes, int err)
-{
-    for (const LUT *code = codes; code->text; code++)
-    {
-        if (code->code == err)
-        {
-            return code->text;
-        }
-    }
-
-    return "unknown";
-}
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
+const char *lut(const LUT *codes, int err);
 
 void Error_Handler(void);
 uint32_t get_time(void);

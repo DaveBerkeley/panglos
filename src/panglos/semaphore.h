@@ -20,6 +20,7 @@ public:
 
     virtual void post() = 0;
     virtual void wait() = 0;
+    virtual void wait_timeout(int ticks) = 0;
 
     static Semaphore *create(Type type=NORMAL, int n=0, int initial=0);
 };

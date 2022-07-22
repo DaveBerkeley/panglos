@@ -41,6 +41,13 @@ public:
         xSemaphoreTake(handle, portMAX_DELAY);
     }
 
+    virtual void wait_timeout(int ticks) override
+    {
+        // block until post()
+        ASSERT(!arch_in_irq());
+        xSemaphoreTake(handle, ticks ? ticks : portMAX_DELAY);
+    }
+
     ~FreeRtosSemaphore()
     {
         vSemaphoreDelete(handle);

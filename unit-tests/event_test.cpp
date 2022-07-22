@@ -23,6 +23,7 @@ public:
 
     virtual void post() { set = true; }
     virtual void wait() {}
+    virtual void wait_timeout(int t) { IGNORE(t); }
 };
 
     /*

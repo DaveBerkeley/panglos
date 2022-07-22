@@ -22,6 +22,7 @@ public:
     virtual ~LinuxSemaphore();
     virtual void post() override;
     virtual void wait() override;
+    virtual void wait_timeout(int ticks) override;
 };
 
     /*
@@ -53,6 +54,12 @@ void LinuxSemaphore::wait()
     int err = sem_wait(& semaphore);
     ASSERT(err == 0);
     posted -= 1;
+}
+
+void LinuxSemaphore::wait_timeout(int ticks)
+{
+    // TODO
+    ASSERT(0);
 }
 
 namespace panglos {

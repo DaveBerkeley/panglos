@@ -6,6 +6,10 @@
 
 #include "panglos/debug.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
     /*
      *
      */
@@ -52,6 +56,10 @@ void test_run();
 #define EXPECT_EQ(a,b) if ((a) != (b)) { test_fail(__FILE__, __LINE__, #a "!=" #b); }
 
 #define EXPECT_STREQ(a, b) if (strcmp((a), (b))) { test_fail(__FILE__, __LINE__, #a "!=" #b); }
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif  //  __PANGLOS_GTEST__
 
