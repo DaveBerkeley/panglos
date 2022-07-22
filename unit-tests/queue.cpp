@@ -1,8 +1,12 @@
 
+#include <atomic>
+
 #include <gtest/gtest.h>
 
 #include "panglos/debug.h"
 #include "panglos/queue.h"
+#include "panglos/mutex.h"
+#include "panglos/thread.h"
 
 //#include "event.h"
 
@@ -15,11 +19,12 @@ TEST(Queue, Leak)
     delete queue;
 }
 
+struct Event {
+    int num;
+};
+
 TEST(Queue, Push)
 {
-    struct Event {
-        int num;
-    };
     int num = 10;
     Queue *queue = Queue::create(sizeof(struct Event), num, 0);
 
@@ -39,5 +44,91 @@ TEST(Queue, Push)
 
     delete queue;
 }
+
+TEST(Queue, Queued)
+{
+    int num = 10;
+    Queue *queue = Queue::create(sizeof(struct Event), num, 0);
+
+    EXPECT_EQ(0, queue->queued());
+
+    struct Event event = { .num = 100, };
+
+    bool ok = queue->put((Queue::Message *) & event);
+    EXPECT_TRUE(ok);
+
+    EXPECT_EQ(1, queue->queued());
+    
+    delete queue;
+}
+
+    /*
+     *
+     */
+
+#if 1
+
+struct QT_DEF
+{
+    Queue *queue;
+    const int loops;
+    std::atomic<int> count;
+};
+
+static void qt_test(void *arg)
+{
+    ASSERT(arg);
+
+    struct QT_DEF *qt = (struct QT_DEF *) arg;
+
+    for (int i = 0; i < qt->loops; i++)
+    {
+        struct Event event = { .num = qt->count++, };
+        bool ok = qt->queue->put((Queue::Message *) & event);
+        EXPECT_TRUE(ok);        
+    }
+}
+
+TEST(Queue, Thread)
+{
+    const int qsize = 10;
+    const int num = 100;
+    const int loops = 200;
+    const int total = num * loops;
+
+    Mutex *mutex = Mutex::create();
+
+    Queue *queue = Queue::create(sizeof(struct Event), qsize, mutex);
+
+    ThreadPool push("thread_%d", num);
+
+    struct QT_DEF qt = { .queue=queue, .loops=loops };
+
+    bool found[num*loops];
+    memset(found, 0, sizeof(found));
+
+    push.start(qt_test, & qt);
+
+    while ((qt.count < total) || (queue->queued()))
+    {
+        struct Event event;
+        bool ok = queue->get((Queue::Message*) & event, 0);
+        EXPECT_TRUE(ok);
+        EXPECT_TRUE((event.num >= 0) && (event.num < total));
+        found[event.num] = true;
+    }
+
+    push.join();
+
+    for (int i = 0; i < total; i++)
+    {
+        EXPECT_TRUE(found[i]);
+    }
+
+    delete queue;
+    delete mutex;
+}
+
+#endif
 
 //  FIN

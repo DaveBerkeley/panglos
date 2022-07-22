@@ -16,7 +16,7 @@ public:
     class Message;
 
     virtual bool get(Message *msg, int timeout) = 0;
-    virtual bool put(Message *) = 0;
+    virtual bool put(Message *msg) = 0;
 
     virtual int queued() = 0;
 };

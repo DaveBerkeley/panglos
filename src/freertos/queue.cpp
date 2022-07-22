@@ -83,8 +83,9 @@ public:
     }
 };
 
-Queue *Queue::create(int size, int num)
+Queue *Queue::create(int size, int num, Mutex *m)
 {
+    ASSERT(!m); // Not needed for FreeRTOS queue
     return new RTOS_Queue(size, num);
 }
 
