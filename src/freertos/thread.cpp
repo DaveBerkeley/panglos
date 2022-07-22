@@ -5,6 +5,7 @@ extern "C" {
 }
 
 #include "panglos/debug.h"
+#include "panglos/list.h"
 #include "panglos/mutex.h"
 #include "panglos/semaphore.h"
 #include "panglos/thread.h"
@@ -17,13 +18,25 @@ namespace panglos {
 
 class RTOS_Thread;
 
-// Use TLS to save the current thread
-// This assumes that TLS is supported by the port of FreeRTOS
-// True for esp32
-static __thread RTOS_Thread *_this_thread;
+// TLS seems to be broken on esp32 + FreeRTOS
+//static __thread RTOS_Thread *_this_thread;
+
+class RTOS_Thread;
+
+static RTOS_Thread **get_next(RTOS_Thread*);
+
+static List<RTOS_Thread*> threads(get_next);
+
+static Mutex *mutex = 0;
+
+    /*
+     *
+     */
 
 class RTOS_Thread : public Thread
 {
+public:
+    RTOS_Thread *next;
     const char *name;
     size_t stack;
     Thread::Priority pri;
@@ -37,7 +50,8 @@ class RTOS_Thread : public Thread
 public:
 
     RTOS_Thread(const char *_name, size_t _stack, Thread::Priority _pri)
-    :   name(_name),
+    :   next(0),
+        name(_name),
         stack(_stack ? _stack : 4000),
         pri(_pri),
         arg(0),
@@ -45,7 +59,11 @@ public:
         dead(0)
     {
         dead = Semaphore::create();
-        _this_thread = this;
+
+        if (!mutex)
+        {
+            mutex = Mutex::create();
+        }
     }
 
     ~RTOS_Thread()
@@ -59,9 +77,11 @@ public:
     void run()
     {
         ASSERT(fn);
+        threads.push(this, mutex);
         PO_DEBUG("fn=%p arg=%p", fn, arg);
         fn(arg);
         dead->post();
+        threads.remove(this, mutex);
     }
 
     virtual const char *get_name() override
@@ -85,6 +105,11 @@ static void thread_run(void *arg)
     vTaskDelete(0);
 }
 
+static RTOS_Thread **get_next(RTOS_Thread* item)
+{
+    return & item->next;
+}
+
 void RTOS_Thread::start(void (*_fn)(void *arg), void *_arg)
 {
     PO_DEBUG("%p", this);
@@ -105,9 +130,17 @@ Thread *Thread::create(const char *name, size_t stack, Thread::Priority pri)
     return new RTOS_Thread(name, stack, pri);
 }
 
+static int match_handle(RTOS_Thread *thread, void *arg)
+{
+    ASSERT(arg);
+    TaskHandle_t handle = (TaskHandle_t) arg;
+    return (handle == thread->handle) ? 1 : 0;
+}
+
 Thread *Thread::get_current()
 {
-    return _this_thread;
+    TaskHandle_t handle = xTaskGetCurrentTaskHandle();
+    return threads.find(match_handle, handle, mutex);
 }
 
 }   //  namespace panglos

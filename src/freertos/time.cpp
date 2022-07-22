@@ -14,18 +14,8 @@ void Time::sleep(int secs)
 
 void Time::msleep(int msecs)
 {
-    const Time::tick_t start = Time::get();
     const int ticks = (configTICK_RATE_HZ * msecs) / 1000;
-
-    while (true)
-    {
-        // TODO : why doesn't vTaskDelay(n) work?
-        vTaskDelay(1);
-        if (Time::elapsed(start, ticks))
-        {
-            break;
-        }
-    }
+    vTaskDelay(ticks ? ticks : 1);
 }
 
 Time::tick_t Time::get()

@@ -75,7 +75,8 @@ extern const LUT Severity_lut[];
 #define PO_INFO(fmt, ...)       _PO_PRINT(S_INFO, fmt, ## __VA_ARGS__ )
 #define PO_WARNING(fmt, ...)   _PO_PRINT(S_WARNING, fmt, ## __VA_ARGS__ )
 
-#define ASSERT(x)           if (!(x)) { PO_ERROR("assert failed"); Error_Handler(); }
+#define ASSERT(x)           if (!(x)) { PO_ERROR("assert failed " #x); Error_Handler(); }
+
 #define ASSERT_ERROR(x,fmt,...) \
                             if (!(x)) {  _PO_PRINT(S_ERROR, fmt, ## __VA_ARGS__ ); Error_Handler(); }
 
