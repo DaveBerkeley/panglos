@@ -14,6 +14,9 @@ public:
 
     static tick_t get();
     static bool elapsed(tick_t start, tick_t period);
+
+    // For unit tests on Linux only : 
+    static void set(tick_t t);
 };
 
 }   //  panglos

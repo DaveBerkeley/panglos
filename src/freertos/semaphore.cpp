@@ -53,6 +53,7 @@ public:
     Counting(int n, int initial)
     {
         handle = xSemaphoreCreateCounting(n, initial);
+        ASSERT(handle);
     }
 };
 
@@ -62,6 +63,7 @@ public:
     Binary()
     {
         handle = xSemaphoreCreateBinary();
+        ASSERT(handle);
     }
 };
 

@@ -96,7 +96,11 @@ TEST(Queue, Thread)
     const int loops = 10000;
     const int total = num * loops;
 
+#if defined(FREERTOS)
+    Mutex *mutex = 0;
+#else
     Mutex *mutex = Mutex::create();
+#endif
 
     Queue *queue = Queue::create(sizeof(struct Event), qsize, mutex);
 

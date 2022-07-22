@@ -225,38 +225,4 @@ int MockI2C::read(uint8_t addr, uint8_t* rd, uint32_t len)
     return int(len);
 }
 
-    /*
-     *
-     */
-
-static bool time_auto = true;
-static panglos::Time::tick_t time_now = 0;
-
-void time_set(panglos::Time::tick_t t)
-{
-    time_now = t;
-}
-
-bool time_set_auto(bool on)
-{
-    const bool was = time_auto;
-    time_auto = on;
-    return was;
-}
-
-namespace panglos {
-
-panglos::Time::tick_t Time::get()
-{
-    if (time_auto)
-    {
-        // TODO : return now
-        ASSERT(0);
-    }
-
-    return time_now;
-}
-
-}
-
 //  FIN

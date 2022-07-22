@@ -25,6 +25,7 @@ files = [
     'src/linux/mutex.cpp',
     'src/linux/semaphore.cpp',
     'src/linux/queue.cpp',
+    'src/linux/time.cpp',
 
     # https://github.com/eyalroz/printf
     'lib/printf/src/printf/printf.c',
@@ -49,6 +50,7 @@ files = [
     'unit-tests/action.cpp',
     'unit-tests/ath25.cpp',
     'unit-tests/queue.cpp',
+    'unit-tests/thread.cpp',
 ]
 
 ccflags = [
