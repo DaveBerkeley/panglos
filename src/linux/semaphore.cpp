@@ -13,27 +13,25 @@ using namespace panglos;
 
 class LinuxSemaphore : public Semaphore
 {
-    PostHook *hook;
 public:
     sem_t semaphore;
     std::atomic<int> posted;
 
-    LinuxSemaphore();
+    LinuxSemaphore(unsigned int initial);
  
     virtual ~LinuxSemaphore();
-    virtual void post();
-    virtual void wait();
-    virtual void set_hook(PostHook *hook);
+    virtual void post() override;
+    virtual void wait() override;
 };
 
     /*
      *
      */
 
-LinuxSemaphore::LinuxSemaphore()
-: hook(0), posted(0)
+LinuxSemaphore::LinuxSemaphore(unsigned int initial)
+: posted(0)
 {
-    int err = sem_init(& semaphore, 0, 0);
+    int err = sem_init(& semaphore, 0, initial);
     ASSERT(err == 0);
 }
 
@@ -45,12 +43,6 @@ LinuxSemaphore::~LinuxSemaphore()
 
 void LinuxSemaphore::post()
 {
-    if (hook)
-    {
-        hook->post(this);
-        return;
-    }
-
     posted += 1;
     int err = sem_post(& semaphore);
     ASSERT(err == 0);
@@ -63,16 +55,14 @@ void LinuxSemaphore::wait()
     posted -= 1;
 }
 
-void LinuxSemaphore::set_hook(PostHook *_hook)
-{
-    hook = _hook;
-}
-
 namespace panglos {
 
-Semaphore* Semaphore::create()
+Semaphore* Semaphore::create(Type type, int n, int initial)
 {
-    return new LinuxSemaphore();
+    IGNORE(type);
+    IGNORE(n);
+    ASSERT(initial >= 0);
+    return new LinuxSemaphore(unsigned(initial));
 }
 
 }

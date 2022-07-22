@@ -8,34 +8,20 @@ namespace panglos {
      *
      */
 
-class Semaphore;
-
-class PostHook
-{
-public:
-    virtual void post(Semaphore *s) = 0;
-};
-
-    /*
-     *
-     */
-
 class Semaphore
 {
 public:
-    Semaphore *next;
-    Semaphore() : next(0) { }
+    typedef enum {
+        NORMAL,
+        COUNTING,
+    }   Type;
 
     virtual ~Semaphore(){}
 
     virtual void post() = 0;
     virtual void wait() = 0;
 
-    virtual void set_hook(PostHook *hook) = 0;
-
-    static Semaphore *create();
-
-    static Semaphore **next_fn(Semaphore *s) { return & s->next; }
+    static Semaphore *create(Type type=NORMAL, int n=0, int initial=0);
 };
 
 }   //  namespace

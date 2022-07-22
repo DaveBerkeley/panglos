@@ -92,8 +92,8 @@ static void qt_test(void *arg)
 TEST(Queue, Thread)
 {
     const int qsize = 10;
-    const int num = 100;
-    const int loops = 200;
+    const int num = 5;
+    const int loops = 10000;
     const int total = num * loops;
 
     Mutex *mutex = Mutex::create();

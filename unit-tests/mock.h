@@ -21,24 +21,6 @@ bool pins_match(int num, int start, const int *pins);
 void mock_timer_set(panglos::timer_t t);
 panglos::timer_t timer_get();
 
-namespace panglos {
-    extern EventQueue event_queue;
-}
-
-class MockSemaphore : public panglos::Semaphore
-{
-public:
-    bool set;
-
-    virtual ~MockSemaphore(){};
-
-    MockSemaphore() : set(false) { }
-
-    virtual void post() { set = true; }
-    virtual void wait() {}
-    virtual void set_hook(panglos::PostHook*) {}
-};
-
     /*
      *  GPIO
      */

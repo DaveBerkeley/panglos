@@ -12,6 +12,19 @@
 
 using namespace panglos;
 
+class MockSemaphore : public panglos::Semaphore
+{
+public:
+    bool set;
+
+    virtual ~MockSemaphore(){};
+
+    MockSemaphore() : set(false) { }
+
+    virtual void post() { set = true; }
+    virtual void wait() {}
+};
+
     /*
      *
      */
