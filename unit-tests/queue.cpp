@@ -71,7 +71,7 @@ TEST(Queue, Queued)
 struct QT_DEF
 {
     Queue *queue;
-    const int loops;
+    int loops;
     std::atomic<int> count;
 };
 
@@ -102,7 +102,10 @@ TEST(Queue, Thread)
 
     ThreadPool push("thread_%d", num);
 
-    struct QT_DEF qt = { .queue=queue, .loops=loops };
+    struct QT_DEF qt;
+    qt.queue = queue;
+    qt.loops = loops;
+    qt.count = 0;
 
     bool found[num*loops];
     memset(found, 0, sizeof(found));

@@ -17,18 +17,11 @@ extern "C" {
 
 class FreeRtosSemaphore : public panglos::Semaphore
 {
-    panglos::PostHook *hook;
+public:
     SemaphoreHandle_t handle;
 
-public:
     virtual void post() override
     {
-        if (hook)
-        {
-            hook->post(this);
-            return;
-        }
-
         if (arch_in_irq())
         {
             BaseType_t woken = pdFALSE;
@@ -48,23 +41,27 @@ public:
         xSemaphoreTake(handle, portMAX_DELAY);
     }
 
-    virtual void set_hook(panglos::PostHook *_hook) override
-    {
-        hook = _hook;
-    }
-
-public:
-    // use Semaphore::create() to make one
-
-    FreeRtosSemaphore()
-    : hook(0)
-    {
-        handle = xSemaphoreCreateCounting(100, 0);
-    }
-
     ~FreeRtosSemaphore()
     {
         vSemaphoreDelete(handle);
+    }
+};
+
+class Counting : public FreeRtosSemaphore
+{
+public:
+    Counting(int n, int initial)
+    {
+        handle = xSemaphoreCreateCounting(n, initial);
+    }
+};
+
+class Binary : public FreeRtosSemaphore
+{
+public:
+    Binary()
+    {
+        handle = xSemaphoreCreateBinary();
     }
 };
 
@@ -74,9 +71,15 @@ public:
 
 namespace panglos {
 
-Semaphore * Semaphore::create()
+Semaphore *Semaphore::create(Type type, int n, int initial)
 {
-    return new FreeRtosSemaphore;
+    switch (type)
+    {
+        case NORMAL     : return new Binary;
+        case COUNTING   : return new Counting(n, initial);
+        default : ASSERT(0);
+    }
+    return 0;
 }
 
 }
