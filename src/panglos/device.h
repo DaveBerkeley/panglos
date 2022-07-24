@@ -35,7 +35,7 @@ public:
     static Device **get_next(Device *d) { return & d->next; }
 
     static bool init_devices(List<Device *> & todo, bool verbose=false, int loops=100);
-    void add(Objects* list);
+    void add(Objects* list, void *obj);
 };
 
 }   //  namespace panglos

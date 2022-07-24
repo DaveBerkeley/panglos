@@ -109,6 +109,7 @@ bool Device::init_device(List<Device *> & done, List<Device *> & todo, bool verb
         {
             return false;
         }
+        PO_INFO("%s can fail, continue init", name);
     }
 
     // Move to the done list
@@ -146,13 +147,13 @@ bool Device::init_devices(List<Device *> & todo, bool verbose, int loops)
     return true;
 }
 
-void Device::add(Objects *objects)
+void Device::add(Objects *objects, void *obj)
 {
     ASSERT(objects);
 
     if (!(flags & F_DONT_REGISTER))
     {
-        objects->add(name, this);
+        objects->add(name, obj);
     }
 }
 

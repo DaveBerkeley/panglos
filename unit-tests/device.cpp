@@ -30,7 +30,7 @@ static bool hardware_init(const char *name, Device *dev, struct DevInit *di)
 
     if (di->verbose) PO_DEBUG("%s %s", name, dev->name);
 
-    dev->add(di->objects);
+    dev->add(di->objects, dev);
 
     return true;
 }
