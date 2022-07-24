@@ -3,14 +3,16 @@
 
 #include "panglos/debug.h"
 
+#include "panglos/object.h"
 #include "panglos/device.h"
 
 namespace panglos {
 
-Device::Device(const char *_name, const char **_needs, bool (*fn)(Device *, void*), void *_arg)
+Device::Device(const char *_name, const char **_needs, bool (*fn)(Device *, void*), void *_arg, uint16_t _flags)
 :   needs(_needs),
     init(fn),
     arg(_arg),
+    flags(_flags),
     next(0),
     name(_name)
 {
@@ -103,7 +105,10 @@ bool Device::init_device(List<Device *> & done, List<Device *> & todo, bool verb
     if (!init(this, arg))
     {
         PO_ERROR("failed to init device %s", name);
-        return false;
+        if (!(flags & F_CAN_FAIL))
+        {
+            return false;
+        }
     }
 
     // Move to the done list
@@ -139,6 +144,16 @@ bool Device::init_devices(List<Device *> & todo, bool verbose, int loops)
     todo.head = done.head;
 
     return true;
+}
+
+void Device::add(Objects *objects)
+{
+    ASSERT(objects);
+
+    if (!(flags & F_DONT_REGISTER))
+    {
+        objects->add(name, this);
+    }
 }
 
 }   //  namespace panglos

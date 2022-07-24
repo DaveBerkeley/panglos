@@ -30,7 +30,7 @@ static bool hardware_init(const char *name, Device *dev, struct DevInit *di)
 
     if (di->verbose) PO_DEBUG("%s %s", name, dev->name);
 
-    di->objects->add(dev->name, dev);
+    dev->add(di->objects);
 
     return true;
 }
@@ -135,7 +135,7 @@ static void add_devices(List<Device*> &devices, struct DevInit *di)
 
 TEST(Device, FindHas)
 {
-    const char *needs[] = { "sda0", "scl0", 0 };
+    const char *needs[] = { "sda0", "scl0", "xx_reset", "xmiddley", 0 };
     Device i2c("i2c0", needs, 0, 0);
 
     const char *s;
@@ -146,6 +146,10 @@ TEST(Device, FindHas)
     EXPECT_FALSE(s);
     s = i2c.find_has("scl");
     EXPECT_STREQ(s, "scl0");
+    s = i2c.find_has("reset");
+    EXPECT_STREQ(s, "xx_reset");
+    s = i2c.find_has("middle");
+    EXPECT_STREQ(s, "xmiddley");
 }
 
     /*
@@ -186,7 +190,7 @@ TEST(Device, Test)
 
         struct DevInit di = {
             .objects = objects,
-            .verbose =verbose,
+            .verbose = verbose,
         };
 
         add_devices(devices, & di);
@@ -216,7 +220,7 @@ TEST(Device, Loop)
 
     struct DevInit di = {
         .objects = objects,
-        .verbose =verbose,
+        .verbose = verbose,
     };
 
     static const char *needs_a[] = { "b", 0 };
@@ -244,7 +248,7 @@ TEST(Device, NoSuchDevice)
 
     struct DevInit di = {
         .objects = objects,
-        .verbose =verbose,
+        .verbose = verbose,
     };
 
     static const char *needs_a[] = { "b", 0 };
@@ -257,6 +261,60 @@ TEST(Device, NoSuchDevice)
     bool ok = Device::init_devices(devices, verbose, 5);
     EXPECT_FALSE(ok);
 
+    delete objects;
+}
+
+TEST(Device, DontRegister)
+{
+    bool verbose = false;
+    List<Device*> devices(Device::get_next);
+
+    Objects *objects = Objects::create();
+
+    struct DevInit di = {
+        .objects = objects,
+        .verbose = verbose,
+    };
+
+    static Device a("a", 0, init_gpio, & di, Device::F_DONT_REGISTER);
+
+    Mutex *m = 0;
+    devices.push(& a, m);
+
+    bool ok = Device::init_devices(devices, verbose);
+    EXPECT_TRUE(ok);
+
+    ok = objects->get("a");
+    EXPECT_FALSE(ok);
+    
+    delete objects;
+}
+
+static bool init_fail(Device *dev, void *arg)
+{
+    IGNORE(arg);
+    IGNORE(dev);
+    return false;
+}
+
+TEST(Device, CanFail)
+{
+    bool verbose = false;
+    List<Device*> devices(Device::get_next);
+
+    Objects *objects = Objects::create();
+
+    static Device a("a", 0, init_fail, 0, Device::F_CAN_FAIL);
+
+    Mutex *m = 0;
+    devices.push(& a, m);
+
+    bool ok = Device::init_devices(devices, verbose);
+    EXPECT_TRUE(ok);
+
+    ok = objects->get("a");
+    EXPECT_FALSE(ok);
+    
     delete objects;
 }
 

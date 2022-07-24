@@ -6,6 +6,8 @@
 
 namespace panglos {
 
+class Objects;
+
 class Device
 {
     bool init_device(List<Device *> & done, List<Device *> & todo, bool verbose, int nest);
@@ -14,11 +16,18 @@ class Device
     const char **needs;
     bool (*init)(Device *dev, void *arg);
     void *arg;
+    uint16_t flags;
     Device *next;
 public:
+    typedef enum {
+        F_NONE = 0,
+        F_CAN_FAIL = 1 << 0,
+        F_DONT_REGISTER = 1 << 1,
+    }   Flags;
+
     const char *name;
 
-    Device(const char *name, const char **needs, bool (*fn)(Device *, void *), void *arg);
+    Device(const char *name, const char **needs, bool (*fn)(Device *, void *), void *arg, uint16_t flags=0);
 
     const char *find_has(const char *part);
 
@@ -26,6 +35,7 @@ public:
     static Device **get_next(Device *d) { return & d->next; }
 
     static bool init_devices(List<Device *> & todo, bool verbose=false, int loops=100);
+    void add(Objects* list);
 };
 
 }   //  namespace panglos
