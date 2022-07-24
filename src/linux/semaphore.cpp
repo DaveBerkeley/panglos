@@ -59,6 +59,7 @@ void LinuxSemaphore::wait()
 void LinuxSemaphore::wait_timeout(int ticks)
 {
     // TODO
+    IGNORE(ticks);
     ASSERT(0);
 }
 

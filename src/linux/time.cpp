@@ -11,12 +11,14 @@ static Time::tick_t fake_time = 0;
 
 void Time::sleep(int secs)
 {
-    ::sleep(secs);
+    ASSERT(secs >= 0);
+    ::sleep(unsigned(secs));
 }
 
 void Time::msleep(int msecs)
 {
-    usleep(1000 * msecs);
+    ASSERT(msecs >= 0);
+    usleep(useconds_t(1000 * msecs));
 }
 
 Time::tick_t Time::get()
