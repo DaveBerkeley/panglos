@@ -104,12 +104,12 @@ bool Device::init_device(List<Device *> & done, List<Device *> & todo, bool verb
     ASSERT(init);
     if (!init(this, arg))
     {
-        PO_ERROR("failed to init device %s", name);
+        PO_ERROR("failed to init device '%s'", name);
         if (!(flags & F_CAN_FAIL))
         {
             return false;
         }
-        PO_INFO("%s can fail, continue init", name);
+        PO_INFO("'%s' can fail, continue init", name);
     }
 
     // Move to the done list

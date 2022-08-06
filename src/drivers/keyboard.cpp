@@ -50,8 +50,10 @@ void Keyboard::set_key_event(void (*fn)(void *arg), void *arg)
 
 void Keyboard::on_interrupt()
 {
-    ASSERT(on_key);
-    on_key(on_key_arg);
+    if (on_key)
+    {
+        on_key(on_key_arg);
+    }
 }
 
 void Keyboard::on_interrupt(void *arg)
@@ -86,7 +88,7 @@ bool Keyboard::init(int nkeys)
     if (irq)
     {
         // Configure to generate interrupts on key change
-        dev->write(MCP23S17::R_DEFVALA, mask);
+        dev->write(MCP23S17::R_DEFVALA, 0);
         dev->write(MCP23S17::R_INTCONA, 0); // 0=compare to previous pin value for change
         dev->write(MCP23S17::R_GPINTENA, mask); // enable interrupt on change for inputs
     }
