@@ -140,6 +140,72 @@ TEST(IO, CharIn)
 
 TEST(IO, LineReader)
 {
+    {
+        // line + non-line
+        const char *s = "hello\nworld!";
+        CharIn in(s);
+
+        LineReader reader(& in);
+
+        char buff[64] = { 0 };
+        int n = reader.rx(buff, sizeof(buff));
+        EXPECT_EQ(n, 6);
+        EXPECT_STREQ(buff, "hello\n");
+        int m = reader.rx(& buff[n], int(sizeof(buff) - n));
+        EXPECT_EQ(m, 6);
+        EXPECT_STREQ(buff, s);
+    }
+    {
+        // line + line
+        const char *s = "hello\nworld!\n";
+        CharIn in(s);
+
+        LineReader reader(& in);
+
+        char buff[64] = { 0 };
+        int n = reader.rx(buff, sizeof(buff));
+        EXPECT_EQ(n, 6);
+        EXPECT_STREQ(buff, "hello\n");
+        n = reader.rx(buff, sizeof(buff));
+        EXPECT_EQ(n, 7);
+        EXPECT_STREQ(buff, "world!\n");
+    }
+    {
+        // line + empty_line + line
+        const char *s = "hello\n\nworld!\n";
+        CharIn in(s);
+
+        LineReader reader(& in);
+
+        char buff[64] = { 0 };
+        int n = reader.rx(buff, sizeof(buff));
+        EXPECT_EQ(n, 6);
+        EXPECT_STREQ(buff, "hello\n");
+
+        memset(buff, 0, sizeof(buff));
+        n = reader.rx(buff, sizeof(buff));
+        EXPECT_EQ(n, 1);
+        EXPECT_STREQ(buff, "\n");
+
+        memset(buff, 0, sizeof(buff));
+        n = reader.rx(buff, sizeof(buff));
+        EXPECT_EQ(n, 7);
+        EXPECT_STREQ(buff, "world!\n");
+    }
+    {
+        const char *s = "hello\n\nworld!\n";
+        CharIn in(s);
+
+        LineReader reader(& in);
+
+        char buff[64] = { 0 };
+        int n = reader.rx(buff, sizeof(buff));
+        EXPECT_EQ(n, 6);
+        EXPECT_STREQ(buff, "hello\n");
+        n = reader.strip(buff, n);
+        EXPECT_EQ(n, 5);
+        EXPECT_STREQ(buff, "hello");
+    }
 }
 
 //  FIN

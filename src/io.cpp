@@ -208,11 +208,14 @@ int LineReader::rx(char* data, int n)
 {
     for (int i = 0; i < n; i += 1)
     {
-        int n = input->rx(& data[i], 1);
-        ASSERT(n);
-        if (strchr(delimit, data[i]))
+        int s = input->rx(& data[i], 1);
+        if (!s)
         {
             return i;
+        }
+        if (strchr(delimit, data[i]))
+        {
+            return i+1;
         }
     }
     return n;
@@ -222,11 +225,11 @@ int LineReader::strip(char *data, int n)
 {
     while (n > 0)
     {
-        if (!strchr(delimit, data[n]))
+        if (!strchr(delimit, data[n-1]))
         {
             return n;
         }
-        data[n] = '\0';
+        data[n-1] = '\0';
         n -= 1;
     }
     return n;
