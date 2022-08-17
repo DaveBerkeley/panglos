@@ -95,4 +95,51 @@ TEST(IO, LineOut)
     }
 }
 
+    /*
+     *
+     */
+
+TEST(IO, CharIn)
+{
+    {
+        const char *s = "hello";
+        CharIn in(s);
+
+        char buff[128] = { 0 };
+        int n = in.rx(buff, sizeof(buff));
+        EXPECT_EQ(n, strlen(s));
+        EXPECT_STREQ(buff, s);
+    }
+    {
+        const char *s = "hello";
+        CharIn in(s);
+
+        char buff[4] = { 0 };
+        int n = in.rx(buff, sizeof(buff));
+        EXPECT_EQ(n, sizeof(buff));
+        EXPECT_FALSE(strncmp(buff, s, n));
+    }
+    {
+        const char *s = "hello";
+        CharIn in(s);
+
+        char buff[8] = { 0 };
+        int n = in.rx(buff, 4);
+        EXPECT_EQ(n, 4);
+        EXPECT_FALSE(strncmp(buff, s, n));
+        // read the rest
+        int m = in.rx(& buff[n], int(sizeof(buff) - n));
+        EXPECT_EQ(n + m, strlen(s));
+        EXPECT_STREQ(buff, s);
+    }
+}
+
+    /*
+     *
+     */
+
+TEST(IO, LineReader)
+{
+}
+
 //  FIN

@@ -1,4 +1,5 @@
 
+#include <string.h>
 
 // tiny printf library
 // https://github.com/eyalroz/printf
@@ -163,6 +164,72 @@ LineOut::~LineOut()
 {
     tx_flush();
     delete[] data;
+}
+
+    /*
+     * 
+     */
+
+CharIn::CharIn(const char *_s, size_t _size)
+:   s(_s),
+    size(_size),
+    idx(0)
+{
+    if (s && !size)
+    {
+        size = strlen(s);
+    }
+}
+
+int CharIn::rx(char* data, int n)
+{
+    size_t todo = size - idx;
+    if (!todo)
+    {
+        return 0;
+    }
+    size_t block = (((size_t)n) > todo) ? todo : n;
+    memcpy(data, & s[idx], block);
+    idx += block;
+    return (int) block;
+}
+
+    /*
+     *
+     */
+
+LineReader::LineReader(In *_input, const char *_delimit)
+:   input(_input),
+    delimit(_delimit)
+{
+}
+
+int LineReader::rx(char* data, int n)
+{
+    for (int i = 0; i < n; i += 1)
+    {
+        int n = input->rx(& data[i], 1);
+        ASSERT(n);
+        if (strchr(delimit, data[i]))
+        {
+            return i;
+        }
+    }
+    return n;
+}
+
+int LineReader::strip(char *data, int n)
+{
+    while (n > 0)
+    {
+        if (!strchr(delimit, data[n]))
+        {
+            return n;
+        }
+        data[n] = '\0';
+        n -= 1;
+    }
+    return n;
 }
 
 }   //  namespace panglos

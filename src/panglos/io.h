@@ -3,6 +3,7 @@
 #define __PANGLOS_IO__
 
 #include <stdarg.h>
+#include <stdlib.h>
 
     /*
      *
@@ -94,6 +95,39 @@ public:
     ~LineOut();
 
     virtual void tx_flush() override;
+};
+
+    /*
+     *
+     */
+
+class CharIn : public In
+{
+public:
+    const char *s;
+    size_t size;
+    size_t idx;
+
+    CharIn(const char *_s, size_t _size=0);
+
+    virtual int rx(char* data, int n) override;
+};
+
+    /*
+     *
+     */
+
+class LineReader : public In
+{
+    In *input;
+    const char *delimit;
+
+public:
+    LineReader(In *_input, const char *_delimit="\r\n");
+
+    virtual int rx(char* data, int n) override;
+
+    int strip(char *data, int n);
 };
 
 
