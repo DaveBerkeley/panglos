@@ -33,6 +33,7 @@ void Out::tx_flush()
 
 void In::set_event_handler(void (*fn)(Event *ev, void *arg), void *arg)
 {
+    PO_WARNING("Not implemented");
     IGNORE(fn);
     IGNORE(arg);
 }

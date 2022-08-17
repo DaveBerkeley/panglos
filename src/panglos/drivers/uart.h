@@ -12,7 +12,12 @@ namespace panglos {
 
 class UART : public IO
 {
-    // Do we even need a UART class?
+public:
+    typedef enum {
+        READ,
+        WRITE,
+        ERROR
+    }   Event;
 };
 
 }   //  namespace panglos

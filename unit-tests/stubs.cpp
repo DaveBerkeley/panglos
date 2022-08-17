@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "panglos/debug.h"
 #include "panglos/thread.h"
@@ -32,6 +33,18 @@ const char *lut(const LUT *codes, int err)
     }
 
     return "unknown";
+}
+
+int rlut(const LUT *lut, const char *s)
+{
+    for (; lut->text; lut++)
+    {
+        if (!strcmp(lut->text, s))
+        {
+            return lut->code;
+        }
+    }
+    return 0;
 }
 
 void Error_Handler(void)
