@@ -14,10 +14,18 @@ class UART : public IO
 {
 public:
     typedef enum {
+        EXIT,
         READ,
         WRITE,
-        ERROR
-    }   Event;
+        ERROR,
+        TIMEOUT,
+    }   EventCode;
+
+    class Event
+    {
+    public:
+        EventCode code;
+    };
 };
 
 }   //  namespace panglos
