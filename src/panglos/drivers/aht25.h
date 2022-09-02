@@ -18,6 +18,7 @@ public:
         CMD_INIT = 0xe1,
         CMD_REQ =  0xac,
         CMD_RESET = 0xba,
+        CMD_STATUS = 0x71,
     };
 
     AHT25(I2C* i2c);
@@ -29,9 +30,13 @@ public:
         double humidity;
     }   Reading;
 
-    void init();
+    bool init();
     Time::tick_t request();
     bool get(Reading *r);
+    uint8_t status();
+
+    bool busy();
+    bool calibrated();
 };
 
 }   //  namespace panglos
