@@ -1,6 +1,6 @@
 
-#if !defined(__PANGLOS_ATH25__)
-#define __PANGLOS_ATH25__
+#if !defined(__PANGLOS_AHT25__)
+#define __PANGLOS_AHT25__
 
 #include "panglos/time.h"
 
@@ -8,7 +8,7 @@ namespace panglos {
 
 class I2C;
 
-class ATH25
+class AHT25
 {
     I2C *i2c;
 public:
@@ -20,7 +20,7 @@ public:
         CMD_RESET = 0xba,
     };
 
-    ATH25(I2C* i2c);
+    AHT25(I2C* i2c);
 
     static bool probe(I2C* i2c);
 
@@ -36,6 +36,6 @@ public:
 
 }   //  namespace panglos
 
-#endif  //  __PANGLOS_ATH25__
+#endif  //  __PANGLOS_AHT25__
 
 //  FIN

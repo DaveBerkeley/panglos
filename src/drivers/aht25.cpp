@@ -5,7 +5,7 @@
 
 #include "panglos/mutex.h"
 #include "panglos/drivers/i2c.h"
-#include "panglos/drivers/ath25.h"
+#include "panglos/drivers/aht25.h"
 
 namespace panglos {
 
@@ -21,34 +21,34 @@ namespace panglos {
      *
      */
 
-const uint8_t ATH25::ADDR = 0x38;
+const uint8_t AHT25::ADDR = 0x38;
 
-ATH25::ATH25(I2C *_i2c)
+AHT25::AHT25(I2C *_i2c)
 :   i2c(_i2c)
 {
     ASSERT(i2c);
 }
 
-bool ATH25::probe(I2C *i2c)
+bool AHT25::probe(I2C *i2c)
 {
     ASSERT(i2c);
     return i2c->probe(ADDR, 2);
 }
 
-void ATH25::init()
+void AHT25::init()
 {
     uint8_t cmd[] = { CMD_INIT, };
     i2c->write(ADDR, cmd, sizeof(cmd));
 }
 
-Time::tick_t ATH25::request()
+Time::tick_t AHT25::request()
 {
     uint8_t cmd[] = { CMD_REQ, };
     i2c->write(ADDR, cmd, sizeof(cmd));
     return 80; // ms to wait
 }
 
-bool ATH25::get(Reading *r)
+bool AHT25::get(Reading *r)
 {
     uint8_t data[7];
 
