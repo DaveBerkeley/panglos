@@ -21,6 +21,31 @@ namespace panglos {
      *
      */
 
+static uint8_t crc8(uint8_t *data, int n)
+{
+    uint8_t crc = 0xff;
+    for (int i = 0; i < n; i++)
+    {
+        crc ^= data[i];
+        for (int j = 0; j < 8; j++)
+        {
+            if (crc & 0x80)
+            {
+                crc = (crc << 1) ^0x31;
+            }
+            else
+            {
+                crc <<= 1;
+            }
+        }
+    }
+    return crc;
+}
+
+    /*
+     *
+     */
+
 const uint8_t AHT25::ADDR = 0x38;
 
 AHT25::AHT25(I2C *_i2c)
@@ -110,12 +135,15 @@ bool AHT25::get(Reading *r)
 
     ASSERT(r);
 
-    // Assuming 20-bit data sent hi bit first
-    int h = (data[1] << 12) + (data[2] << 4) + (data[3] >> 4);
-    int t = ((data[3] & 0x0f) << 16) + (data[4] << 8) + data[5];
-    //PO_DEBUG("h=%#x t=%#x", h, t);
-    //uint8_t crc = data[6];
-    // TODO : validate crc
+    // 20-bit data sent hi bit first
+    const int h = (data[1] << 12) + (data[2] << 4) + (data[3] >> 4);
+    const int t = ((data[3] & 0x0f) << 16) + (data[4] << 8) + data[5];
+
+    if (data[6] != crc8(data, 6))
+    {
+        // Bad CRC
+        return false;
+    }
 
     const double p20 = 1048576.0; // 2^20
     r->humidity = 100 * (h / p20);
