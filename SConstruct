@@ -18,6 +18,7 @@ files = [
     'src/drivers/mcp23s17.cpp',
     'src/drivers/motor.cpp',
     'src/drivers/aht25.cpp',
+    'src/drivers/pzem004t.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
@@ -51,6 +52,7 @@ files = [
     'unit-tests/aht25.cpp',
     'unit-tests/queue.cpp',
     'unit-tests/thread.cpp',
+    'unit-tests/pzem004t.cpp',
 ]
 
 ccflags = [
