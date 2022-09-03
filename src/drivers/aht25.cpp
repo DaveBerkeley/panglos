@@ -23,7 +23,7 @@ const uint8_t AHT25::ADDR = 0x38;
      *
      */
 
-static uint8_t crc8(uint8_t *data, int n)
+uint8_t AHT25::crc8(uint8_t *data, int n)
 {
     uint8_t crc = 0xff;
     for (int i = 0; i < n; i++)
@@ -33,11 +33,11 @@ static uint8_t crc8(uint8_t *data, int n)
         {
             if (crc & 0x80)
             {
-                crc = (crc << 1) ^0x31;
+                crc = uint8_t((crc << 1) ^0x31);
             }
             else
             {
-                crc <<= 1;
+                crc = uint8_t(crc << 1);
             }
         }
     }
@@ -48,16 +48,11 @@ static uint8_t crc8(uint8_t *data, int n)
      *
      */
 
-AHT25::AHT25(I2C *_i2c)
-:   i2c(_i2c)
+AHT25::AHT25(I2C *_i2c, bool _verbose)
+:   i2c(_i2c),
+    verbose(_verbose)
 {
     ASSERT(i2c);
-}
-
-bool AHT25::probe(I2C *i2c)
-{
-    ASSERT(i2c);
-    return i2c->probe(ADDR, 2);
 }
 
 bool AHT25::init()
@@ -82,6 +77,7 @@ bool AHT25::init()
         Time::msleep(10);
     }
 
+    if (verbose) PO_ERROR("failed init");
     return false;
 }
 
@@ -117,13 +113,14 @@ bool AHT25::get(Reading *r)
     int n = i2c->read(ADDR, data, sizeof(data));
     if (n != sizeof(data))
     {
-        PO_ERROR("");
+        if (verbose) PO_ERROR("");
         return false;
     }
 
     const uint8_t state = data[0];
     if (state & S_BUSY)
     {
+        if (verbose) PO_ERROR("busy");
         return false;
     }
 
@@ -136,6 +133,7 @@ bool AHT25::get(Reading *r)
     if (data[6] != crc8(data, 6))
     {
         // Bad CRC
+        if (verbose) PO_ERROR("bad crc");
         return false;
     }
 

@@ -11,6 +11,7 @@ class I2C;
 class AHT25
 {
     I2C *i2c;
+    bool verbose;
 public:
     static const uint8_t ADDR;
 
@@ -21,9 +22,9 @@ public:
         CMD_STATUS = 0x71,
     };
 
-    AHT25(I2C* i2c);
+    AHT25(I2C* i2c, bool verbose=false);
 
-    static bool probe(I2C* i2c);
+    static uint8_t crc8(uint8_t *data, int n);
 
     typedef struct {
         double temperature;

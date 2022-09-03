@@ -12,12 +12,14 @@ using namespace panglos;
 class AHT25_I2C : public I2C
 {
 public:
-    uint8_t written;
+    uint8_t written[10];
+    uint8_t reads[10];
 
     AHT25_I2C()
-    :   I2C(0),
-        written(0)
+    :   I2C(0)
     {
+        memset(written, 0, sizeof(written));
+        memset(reads, 0, sizeof(reads));
     }
 
     virtual bool probe(uint8_t addr, uint32_t timeout) override
@@ -29,18 +31,18 @@ public:
     virtual int write(uint8_t addr, const uint8_t* wr, uint32_t len) override
     {
         EXPECT_EQ(addr, AHT25::ADDR);
-        EXPECT_EQ(1, len);
-        written = *wr;
+        ASSERT(len < sizeof(written));
+        memcpy(written, wr, len);
         return int(len);
     }
     virtual int write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd) override
     {
-        ASSERT(0);
         EXPECT_EQ(addr, AHT25::ADDR);
-        IGNORE(wr);
-        IGNORE(len_wr);
-        IGNORE(rd);
-        IGNORE(len_rd);
+        ASSERT(len_wr < sizeof(written));
+        memcpy(written, wr, len_wr);
+        ASSERT(rd);
+        ASSERT(len_rd <= sizeof(reads));
+        memcpy(rd, reads, len_rd);
         return int(len_wr);
     }
     virtual int read(uint8_t addr, uint8_t* rd, uint32_t len) override
@@ -58,26 +60,15 @@ public:
 TEST(AHT25, Test)
 {
     AHT25_I2C i2c;
-    AHT25 dut(& i2c);
+    AHT25 dut(& i2c, true);
 
-    bool ok;
-
-    ok = dut.probe(& i2c);
+    i2c.reads[0] = 0xc8; // ready
+    bool ok = dut.init();
     EXPECT_TRUE(ok);
-    EXPECT_EQ(0, i2c.written);
 
-    dut.init();
-    EXPECT_EQ(AHT25::CMD_INIT, i2c.written);
-
-    Time::tick_t p = dut.request();
-    EXPECT_EQ(AHT25::CMD_REQ, i2c.written);
+    int p = dut.request();
+    EXPECT_EQ(AHT25::CMD_REQ, i2c.written[0]);
     EXPECT_EQ(80, p);
-
-    AHT25::Reading r;
-    ok = dut.get(& r);
-
-    PO_INFO("TODO : check readings");
-    PO_INFO("TODO : check crc");
 }
 
 //  FIN
