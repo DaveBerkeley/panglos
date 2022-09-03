@@ -13,6 +13,8 @@ namespace panglos {
      *  See http://www.aosong.com/en/products-61.html
      */
 
+const uint8_t AHT25::ADDR = 0x38;
+
 // Status Bits
 #define S_BUSY 0x80
 #define S_CAL  0x08
@@ -46,8 +48,6 @@ static uint8_t crc8(uint8_t *data, int n)
      *
      */
 
-const uint8_t AHT25::ADDR = 0x38;
-
 AHT25::AHT25(I2C *_i2c)
 :   i2c(_i2c)
 {
@@ -69,7 +69,7 @@ bool AHT25::init()
 
     Time::msleep(40);
 
-    uint8_t cmd[] = { CMD_INIT, 0x80, 0x00, };
+    uint8_t cmd[] = { CMD_INIT, 0x00, 0x00, };
     i2c->write(ADDR, cmd, sizeof(cmd));
 
     for (int i = 0; i < 10; i++)
@@ -85,12 +85,10 @@ bool AHT25::init()
     return false;
 }
 
-Time::tick_t AHT25::request()
+int AHT25::request()
 {
     uint8_t cmd[] = { CMD_REQ, 0x33, 0, };
     i2c->write(ADDR, cmd, sizeof(cmd));
-    // TODO : convert to ticks
-    return 8; // ms to wait
     return 80; // ms to wait
 }
 
@@ -123,13 +121,9 @@ bool AHT25::get(Reading *r)
         return false;
     }
 
-    //PO_DEBUG("%#02x %#02x %#02x %#02x %#02x %#02x %#02x",
-    //        data[0], data[1], data[2], data[3], data[4], data[5], data[6]);
-
     const uint8_t state = data[0];
     if (state & S_BUSY)
     {
-        //PO_ERROR("state=%#x", state);
         return false;
     }
 

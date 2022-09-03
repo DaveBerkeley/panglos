@@ -31,7 +31,7 @@ public:
     }   Reading;
 
     bool init();
-    Time::tick_t request();
+    int request(); // returns ms to wait
     bool get(Reading *r);
     uint8_t status();
 
