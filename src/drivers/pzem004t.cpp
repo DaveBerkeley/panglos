@@ -68,7 +68,13 @@ bool PZEM004T::request(Out *out)
 bool PZEM004T::parse(struct PZEM004T::Status *status, const uint8_t *data, int n)
 {
     ASSERT(data);
-    ASSERT(n > 2); // must have more than just a crc
+
+    if (n <= 5)
+    {
+        // must have at least header + n + crc
+        return false;
+    }
+
     // check CRC
     const uint16_t crc16 = crc(data, n-2);
     if (data[n-2] != (crc16 & 0xff))

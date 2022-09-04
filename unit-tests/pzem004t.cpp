@@ -34,6 +34,15 @@ TEST(PZEM, Request)
     EXPECT_EQ(buffer[7], '\r');
 }
 
+TEST(PZEM, Short)
+{
+    const uint8_t data[] = {  0x12, 0x23, };
+    PZEM004T dut;
+
+    const bool ok = dut.parse(0, data, sizeof(data));
+    EXPECT_FALSE(ok);
+}
+
 TEST(PZEM, Parse)
 {
     PZEM004T dut;
