@@ -19,9 +19,9 @@ TEST(PZEM, Request)
 {
     char buffer[128] = { 0 };
     CharOut out(buffer, sizeof(buffer));
-    PZEM004T dut(& out);
+    PZEM004T dut;
 
-    bool ok = dut.request();
+    bool ok = dut.request(& out);
     EXPECT_TRUE(ok);
     // check the buffer
     EXPECT_EQ(buffer[0], 0x01);
@@ -36,7 +36,7 @@ TEST(PZEM, Request)
 
 TEST(PZEM, Parse)
 {
-    PZEM004T dut(0);
+    PZEM004T dut;
 
     bool ok;
 

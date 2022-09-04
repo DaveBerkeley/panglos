@@ -7,6 +7,7 @@ $(APP):
 clean:
 	rm -r $(ODIR) -f $(APP) html latex
 	scons -c
+	find . -name "*~" | xargs rm
 
 test: $(APP)
 	./tdd 

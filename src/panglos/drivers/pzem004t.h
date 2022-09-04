@@ -8,10 +8,9 @@ class Out;
 
 class PZEM004T
 {
-    Out *out;
-
+    uint8_t addr;
 public:
-    PZEM004T(Out *out);
+    PZEM004T(uint8_t addr=0x01);
 
     struct Status
     {
@@ -24,7 +23,7 @@ public:
     };
 
     bool parse(struct Status *s, const uint8_t *data, int n);
-    bool request();
+    bool request(Out *out);
 
     static uint16_t crc(const uint8_t *data, int n);
 };

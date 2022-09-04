@@ -8,39 +8,51 @@
 
 namespace panglos {
 
-PZEM004T::PZEM004T(Out *_out)
-:   out(_out)
+#define READ_REGS 0x04
+
+    /*
+     *  Helper functions to read 16 & 32-bit register data
+     */
+    
+static uint16_t get16(const uint8_t *data, int *idx)
+{
+    // big-endian 16-bit data
+    uint16_t r = uint16_t((data[0] << 8) + data[1]);
+    *idx += 2;
+    return r;
+}
+
+static float get32(const uint8_t *data, int *idx)
+{
+    uint32_t r = get16(data, idx);
+    r += 10000 * get16(& data[2], idx);
+    return float(r);
+}
+
+    /*
+     *
+     */
+
+PZEM004T::PZEM004T(uint8_t _addr)
+:   addr(_addr)
 {
 }
 
-bool PZEM004T::request()
+bool PZEM004T::request(Out *out)
 {
     ASSERT(out);
 
     uint8_t msg[8] = {
-        0x01, // slave address
-        0x04, // reads_regs
-        0, 0, // start_reg
+        addr, // slave address
+        READ_REGS, // reads_regs
+        // big endian 16-bit fields :
+        0, 0, // start_reg 
         0, 10, // num regs
     };
     const uint16_t crc16 = crc(msg, 6);
     msg[6] = uint8_t(crc16 & 0xff);
     msg[7] = uint8_t(crc16 >> 8);
     return out->tx((const char *) msg, sizeof(msg)) == sizeof(msg);
-}
-
-static uint16_t get2(const uint8_t *data, int *idx)
-{
-    uint16_t r = uint16_t((data[0] << 8) + data[1]);
-    *idx += 2;
-    return r;
-}
-
-static uint32_t get4(const uint8_t *data, int *idx)
-{
-    uint32_t r = get2(data, idx);
-    r += 10000 * get2(& data[2], idx);
-    return r;
 }
 
 bool PZEM004T::parse(struct PZEM004T::Status *status, const uint8_t *data, int n)
@@ -58,17 +70,17 @@ bool PZEM004T::parse(struct PZEM004T::Status *status, const uint8_t *data, int n
         return false;
     }
 
-    if ((data[0]) != 0x01)
+    int idx = 0;
+
+    if ((data[idx++]) != addr)
     {
-        // slave id
         return false;
     }
-    if ((data[1]) != 0x04)
+    if ((data[idx++]) != READ_REGS)
     {
-        // read regs request
         return false;
     }
-    if ((data[2]) != 20)
+    if ((data[idx++]) != 20)
     {
         // 10 regs == 20 bytes
         return false;
@@ -80,13 +92,13 @@ bool PZEM004T::parse(struct PZEM004T::Status *status, const uint8_t *data, int n
         return true;
     }
 
-    int idx = 3; // skip header
-    status->volts           = float(get2(& data[idx], & idx) * 0.1);
-    status->current         = float(get4(& data[idx], & idx) * 0.001);
-    status->power           = float(get4(& data[idx], & idx) * 0.01);
-    status->energy          = float(get4(& data[idx], & idx) * 1.0);
-    status->freq            = float(get2(& data[idx], & idx) * 0.1);
-    status->power_factor    = float(get2(& data[idx], & idx) * 0.01);
+    // data is returned as 16 or 32-bit fixed point
+    status->volts        = get16(& data[idx], & idx) * 0.1F;
+    status->current      = get32(& data[idx], & idx) * 0.001F;
+    status->power        = get32(& data[idx], & idx) * 0.1F;
+    status->energy       = get32(& data[idx], & idx) * 1.0F;
+    status->freq         = get16(& data[idx], & idx) * 0.1F;
+    status->power_factor = get16(& data[idx], & idx) * 0.01F;
 
     return true;
 }
