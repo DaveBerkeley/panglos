@@ -6,6 +6,16 @@
 
 #include "panglos/drivers/pzem004t.h"
 
+    /*
+     *  Driver Code for the PZEM004T main monitor
+     *
+     *  Many thanks to TheHWcave for his work on this device
+     *  which allowed me to make sense of the serial protocol.
+     *
+     *  https://www.youtube.com/watch?v=qRsjsenvlJA
+     *  https://github.com/TheHWcave/Peacefair-PZEM-004T-
+     */
+
 namespace panglos {
 
 #define READ_REGS 0x04
