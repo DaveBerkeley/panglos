@@ -117,7 +117,7 @@ TEST(IO, CharIn)
         char buff[4] = { 0 };
         int n = in.rx(buff, sizeof(buff));
         EXPECT_EQ(n, sizeof(buff));
-        EXPECT_FALSE(strncmp(buff, s, n));
+        EXPECT_FALSE(strncmp(buff, s, size_t(n)));
     }
     {
         const char *s = "hello";
@@ -126,9 +126,9 @@ TEST(IO, CharIn)
         char buff[8] = { 0 };
         int n = in.rx(buff, 4);
         EXPECT_EQ(n, 4);
-        EXPECT_FALSE(strncmp(buff, s, n));
+        EXPECT_FALSE(strncmp(buff, s, size_t(n)));
         // read the rest
-        int m = in.rx(& buff[n], int(sizeof(buff) - n));
+        int m = in.rx(& buff[n], int(sizeof(buff) - size_t(n)));
         EXPECT_EQ(n + m, strlen(s));
         EXPECT_STREQ(buff, s);
     }
@@ -151,7 +151,7 @@ TEST(IO, LineReader)
         int n = reader.rx(buff, sizeof(buff));
         EXPECT_EQ(n, 6);
         EXPECT_STREQ(buff, "hello\n");
-        int m = reader.rx(& buff[n], int(sizeof(buff) - n));
+        int m = reader.rx(& buff[n], int(sizeof(buff) - size_t(n)));
         EXPECT_EQ(m, 6);
         EXPECT_STREQ(buff, s);
     }

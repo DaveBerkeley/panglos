@@ -189,7 +189,7 @@ int CharIn::rx(char* data, int n)
     {
         return 0;
     }
-    size_t block = (((size_t)n) > todo) ? todo : n;
+    size_t block = (((size_t)n) > todo) ? todo : size_t(n);
     memcpy(data, & s[idx], block);
     idx += block;
     return (int) block;
