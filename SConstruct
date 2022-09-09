@@ -19,6 +19,7 @@ files = [
     'src/drivers/motor.cpp',
     'src/drivers/aht25.cpp',
     'src/drivers/pzem004t.cpp',
+    'src/drivers/nmea.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
@@ -53,6 +54,7 @@ files = [
     'unit-tests/queue.cpp',
     'unit-tests/thread.cpp',
     'unit-tests/pzem004t.cpp',
+    'unit-tests/nmea.cpp',
 ]
 
 ccflags = [
