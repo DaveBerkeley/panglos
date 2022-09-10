@@ -35,7 +35,7 @@ TEST(NMEA, Checksum)
 
     for (const char **test = tests; *test; test++)
     {
-        strncpy(line, nmea, sizeof(line));
+        strncpy(line, *test, sizeof(line));
         bool ok = NMEA::checksum(line);
         EXPECT_TRUE(ok);
     }
