@@ -7,7 +7,7 @@
 
 namespace panglos {
 
-static int split(char *text, char **parts, int n, const char *delim=",")
+int NMEA::split(char *text, char **parts, int n, const char *delim)
 {
     char *save = 0;
 
@@ -26,17 +26,17 @@ static int split(char *text, char **parts, int n, const char *delim=",")
             if (!*save)
             {
                 // EOL
-                break;
+                return i+1;
             }
             continue;
         }
 
         char *s = strtok_r(text, delim, & save);
+        parts[i] = s;
         if (!s)
         {
-            return i;
+            return i+1;
         }
-        parts[i] = s;
         text = 0;
     }
     return n;
@@ -46,11 +46,11 @@ static int split(char *text, char **parts, int n, const char *delim=",")
      *
      */
 
-static bool parse_int(int *d, char *field)
+bool NMEA::parse_int(int *d, char *field, int base)
 {
     ASSERT(field);
     char *end = 0;
-    long int val = strtol(field, & end, 10);
+    long int val = strtol(field, & end, base);
 
     ASSERT(end);
     if (*end)
@@ -67,7 +67,7 @@ static bool parse_int(int *d, char *field)
     return true;
 }
 
-static bool parse_double(double *d, char *field)
+bool NMEA::parse_double(double *d, char *field)
 {
     //PO_DEBUG("%s", field);
     ASSERT(field);
@@ -94,7 +94,7 @@ static bool parse_double(double *d, char *field)
      *
      */
 
-static bool parse_latlon(double *f, char *field)
+bool NMEA::parse_latlon(double *f, char *field)
 {
     // The NMEA lat/lon format is bonkers
 
@@ -134,7 +134,7 @@ static bool parse_latlon(double *f, char *field)
     ASSERT(f);
     *f = (minutes / 60.0) + degrees;
 
-    PO_DEBUG("%f", *f);
+    //PO_DEBUG("%f", *f);
 
     return true;
 }
@@ -143,15 +143,15 @@ static bool parse_latlon(double *f, char *field)
      *  http://aprs.gids.nl/nmea/#gga
      */
 
-static bool gga(NMEA::Location *loc, char **parts, int n)
+bool NMEA::gga(NMEA::Location *loc, char **parts, int n)
 {
     int idx = 0;
-    PO_DEBUG("n=%d", n);
     ASSERT(loc);
     ASSERT(parts[idx++]);
-    if (n != 16)
+    if (n != 14)
     {
         // Needs all the fields
+        PO_ERROR("n=%d", n);
         return false;
     }
 
@@ -167,7 +167,6 @@ static bool gga(NMEA::Location *loc, char **parts, int n)
     loc->hms.m = num % 100;
     num /= 100;
     loc->hms.h = num;
-    PO_DEBUG("%02d:%02d:%02d", loc->hms.h, loc->hms.m, loc->hms.s);
 
     double lat = 0;
     if (!parse_latlon(& lat, parts[idx++]))
@@ -175,15 +174,17 @@ static bool gga(NMEA::Location *loc, char **parts, int n)
         PO_ERROR("lat");
         return false;
     }
+
+    const bool north = parts[idx][0] == 'N';
+
     if (!strstr("NS", parts[idx++]))
     {
         // Must be N or S
         PO_ERROR("NS");
         return false;
     }
-    // TODO
     // Apply N/S correction to lat
-    loc->lat = lat;
+    loc->lat = north ? lat : -lat;
 
     double lon = 0;
     if (!parse_latlon(& lon, parts[idx++]))
@@ -191,15 +192,16 @@ static bool gga(NMEA::Location *loc, char **parts, int n)
         PO_ERROR("lon");
         return false;
     }
+
+    const bool west = parts[idx][0] == 'W';
     if (!strstr("EW", parts[idx++]))
     {
         // Must be E or W
         PO_ERROR("EW");
         return false;
     }
-    // TODO
     // Apply E/W correction to lon
-    loc->lon = lon;
+    loc->lon = west ? -lon : lon;
 
     if (!strstr("012", parts[idx++]))
     {
@@ -234,6 +236,7 @@ static bool gga(NMEA::Location *loc, char **parts, int n)
     double geoid = 0;
     if (!parse_double(& geoid, parts[idx++]))
     {
+        PO_ERROR("geoid");
         return false;
     }
     if (!strstr("M", parts[idx++])) // metres
@@ -245,16 +248,79 @@ static bool gga(NMEA::Location *loc, char **parts, int n)
     return true;
 }
 
-bool NMEA::parse(Location *loc, char *line, size_t size)
-{
-    IGNORE(loc);
-    PO_DEBUG("%s", line);
-    IGNORE(size);
+    /*
+     *
+     */
 
-    // TODO : checksum test
+void NMEA::strip(char *line, char c)
+{
+    // Remove any nl/cr
+    char *nl = strchr(line, c);
+    if (nl)
+    {
+        *nl = '\0';
+    }
+}
+
+void NMEA::strip(char *line)
+{
+    strip(line, '\r');
+    strip(line, '\n');
+}
+
+    /*
+     *
+     */
+
+bool NMEA::checksum(char *line)
+{
+    // Checksum test
+    char *save = 0;
+    char *s = strtok_r(line, "*", & save);
+    if (!s)
+    {
+        PO_ERROR("No '*'");
+        return false;
+    }
+    int cs = 0;
+    for (char *t = & line[1]; *t; t++)
+    {
+        cs ^= int(*t);
+    }
+    int mcs = 0;
+    if (!parse_int(& mcs, save, 16))
+    {
+        PO_ERROR("parse cs '%s'", save);
+        return false;
+    }
+    if (cs != mcs)
+    {
+        PO_ERROR("cs=%#x mcs=%#x", cs, mcs);
+        return false;
+    }
+
+    return true;
+}
+
+    /*
+     *
+     */
+
+bool NMEA::parse(Location *loc, char *line)
+{
+    ASSERT(line);
+
+    strip(line);
+    //PO_DEBUG("%s", line);
+
+    if (!checksum(line))
+    {
+        PO_ERROR("checksum");
+        return false;
+    }
 
     const int num = 20;
-    char *parts[num];
+    char *parts[num] = { 0 };
 
     const int n = split(line, parts, num, ",");
     if (!n)
@@ -263,17 +329,13 @@ bool NMEA::parse(Location *loc, char *line, size_t size)
         return false;
     }
 
-    for (int i = 0; i < n; i++)
-    {
-        PO_DEBUG("%d %s", i, parts[i]);
-    }
-
     if (!strcmp("$GPGGA", parts[0]))
     {
         return gga(loc, parts, n);
     }
 
     // Not a recognised message
+    PO_ERROR("Unknown Message '%s'", parts[0]);
     return false;
 }
 
