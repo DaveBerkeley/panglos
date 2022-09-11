@@ -7,37 +7,33 @@
 
 namespace panglos {
 
-int NMEA::split(char *text, char **parts, int n, const char *delim)
-{
-    char *save = 0;
+    /*
+     *  Split text into fields, separated by 'delim'
+     *
+     *  return the number of fields
+     */
 
+int NMEA::split(char *text, char **parts, int n, char delim)
+{
     for (int i = 0; i < n; i++)
     {
         parts[i] = 0;
 
-        // if the field is empty, save will point to ","
-        // but strtok_r() will not produce an empty field
-        if (save && ((*delim) == (*save)))
-        {
-            // register empty fields
-            parts[i] = (char*) "";
-            // skip the demiliter
-            save += 1;
-            if (!*save)
-            {
-                // EOL
-                return i+1;
-            }
-            continue;
-        }
-
-        char *s = strtok_r(text, delim, & save);
-        parts[i] = s;
+        char *s = index(text, delim);
         if (!s)
         {
+            // no more delimiters
             return i+1;
         }
-        text = 0;
+
+        *s = '\0';
+        parts[i] = text;
+        s += 1;
+        if (*s == '\0')
+        {
+            return i+2;
+        }
+        text = s;
     }
     return n;
 }
@@ -97,6 +93,7 @@ bool NMEA::parse_double(double *d, char *field)
 bool NMEA::parse_latlon(double *f, char *field)
 {
     // The NMEA lat/lon format is bonkers
+    ASSERT(field);
 
     // find 2 chars in front of the '.'
     // this is the start of the 'minutes' field
@@ -134,7 +131,31 @@ bool NMEA::parse_latlon(double *f, char *field)
     ASSERT(f);
     *f = (minutes / 60.0) + degrees;
 
-    //PO_DEBUG("%f", *f);
+    return true;
+}
+
+    /*
+     *
+     */
+
+bool NMEA::parse_latlon(double *f, char *field, const char *rose)
+{
+    if (!parse_latlon(f, field))
+    {
+        return false;
+    }
+
+    ASSERT(rose);
+    ASSERT(f);
+
+    switch (*rose)
+    {
+        case 'N' :  break;
+        case 'E' :  break;
+        case 'S' :  *f = -*f; break;
+        case 'W' :  *f = -*f; break;
+        default  : return false;
+    }
 
     return true;
 }
@@ -148,7 +169,7 @@ bool NMEA::gga(NMEA::Location *loc, char **parts, int n)
     int idx = 0;
     ASSERT(loc);
     ASSERT(parts[idx++]);
-    if (n != 14)
+    if (n != 15)
     {
         // Needs all the fields
         PO_ERROR("n=%d", n);
@@ -168,40 +189,19 @@ bool NMEA::gga(NMEA::Location *loc, char **parts, int n)
     num /= 100;
     loc->hms.h = num;
 
-    double lat = 0;
-    if (!parse_latlon(& lat, parts[idx++]))
+    if (!parse_latlon(& loc->lat, parts[idx], parts[idx+1]))
     {
         PO_ERROR("lat");
         return false;
     }
+    idx += 2;
 
-    const bool north = parts[idx][0] == 'N';
-
-    if (!strstr("NS", parts[idx++]))
-    {
-        // Must be N or S
-        PO_ERROR("NS");
-        return false;
-    }
-    // Apply N/S correction to lat
-    loc->lat = north ? lat : -lat;
-
-    double lon = 0;
-    if (!parse_latlon(& lon, parts[idx++]))
+    if (!parse_latlon(& loc->lon, parts[idx], parts[idx+1]))
     {
         PO_ERROR("lon");
         return false;
     }
-
-    const bool west = parts[idx][0] == 'W';
-    if (!strstr("EW", parts[idx++]))
-    {
-        // Must be E or W
-        PO_ERROR("EW");
-        return false;
-    }
-    // Apply E/W correction to lon
-    loc->lon = west ? -lon : lon;
+    idx += 2;
 
     if (!strstr("012", parts[idx++]))
     {
@@ -322,7 +322,7 @@ bool NMEA::parse(Location *loc, char *line)
     const int num = 20;
     char *parts[num] = { 0 };
 
-    const int n = split(line, parts, num, ",");
+    const int n = split(line, parts, num, ',');
     if (!n)
     {
         PO_ERROR("No Data");

@@ -1,9 +1,106 @@
 
 #include <gtest/gtest.h>
 
+#include "panglos/debug.h"
 #include "panglos/drivers/nmea.h"
 
 using namespace panglos;
+
+    /*
+     *
+     */
+
+class NmeaLine
+{
+public:
+    char line[128];
+
+    NmeaLine()
+    {
+        line[0] = '\0';
+    }
+
+    void set(const char *s)
+    {
+        EXPECT_TRUE(strlen(s) < sizeof(line));
+        strncpy(line, s, sizeof(line));
+        line[sizeof(line)-1] = '\0';
+    }
+};
+
+    /*
+     *
+     */
+
+TEST(NMEA, Strip)
+{
+    NmeaLine nmea;
+
+    nmea.set("hello\r\n");
+    NMEA::strip(nmea.line);
+    EXPECT_STREQ("hello", nmea.line);
+
+    nmea.set("hello\r");
+    NMEA::strip(nmea.line);
+    EXPECT_STREQ("hello", nmea.line);
+
+    nmea.set("hello\n");
+    NMEA::strip(nmea.line);
+    EXPECT_STREQ("hello", nmea.line);
+
+    nmea.set("hello");
+    NMEA::strip(nmea.line);
+    EXPECT_STREQ("hello", nmea.line);
+}
+
+    /*
+     *
+     */
+
+TEST(NMEA, Split)
+{
+    NmeaLine nmea;
+
+    const int num = 20;
+    char *parts[num];
+    int n;
+
+    nmea.set("one,two,,four");
+    n = NMEA::split(nmea.line, parts, num);
+    EXPECT_EQ(n, 4);
+
+    nmea.set("one,two,,four,");
+    n = NMEA::split(nmea.line, parts, num);
+    EXPECT_EQ(n, 5);
+
+    nmea.set(",");
+    n = NMEA::split(nmea.line, parts, num);
+    EXPECT_EQ(n, 2);
+
+    nmea.set("one");
+    n = NMEA::split(nmea.line, parts, num);
+    EXPECT_EQ(n, 1);
+
+    nmea.set("");
+    n = NMEA::split(nmea.line, parts, num);
+    EXPECT_EQ(n, 1);
+
+    nmea.set(",");
+    n = NMEA::split(nmea.line, parts, num);
+    EXPECT_EQ(n, 2);
+
+    nmea.set(",two,");
+    n = NMEA::split(nmea.line, parts, num);
+    EXPECT_EQ(n, 3);
+
+    nmea.set(",,,");
+    n = NMEA::split(nmea.line, parts, num);
+    EXPECT_EQ(n, 4);
+
+    nmea.set(",,,four");
+    n = NMEA::split(nmea.line, parts, num);
+    EXPECT_EQ(n, 4);
+}
 
     /*
      * Sample streams from :
@@ -13,7 +110,7 @@ using namespace panglos;
 
 TEST(NMEA, Checksum)
 {
-    char line[128];
+    NmeaLine nmea;
 
     const char *tests[] = {
         "$GPRMC,183729,A,3907.356,N,12102.482,W,000.0,360.0,080301,015.5,E*6F",
@@ -35,21 +132,87 @@ TEST(NMEA, Checksum)
 
     for (const char **test = tests; *test; test++)
     {
-        strncpy(line, *test, sizeof(line));
-        bool ok = NMEA::checksum(line);
+        nmea.set(*test);
+        bool ok = NMEA::checksum(nmea.line);
         EXPECT_TRUE(ok);
     }
 }
 
-TEST(NMEA, Any)
+TEST(NMEA, LatLon)
 {
-    char line[128];
-    const char *gpgga = "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47\n";
-    strncpy(line, gpgga, sizeof(line));
+    NmeaLine nmea;
 
-    NMEA::Location loc = { 0 };
+    double d;
+    bool ok;
 
-    bool ok = NMEA::parse(& loc, line);
+    nmea.set("4349.7294");
+    ok = NMEA::parse_latlon(& d, nmea.line, "N");
+    EXPECT_TRUE(ok);
+    EXPECT_NEAR(d, 43.82882, 0.0001);
+
+    nmea.set("0100.0000");
+    ok = NMEA::parse_latlon(& d, nmea.line, "N");
+    EXPECT_TRUE(ok);
+    EXPECT_NEAR(d, 1.0, 0.0001);
+
+    nmea.set("0059.99999");
+    ok = NMEA::parse_latlon(& d, nmea.line, "N");
+    EXPECT_TRUE(ok);
+    EXPECT_NEAR(d, 1.0, 0.0001);
+
+    nmea.set("0000.00000");
+    ok = NMEA::parse_latlon(& d, nmea.line, "E");
+    EXPECT_TRUE(ok);
+    EXPECT_NEAR(d, 0.0, 0.0001);
+
+    nmea.set("17959.99999");
+    ok = NMEA::parse_latlon(& d, nmea.line, "E");
+    EXPECT_TRUE(ok);
+    EXPECT_NEAR(d, 180.0, 0.0001);
+
+    nmea.set("4530.00000");
+    ok = NMEA::parse_latlon(& d, nmea.line, "E");
+    EXPECT_TRUE(ok);
+    EXPECT_NEAR(d, 45.5, 0.0001);
+
+    // West is negative
+    nmea.set("00000.294");
+    ok = NMEA::parse_latlon(& d, nmea.line, "W");
+    EXPECT_TRUE(ok);
+    EXPECT_NEAR(d, -0.004900, 0.0001);
+
+    // East is positive
+    nmea.set("00000.093");
+    ok = NMEA::parse_latlon(& d, nmea.line, "E");
+    EXPECT_TRUE(ok);
+    EXPECT_NEAR(d, 0.001550, 0.0001);
+
+    // North is positive
+    nmea.set("0001.483");
+    ok = NMEA::parse_latlon(& d, nmea.line, "N");
+    EXPECT_TRUE(ok);
+    EXPECT_NEAR(d, 0.024717, 0.0001);
+
+    // South is negative
+    nmea.set("0002.966");
+    ok = NMEA::parse_latlon(& d, nmea.line, "S");
+    EXPECT_TRUE(ok);
+    EXPECT_NEAR(d, -0.049433, 0.0001);
+}
+
+    /*
+     *
+     */
+
+TEST(NMEA, GGA)
+{
+    NmeaLine nmea;
+    const char *gga = "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47\n";
+    nmea.set(gga);
+
+    NMEA::Location loc = { { 0, }, };
+
+    bool ok = NMEA::parse(& loc, nmea.line);
     EXPECT_TRUE(ok);
 
     EXPECT_EQ(12, loc.hms.h);
