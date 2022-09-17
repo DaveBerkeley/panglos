@@ -221,18 +221,17 @@ bool NMEA::gga(NMEA::Location *loc, char **parts, int n)
     // ignore it parts[8]
     idx++;
 
-    double altitude = 0;
-    if (!parse_double(& altitude, parts[idx++]))
+    if (!parse_double(& loc->alt, parts[idx++]))
     {
         PO_ERROR("altitude");
         return false;
     }
-    loc->alt = altitude;
     if (!strstr("M", parts[idx++])) // metres
     {
         PO_ERROR("alt M");
         return false;
     }
+
     double geoid = 0;
     if (!parse_double(& geoid, parts[idx++]))
     {

@@ -20,6 +20,7 @@ files = [
     'src/drivers/aht25.cpp',
     'src/drivers/pzem004t.cpp',
     'src/drivers/nmea.cpp',
+    'src/drivers/spi_bitbang.cpp',
 
     # for test environment
     'src/linux/arch.cpp',

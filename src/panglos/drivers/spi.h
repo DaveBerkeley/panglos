@@ -6,7 +6,6 @@
 
 namespace panglos {
 
-class SpiDevice;
 class Mutex;
 class GPIO;
 
@@ -15,19 +14,16 @@ class SPI
 public:
     Mutex *mutex;
 
-    enum ID {
-        SPI_1,
-        SPI_2
-    };
-
     SPI(Mutex *m) : mutex(m) { }
     virtual ~SPI() { }
 
     virtual bool write(const uint8_t *data, int size) = 0;
     virtual bool read(const uint8_t *data, uint8_t *rd, int size) = 0;
-
-    static SPI *create(ID _id, Mutex *mutex);
 };
+
+    /*
+     *
+     */
 
 class SpiDevice
 {
