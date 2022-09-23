@@ -21,6 +21,7 @@ files = [
     'src/drivers/pzem004t.cpp',
     'src/drivers/nmea.cpp',
     'src/drivers/spi_bitbang.cpp',
+    'src/drivers/ds3231.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
@@ -56,6 +57,7 @@ files = [
     'unit-tests/thread.cpp',
     'unit-tests/pzem004t.cpp',
     'unit-tests/nmea.cpp',
+    'unit-tests/ds3231.cpp',
 ]
 
 ccflags = [
