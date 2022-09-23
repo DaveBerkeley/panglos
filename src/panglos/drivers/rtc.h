@@ -4,6 +4,8 @@ namespace panglos {
 class RTC
 {
 public:
+    virtual ~RTC() {}
+
     virtual bool init() = 0;
 
     typedef struct {
@@ -15,7 +17,9 @@ public:
         uint16_t year;
     }   DateTime;
 
-    virtual bool set(DateTime *dt) = 0;
+    static bool validate(const DateTime &dt);
+
+    virtual bool set(const DateTime *dt) = 0;
     virtual bool get(DateTime *dt) = 0;
 };
 

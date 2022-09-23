@@ -64,6 +64,7 @@ bool DS3231::init()
     }
 
     // TODO : make sure it is in the right mode?
+    //PO_WARNING("TODO : check RTC modes etc.");
 
     return true;
 }
@@ -72,12 +73,12 @@ bool DS3231::init()
      *
      */
 
-bool DS3231::set(DateTime *dt)
+bool DS3231::set(const DateTime *dt)
 {
     ASSERT(i2c);
     ASSERT(dt);
 
-    uint8_t wr[] = {
+    const uint8_t wr[] = {
         REG_SEC,
         to_bcd(dt->sec),
         to_bcd(dt->min),

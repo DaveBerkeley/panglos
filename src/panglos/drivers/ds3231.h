@@ -16,7 +16,7 @@ public:
 
     virtual bool init() override;
 
-    virtual bool set(DateTime *dt) override;
+    virtual bool set(const DateTime *dt) override;
     virtual bool get(DateTime *dt) override;
 
     // Only exposed for unit tests
