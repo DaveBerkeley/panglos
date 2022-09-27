@@ -32,6 +32,7 @@ public:
     static bool checksum(char *text);
     static int split(char *text, char **parts, int n, char delim=',');
     static bool parse_latlon(double *f, char *field, const char *rose);
+    static bool parse_hms(Time *t, char *field);
     static bool gga(NMEA::Location *loc, char **parts, int n);
 };
 

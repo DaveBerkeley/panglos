@@ -127,6 +127,7 @@ TEST(NMEA, Checksum)
         "$GPRTE,1,1,c,0*07",
         "$GPRMC,183731,A,3907.482,N,12102.436,W,000.0,360.0,080301,015.5,E*67",
         "$GPRMB,A,,,,,,,,,,,,V*71",
+        "$GPGGA,175137.00,5023.37605,N,00408.15089,W,1,05,2.04,94.2,M,50.4,M,,*7F",
         0,
     };
 
@@ -135,6 +136,57 @@ TEST(NMEA, Checksum)
         nmea.set(*test);
         bool ok = NMEA::checksum(nmea.line);
         EXPECT_TRUE(ok);
+    }
+}
+
+TEST(NMEA, HMS)
+{
+    char buff[128];
+    NMEA::Time hms;
+
+    bool ok;
+
+    strncpy(buff, "123456", sizeof(buff));
+    ok = NMEA::parse_hms(& hms, buff);
+    EXPECT_TRUE(ok);
+    EXPECT_EQ(hms.h, 12);
+    EXPECT_EQ(hms.m, 34);
+    EXPECT_EQ(hms.s, 56);
+
+    //too few chars
+    strncpy(buff, "12345", sizeof(buff));
+    ok = NMEA::parse_hms(& hms, buff);
+    EXPECT_FALSE(ok);
+
+    // too many chars
+    strncpy(buff, "1234567", sizeof(buff));
+    ok = NMEA::parse_hms(& hms, buff);
+    EXPECT_FALSE(ok);
+
+    // fractions
+    strncpy(buff, "112233.000", sizeof(buff));
+    ok = NMEA::parse_hms(& hms, buff);
+    EXPECT_TRUE(ok);
+    EXPECT_EQ(hms.h, 11);
+    EXPECT_EQ(hms.m, 22);
+    EXPECT_EQ(hms.s, 33);
+
+    // non numbers
+    const char *bad[] = {
+        "1234a7",
+        "123456 123",
+        "123456 abc",
+        "123456a",
+        "-123456",
+        "0x1234",
+        "a123456",
+        0
+    };
+    for (const char **b = bad; *b; b++)
+    {
+        strncpy(buff, *b, sizeof(buff));
+        ok = NMEA::parse_hms(& hms, buff);
+        EXPECT_FALSE(ok);
     }
 }
 

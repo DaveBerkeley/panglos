@@ -44,11 +44,19 @@ int NMEA::split(char *text, char **parts, int n, char delim)
 
 bool NMEA::parse_int(int *d, char *field, int base)
 {
-    ASSERT(field);
+    if (!field)
+    {
+        return false;
+    }
+
     char *end = 0;
     long int val = strtol(field, & end, base);
 
-    ASSERT(end);
+    if (!end)
+    {
+        return false;
+    }
+
     if (*end)
     {
         // more data on the line
@@ -161,6 +169,41 @@ bool NMEA::parse_latlon(double *f, char *field, const char *rose)
 }
 
     /*
+     *
+     */
+
+bool NMEA::parse_hms(Time *t, char *field)
+{
+    // time can have fractions of seconds.
+    // ignore these.
+    char *dot = strchr(field, '.');
+    if (dot)
+    {
+        *dot = '\0';
+    }
+
+    if (strlen(field) != 6)
+    {
+        //PO_ERROR("len %s", field);
+        return false;
+    }
+
+    int num = 0;
+    if (!parse_int(& num, field))
+    {
+        //PO_ERROR("hhmms %s", field);
+        return false;
+    }
+
+    t->s = num % 100;
+    num /= 100;
+    t->m = num % 100;
+    num /= 100;
+    t->h = num;
+    return true;
+}
+
+    /*
      *  http://aprs.gids.nl/nmea/#gga
      */
 
@@ -176,22 +219,15 @@ bool NMEA::gga(NMEA::Location *loc, char **parts, int n)
         return false;
     }
 
-    int num = 0;
-    if (!parse_int(& num, parts[idx++]))
+    if (!parse_hms(& loc->hms, parts[idx++]))
     {
-        PO_ERROR("hhmms");
+        PO_ERROR("hhmms %s", parts[idx-1]);
         return false;
     }
 
-    loc->hms.s = num % 100;
-    num /= 100;
-    loc->hms.m = num % 100;
-    num /= 100;
-    loc->hms.h = num;
-
     if (!parse_latlon(& loc->lat, parts[idx], parts[idx+1]))
     {
-        PO_ERROR("lat");
+        PO_ERROR("lat '%s' '%s'", parts[idx], parts[idx+1]);
         return false;
     }
     idx += 2;
@@ -314,7 +350,6 @@ bool NMEA::parse(Location *loc, char *line)
 
     if (!checksum(line))
     {
-        PO_ERROR("checksum");
         return false;
     }
 
@@ -334,7 +369,7 @@ bool NMEA::parse(Location *loc, char *line)
     }
 
     // Not a recognised message
-    PO_ERROR("Unknown Message '%s'", parts[0]);
+    //PO_ERROR("Unknown Message '%s'", parts[0]);
     return false;
 }
 
