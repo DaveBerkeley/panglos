@@ -221,7 +221,7 @@ bool NMEA::gga(NMEA::Location *loc, char **parts, int n)
 
     if (!parse_hms(& loc->hms, parts[idx++]))
     {
-        PO_ERROR("hhmms %s", parts[idx-1]);
+        PO_ERROR("hhmms '%s'", parts[idx-1]);
         return false;
     }
 
