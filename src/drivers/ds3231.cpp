@@ -38,7 +38,7 @@ uint8_t DS3231::to_bcd(uint8_t data)
      *
      */
 
-const uint8_t DS3231::ADDR = 0x68; // TODO : check 7-bit
+const uint8_t DS3231::ADDR = 0x68;
 
     /*
      *
@@ -57,7 +57,11 @@ DS3231::DS3231(I2C *_i2c)
 bool DS3231::init()
 {
     ASSERT(i2c);
-    if (!i2c->probe(ADDR, 2))
+
+    const uint8_t wr[] = { 0 };
+    uint8_t rd[7];
+
+    if (!i2c->write_read(ADDR, wr, sizeof(wr), rd, sizeof(rd)))
     {
         PO_INFO("No DS3231 found");
         return false;
