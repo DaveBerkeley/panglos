@@ -59,7 +59,10 @@ bool AHT25::init()
 {
     {
         uint8_t cmd[] = { CMD_RESET, };
-        i2c->write(ADDR, cmd, sizeof(cmd));
+        if (!i2c->write(ADDR, cmd, sizeof(cmd)))
+        {
+            return false;
+        }
     }
 
     Time::msleep(40);
@@ -91,7 +94,7 @@ int AHT25::request()
 uint8_t AHT25::status()
 {
     uint8_t cmd[] = { CMD_STATUS, };
-    uint8_t result;
+    uint8_t result = 0;
     i2c->write_read(ADDR, cmd, sizeof(cmd), & result, sizeof(result));
     return result;
 }
