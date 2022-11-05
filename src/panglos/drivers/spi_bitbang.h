@@ -20,7 +20,7 @@ public:
     SPI_BitBang(Mutex *m, GPIO *copi, GPIO *cipo, GPIO *ck);
 
     virtual bool write(const uint8_t *data, int size) override;
-    virtual bool read(const uint8_t *data, uint8_t *rd, int size) override;
+    virtual bool io(const uint8_t *data, uint8_t *rd, int size) override;
 };
 
 }   //  namespace panglos

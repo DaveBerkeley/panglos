@@ -51,7 +51,7 @@ bool SPI_BitBang::write(const uint8_t *data, int size)
     return size;
 }
 
-bool SPI_BitBang::read(const uint8_t *data, uint8_t *rd, int size)
+bool SPI_BitBang::io(const uint8_t *data, uint8_t *rd, int size)
 {
     for (int i = 0; i < size; i++)
     {

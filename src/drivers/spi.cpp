@@ -29,12 +29,12 @@ bool SpiDevice::write(const uint8_t *data, int size)
     return okay;
 }
 
-bool SpiDevice::read(const uint8_t *data, uint8_t *rd, int size)
+bool SpiDevice::io(const uint8_t *data, uint8_t *rd, int size)
 {
     Lock lock(spi->mutex);
 
     cs->set(false);
-    bool okay = spi->read(data, rd, size);
+    bool okay = spi->io(data, rd, size);
     cs->set(true);
     return okay;
 }
@@ -55,7 +55,7 @@ bool SpiDevice::read(uint8_t reg, uint8_t *data)
     Lock lock(spi->mutex);
 
     cs->set(false);
-    bool okay = spi->read(wr, rd, sizeof wr);
+    bool okay = spi->io(wr, rd, sizeof wr);
     cs->set(true);
 
     *data = rd[2];

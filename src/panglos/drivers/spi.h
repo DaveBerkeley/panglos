@@ -18,7 +18,7 @@ public:
     virtual ~SPI() { }
 
     virtual bool write(const uint8_t *data, int size) = 0;
-    virtual bool read(const uint8_t *data, uint8_t *rd, int size) = 0;
+    virtual bool io(const uint8_t *data, uint8_t *rd, int size) = 0;
 };
 
     /*
@@ -36,7 +36,7 @@ public:
 
     // write a block of data
     bool write(const uint8_t *data, int size);
-    bool read(const uint8_t *data, uint8_t *rd, int size);
+    bool io(const uint8_t *data, uint8_t *rd, int size);
 
     // register read / write
     bool write(uint8_t reg, uint8_t data);

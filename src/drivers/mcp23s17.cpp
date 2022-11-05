@@ -558,7 +558,7 @@ void SPI_MCP23S17::_on_interrupt()
     const uint8_t wr[] = { uint8_t(addr_cmd | 0x01), R_INTFA, 0, 0, 0, 0, 0, 0 };
     uint8_t rd[sizeof(wr)];
 
-    dev->read(wr, rd, sizeof(wr));
+    dev->io(wr, rd, sizeof(wr));
 
     int idx = 0;
     for (int port = 0; port < 2; port++)

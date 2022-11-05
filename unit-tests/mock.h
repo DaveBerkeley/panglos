@@ -61,7 +61,7 @@ public:
 
     MockSpi() : SPI(0), in(0) { reset(); }
 
-    virtual bool write(const uint8_t *data, int size)
+    virtual bool write(const uint8_t *data, int size) override
     {
         ASSERT(data);
         ASSERT((size+in) < (int) sizeof buff);
@@ -70,7 +70,7 @@ public:
         return true;
     }
 
-    virtual bool read(const uint8_t *data, uint8_t *rd, int size)
+    virtual bool io(const uint8_t *data, uint8_t *rd, int size) override
     {
         ASSERT(data);
         ASSERT(rd);
