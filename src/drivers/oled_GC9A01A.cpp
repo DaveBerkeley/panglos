@@ -147,8 +147,10 @@ void OLED::send(uint8_t command, const uint8_t *data, uint8_t n)
     spi->write(& command, 1);
 
     dc->set(1);
-    spi->write(data, n);
-
+    if (n)
+    {
+        spi->write(data, n);
+    }
     cs->set(1);
     
     cs->set(0);
