@@ -40,6 +40,32 @@ bool Section::match(const char *match)
 }
 
     /*
+     *  Printer class
+     */
+
+Printer::Printer(json::Section *sec, size_t _limit)
+:   buff(0),
+    limit(_limit)
+{
+    size_t size = 2 + sec->e - sec->s;
+    if (size > limit)
+        size = limit;
+    buff = new char[size];
+    memcpy(buff, sec->s, size-1);
+    buff[size-1] = '\0';
+}
+
+Printer::~Printer()
+{
+    delete buff;
+}
+
+const char *Printer::get()
+{
+    return buff;
+}
+
+    /*
      *
      */
 
@@ -324,36 +350,50 @@ public:
     }
 };
 
-Match::Match(const char **_keys, int nlevels)
-:   keys(_keys),
-    nest(0),
+Match::Match(int nlevels)
+:   nest(0),
     max_nest(nlevels),
-    levels(0)
+    levels(0),
+    items(Item::get_next)
 {
     levels = new Level[nlevels];
 }
+
 Match::~Match()
 {
     delete[] levels;
 }
 
-void Match::check(Section *sec)
+void Match::add_item(struct Item *item, Mutex *m)
+{
+    items.push(item, m);
+}
+
+void Match::check(Section *sec, enum Type type)
 {
     if (nest >= max_nest) return;
 
-    for (int i = 1; i <= nest; i++)
-    {
-        Level *level = & levels[i];
-        const char *key = keys[i-1];
-        if (!key)
-            break;
-        if (!level->key.match(key))
-            break;
+    struct Item *item = 0;
 
-        if (keys[i] == 0)
+    for (item = items.head; item; item = item->next)
+    {
+        const char **keys = item->keys;
+
+        for (int i = 1; i <= nest; i++)
         {
-            on_match(sec);
-            break;
+            Level *level = & levels[i];
+            const char *key = keys[i-1];
+            if (!key)
+                break;
+            if (!level->key.match(key))
+                break;
+
+            if (keys[i] == 0)
+            {
+                ASSERT(item->on_match);
+                item->on_match(item->arg, sec, type);
+                break;
+            }
         }
     }
 }
@@ -381,7 +421,7 @@ void Match::on_array(bool push)
 void Match::on_number(Section *sec)
 {
     if (nest >= max_nest) return;
-    check(sec);
+    check(sec, Match::NUMBER);
     levels[nest].set_key(0);
 }
 
@@ -395,7 +435,7 @@ void Match::on_string(Section *sec, bool key)
     }
     else
     {
-        check(sec);
+        check(sec, Match::STRING);
         levels[nest].set_key(0);
     }
 }
@@ -403,7 +443,7 @@ void Match::on_string(Section *sec, bool key)
 void Match::on_primitive(Section *sec)
 {
     if (nest >= max_nest) return;
-    check(sec);
+    check(sec, Match::PRIMITIVE);
     levels[nest].set_key(0);
 }
 

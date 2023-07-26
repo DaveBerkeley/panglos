@@ -211,21 +211,28 @@ public:
     bool result;
     int found;
 
-    TestMatch(const char **m, const char *_cmp)
-    :   Match(m),
-        cmp(_cmp),
+    TestMatch(const char *_cmp)
+    :   cmp(_cmp),
         result(false),
         found(0)
     {
     }
-    virtual void on_match(Section *sec) override
+    void on_match(Section *sec, enum Type type)
     {
+        IGNORE(type);
         //Printer p(sec);
         //PO_DEBUG("%s %s", p.get(), cmp);
         result = sec->match(cmp);
         found += 1;
     }
 };
+
+static void on_match(void *arg, Section *sec, enum Match::Type type)
+{
+    ASSERT(arg);
+    TestMatch *tm = (TestMatch*) arg;
+    tm->on_match(sec, type);
+}
 
 TEST(Json, Match)
 {
@@ -239,8 +246,10 @@ TEST(Json, Match)
             " \"time\": \"2023/07/25 14:07:57\", \"z\": \"local\"}";
 
     {
+        TestMatch tm("xx");
         const char *m[] = { "sun", 0 };
-        TestMatch tm(m, "xx");
+        json::Match::Item item = { m, on_match, & tm };
+        tm.add_item(& item);
         Section sec;
         set_section(& sec, json);
         Parser p(& tm);
@@ -249,8 +258,10 @@ TEST(Json, Match)
         EXPECT_EQ(2, tm.found); // finds all elements of "sun"
     }
     {
+        TestMatch tm("0.4673593289770038");
         const char *m[] = { "moon", "phase", 0 };
-        TestMatch tm(m, "0.4673593289770038");
+        json::Match::Item item = { m, on_match, & tm };
+        tm.add_item(& item);
         Section sec;
         set_section(& sec, json);
         Parser p(& tm);
@@ -259,8 +270,10 @@ TEST(Json, Match)
         EXPECT_EQ(1, tm.found);
     }
     {
+        TestMatch tm("5.141014099121094");
         const char *m[] = { "jupiter", "az", 0 };
-        TestMatch tm(m, "5.141014099121094");
+        json::Match::Item item = { m, on_match, & tm };
+        tm.add_item(& item);
         Section sec;
         set_section(& sec, json);
         Parser p(& tm);
@@ -269,8 +282,10 @@ TEST(Json, Match)
         EXPECT_EQ(1, tm.found);
     }
     {
+        TestMatch tm("5.141014099121094");
         const char *m[] = { "jupiterx", "az", 0 };
-        TestMatch tm(m, "5.141014099121094");
+        json::Match::Item item = { m, on_match, & tm };
+        tm.add_item(& item);
         Section sec;
         set_section(& sec, json);
         Parser p(& tm);

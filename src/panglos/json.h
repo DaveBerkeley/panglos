@@ -1,9 +1,13 @@
 
+#include "panglos/list.h"
+
 namespace panglos {
 
     /*
      *  https://www.json.org/json-en.html
      */
+
+class Mutex;
 
 namespace json {
 
@@ -37,6 +41,20 @@ public:
         e(_e)
     {
     }
+};
+
+    /*
+     *  Utility class for easy printing of Section
+     */
+
+class Printer
+{
+    char *buff;
+    size_t limit;
+public:
+    Printer(Section *sec, size_t _limit=80);
+    ~Printer();
+    const char *get();
 };
 
     /*
@@ -100,25 +118,41 @@ public:
 
 class Match : public Handler
 {
+public:
+    enum Type { STRING, NUMBER, PRIMITIVE };
+
+    struct Item {
+        const char **keys;
+        void (*on_match)(void *arg, Section *sec, enum Type type);
+        void *arg;
+
+        struct Item *next;
+        static struct Item **get_next(struct Item *d) { return & d->next; }
+    };
+
+private:
     class Level;
 
-    void check(Section *sec);
+    void check(Section *sec, enum Type type);
 
+    // Handler used to check match
     virtual void on_object(bool push) override;
     virtual void on_array(bool push) override;
     virtual void on_number(Section *sec) override;
     virtual void on_string(Section *sec, bool key) override;
     virtual void on_primitive(Section *sec) override;
 
-    const char **keys;
     int nest;
     int max_nest;
     Level *levels;
 
-public:
-    virtual void on_match(Section *sec) = 0;
+    typedef List<Item*> Items;
+    Items items;
 
-    Match(const char **keys, int nlevels=10);
+public:
+    void add_item(struct Item *item, Mutex *m=0);
+
+    Match(int nlevels=10);
     ~Match();
 };
 
