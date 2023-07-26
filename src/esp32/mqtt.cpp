@@ -145,6 +145,12 @@ MqttSub *MqttClient::find(const char *topic, int len)
 void MqttClient::on_connected(MqttEvent *mevent)
 {
     MqttSub *item = subs.head;
+
+    if (!item)
+    {
+        PO_INFO("no subscriptions");
+    }
+
     if (item)
     {
         subscribe(item);
