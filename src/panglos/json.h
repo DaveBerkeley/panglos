@@ -19,6 +19,24 @@ public:
 
     bool skip(char c='\0');
     bool match(const char *s);
+
+    Section()
+    :   s(0),
+        e(0)
+    {
+    }
+
+    Section(const char *t)
+    :   s(t),
+        e(& t[strlen(t)-1])
+    {
+    }
+
+    Section(const char *_s, const char *_e)
+    :   s(_s),
+        e(_e)
+    {
+    }
 };
 
     /*

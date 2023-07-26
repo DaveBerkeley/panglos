@@ -49,7 +49,6 @@ Parser::Parser(Handler *h, bool v)
     err(OKAY)
 {
     ASSERT(handler);
-    memset(& err_sec, 0, sizeof(err_sec));
 }
 
 enum Parser::Error Parser::get_error(Section *sec)
@@ -179,7 +178,7 @@ bool Parser::number(Section *sec)
     //PO_DEBUG("NUMBER %-*s", int(sec->e - sec->s), sec->s);
 
     const char *s = sec->s;
-    Section num = { .s = s, .e = 0 };
+    Section num(s, 0);
 
     while (sec->s <= sec->e)
     {
@@ -205,7 +204,7 @@ bool Parser::string(Section *sec, bool key)
     const char *s = sec->s + 1;
     bool escape = false;
 
-    Section str = { .s = s, .e = 0 };
+    Section str(s, 0);
     while (s <= sec->e)
     {
         if ((*s == '"') && !escape)
