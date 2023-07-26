@@ -31,7 +31,8 @@ ESP_SPI::ESP_SPI(Mutex *m, int ck, int copi, int cipo, int cs, int max_sz)
     };
     spi_device_interface_config_t devcfg = {
         .mode=0,
-        .clock_speed_hz=25000000,
+        //.clock_speed_hz=25000000,
+        .clock_speed_hz=12000000,
         .spics_io_num=cs,
         .queue_size=7, // # transactions 
         //.pre_cb=0,
