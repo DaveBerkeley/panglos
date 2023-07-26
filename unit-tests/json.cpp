@@ -203,35 +203,22 @@ TEST(Json, File)
      *
      */
 
-class TestMatch : public Match
-{
+struct Matcher {
     const char *cmp;
-public:
-
-    bool result;
-    int found;
-
-    TestMatch(const char *_cmp)
-    :   cmp(_cmp),
-        result(false),
-        found(0)
-    {
-    }
-    void on_match(Section *sec, enum Type type)
-    {
-        IGNORE(type);
-        //Printer p(sec);
-        //PO_DEBUG("%s %s", p.get(), cmp);
-        result = sec->match(cmp);
-        found += 1;
-    }
+    enum Match::Type type;
+    int checked;
+    bool same;
 };
 
 static void on_match(void *arg, Section *sec, enum Match::Type type)
 {
+    PO_DEBUG("");
     ASSERT(arg);
-    TestMatch *tm = (TestMatch*) arg;
-    tm->on_match(sec, type);
+
+    struct Matcher *m = (struct Matcher *) arg;
+    m->checked += 1;
+    m->same = sec->match(m->cmp);
+    m->type = type;
 }
 
 TEST(Json, Match)
@@ -246,52 +233,65 @@ TEST(Json, Match)
             " \"time\": \"2023/07/25 14:07:57\", \"z\": \"local\"}";
 
     {
-        TestMatch tm("xx");
-        const char *m[] = { "sun", 0 };
-        json::Match::Item item = { m, on_match, & tm };
-        tm.add_item(& item);
-        Section sec;
-        set_section(& sec, json);
-        Parser p(& tm);
-        p.parse(& sec);
-        EXPECT_FALSE(tm.result);
-        EXPECT_EQ(2, tm.found); // finds all elements of "sun"
-    }
-    {
-        TestMatch tm("0.4673593289770038");
+        json::Match tm;
         const char *m[] = { "moon", "phase", 0 };
-        json::Match::Item item = { m, on_match, & tm };
+        struct Matcher mm = { "0.4673593289770038", Match::NUMBER };
+        json::Match::Item item = { m, on_match, (void*) & mm };
         tm.add_item(& item);
         Section sec;
         set_section(& sec, json);
         Parser p(& tm);
         p.parse(& sec);
-        EXPECT_TRUE(tm.result);
-        EXPECT_EQ(1, tm.found);
+        EXPECT_EQ(1, mm.checked);
+        EXPECT_EQ(true, mm.same);
     }
     {
-        TestMatch tm("5.141014099121094");
+        json::Match tm;
         const char *m[] = { "jupiter", "az", 0 };
-        json::Match::Item item = { m, on_match, & tm };
+        struct Matcher mm = { "5.141014099121094", Match::NUMBER };
+        json::Match::Item item = { m, on_match, (void*) & mm };
         tm.add_item(& item);
         Section sec;
         set_section(& sec, json);
         Parser p(& tm);
         p.parse(& sec);
-        EXPECT_TRUE(tm.result);
-        EXPECT_EQ(1, tm.found);
+        EXPECT_EQ(1, mm.checked);
+        EXPECT_EQ(true, mm.same);
     }
     {
-        TestMatch tm("5.141014099121094");
+        json::Match tm;
         const char *m[] = { "jupiterx", "az", 0 };
-        json::Match::Item item = { m, on_match, & tm };
+        struct Matcher mm = { "5.141014099121094", Match::NUMBER };
+        json::Match::Item item = { m, on_match, (void*) & mm };
         tm.add_item(& item);
         Section sec;
         set_section(& sec, json);
         Parser p(& tm);
         p.parse(& sec);
-        EXPECT_FALSE(tm.result);
-        EXPECT_EQ(0, tm.found);
+        EXPECT_EQ(0, mm.checked);
+        EXPECT_EQ(false, mm.same);
+    }
+    {
+        json::Match tm;
+
+        const char *m0[] = { "moon", "phase", 0 };
+        struct Matcher mm0 = { "0.4673593289770038", Match::NUMBER };
+        json::Match::Item item0 = { m0, on_match, (void*) & mm0 };
+        tm.add_item(& item0);
+
+        const char *m1[] = { "jupiter", "az", 0 };
+        struct Matcher mm1 = { "5.141014099121094", Match::NUMBER };
+        json::Match::Item item1 = { m1, on_match, (void*) & mm1 };
+        tm.add_item(& item1);
+
+        Section sec;
+        set_section(& sec, json);
+        Parser p(& tm);
+        p.parse(& sec);
+        EXPECT_EQ(1, mm0.checked);
+        EXPECT_EQ(true, mm0.same);
+        EXPECT_EQ(1, mm1.checked);
+        EXPECT_EQ(true, mm1.same);
     }
 }
 
