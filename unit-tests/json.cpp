@@ -11,6 +11,11 @@
 #include "panglos/json.h"
 
 using namespace panglos;
+using namespace json;
+
+    /*
+     *  Utility class to print a Section
+     */
 
 class Printer
 {
@@ -47,168 +52,63 @@ public:
 class P : public Handler
 {
 public:
-    int depth;
+    P() { }
 
-    struct Level {
-        enum Type { NONE, OBJECT, ARRAY, };
-
-        int index;
-        Section key;
-        enum Type type;
-    };
-
-    struct Match {
-        enum Type { NONE, KEY, INDEX };
-        enum Type type;
-        const char *key;
-        int idex;
-    };
-
-    const static int max_levels = 10;
-    struct Level levels[max_levels];
-
-    struct Match *match;
-
-    P(struct Match *_match=0)
-    :   depth(0),
-        match(_match)
+    virtual void on_object(bool push) override
     {
-        memset(levels, 0, sizeof(levels));
-        levels[0].type = Level::NONE;
+        IGNORE(push);
     }
 
-    void push(Level::Type type)
+    virtual void on_array(bool push) override
     {
-        depth += 1;
-        ASSERT(depth <= max_levels);
-        struct Level *level = & levels[depth];
-        level->type = type;
-        level->key.s = 0;
-        level->key.e = 0;
-        level->index = 0;
-    }
-
-    void pop()
-    {
-        depth -= 1;
-        ASSERT(depth >= 0);
-    }
-
-    void print_level(struct Level *level)
-    {
-        switch (level->type)
-        {
-            case Level::OBJECT :
-            {
-                char key[64] = { 0 };
-                strncpy(key, level->key.s, 1 + level->key.e - level->key.s);
-                printf("%s/", key);
-                break;
-            }
-            case Level::ARRAY :
-            {
-                printf("[%d]", level->index);
-                break;
-            }
-            case Level::NONE :
-            {
-                break;
-            }
-            default :
-            {
-                ASSERT(0);
-            }
-        }
-    }
-
-    void check(Section *sec)
-    {
-        for (int i = 0; i <= depth; i++)
-        {
-            print_level(& levels[i]);
-        }
-        Printer p(sec);
-        printf(" %s \n", p.get());
-
-        if (match)
-        {
-            for (int i = 0; i < depth; i++)
-            {
-                Match *m = & match[i];
-                Level *l = & levels[i+1];
-                PO_DEBUG("m=%d l=%d", m->type, l->type);
-            }
-        }
-    }
-
-    void on_item(Section *sec, bool key)
-    {
-        struct Level *level = & levels[depth];
-        if (level->type == Level::ARRAY)
-        {
-            level->index += 1;
-        }
-
-        if (key)
-        {
-            level->key = *sec;
-        }
-        else
-        {
-            check(sec);
-        }
-    }
-
-    virtual void on_object(bool _push) override
-    {
-        PO_DEBUG("%d", _push);
-        if (_push)
-        {
-            push(Level::OBJECT);
-        }
-        else
-        {
-            pop();
-        }
-    }
-
-    virtual void on_array(bool _push) override
-    {
-        PO_DEBUG("%d", _push);
-        if (_push)
-        {
-            push(Level::ARRAY);
-        }
-        else
-        {
-            pop();
-        }
+        IGNORE(push);
     }
 
     virtual void on_number(Section *sec) override
     {
-        Printer p(sec);
-        PO_DEBUG("'%s'", p.get());
-
-        on_item(sec, false);
+        IGNORE(sec);
     }
 
     virtual void on_string(Section *sec, bool key) override
     {
-        Printer p(sec);
-        PO_DEBUG("'%s' key=%d", p.get(), key);
-
-        on_item(sec, key);
+        IGNORE(sec);
+        IGNORE(key);
     }
 
     virtual void on_primitive(Section *sec) override
     {
-        Printer p(sec);
-        PO_DEBUG("'%s'", p.get());
-
-        on_item(sec, false);
+        IGNORE(sec);
     }
 };
+
+    /*
+     *
+     */
+
+static void set_section(Section *sec, const char *str)
+{
+    ASSERT(sec);
+    sec->s = str;
+    sec->e = & str[strlen(str)-1];
+}
+
+    /*
+     *
+     */
+
+TEST(Json, SectionMatch)
+{
+    Section sec;
+    set_section(& sec, "hello");
+    EXPECT_TRUE(sec.match("hello"));
+    EXPECT_FALSE(sec.match("hell"));
+    EXPECT_FALSE(sec.match("ello"));
+    EXPECT_FALSE(sec.match("other"));
+    EXPECT_FALSE(sec.match(""));
+    EXPECT_FALSE(sec.match(" hello"));
+    EXPECT_FALSE(sec.match(" hell"));
+    EXPECT_FALSE(sec.match(0));
+}
 
 TEST(Json, Int)
 {
@@ -235,19 +135,14 @@ TEST(Json, Int)
         0,
     };
 
-    struct P::Match match[] = {
-        {   P::Match::KEY, "moon" },
-        {   P::Match::KEY, "phase" },
-        {   P::Match::NONE },
-    };
-
     for (int i = 0; tests[i]; i++)
     {
 
         const char *json = tests[i];
-        PO_DEBUG("-------- %s", json);
-        P handler(match);
-        Section sec = { json, & json[strlen(json)-1] };
+        //PO_DEBUG("-------- %s", json);
+        P handler;
+        Section sec;
+        set_section(& sec, json);
         Parser p(& handler);
         bool ok = p.parse(& sec);
         EXPECT_TRUE(ok);
@@ -268,7 +163,7 @@ TEST(Json, File)
     const struct Item tests[] = {
         { "unit-tests/data/5MB.json", Parser::OKAY },
         { "unit-tests/data/5MB-min.json", Parser::OKAY },
-        { "unit-tests/data/missing-colon.json", Parser::MISSING_COLON },
+        { "unit-tests/data/missing-colon.json", Parser::COLON_EXPECTED },
         { "unit-tests/data/unterminated.json", Parser::UNTERMINATED_STRING },
         { "unit-tests/data/binary-data.json", Parser::KEY_EXPECTED },
         { 0, Parser::OKAY },
@@ -277,7 +172,7 @@ TEST(Json, File)
     for (int i = 0; tests[i].path; i++)
     {
         const char *path = tests[i].path;
-        PO_DEBUG("-------- %s", path);
+        //PO_DEBUG("-------- %s", path);
 
         int fd = open(path, O_RDONLY);
         ASSERT_ERROR(fd > 0, "error opening file '%s'", path);
@@ -285,8 +180,6 @@ TEST(Json, File)
         struct stat stat;
         int err = fstat(fd, & stat);
         ASSERT_ERROR(err >= 0, "err=%d", err);
-
-        PO_DEBUG("size=%ld", stat.st_size);
 
         char *data = (char *) malloc(stat.st_size);
         ASSERT(data);
@@ -303,6 +196,87 @@ TEST(Json, File)
         enum Parser::Error e = p.get_error(0);
         EXPECT_EQ(e, tests[i].err);
         EXPECT_EQ(ok, tests[i].err == Parser::OKAY);
+    }
+}
+
+    /*
+     *
+     */
+
+class TestMatch : public Match
+{
+    const char *cmp;
+public:
+
+    bool result;
+    int found;
+
+    TestMatch(const char **m, const char *_cmp)
+    :   Match(m),
+        cmp(_cmp),
+        result(false),
+        found(0)
+    {
+    }
+    virtual void on_match(Section *sec) override
+    {
+        //Printer p(sec);
+        //PO_DEBUG("%s %s", p.get(), cmp);
+        result = sec->match(cmp);
+        found += 1;
+    }
+};
+
+TEST(Json, Match)
+{
+    const char *json = "{\"sun\": {\"alt\": 0.9233672, \"az\": 3.902},"
+            " \"moon\": {\"alt\": 0.1942122578, \"az\": 2.1646382808685303, \"phase\": 0.4673593289770038},"
+            " \"mercury\": {\"alt\": 0.9328691363334656, \"az\": 3.231799840927124},"
+            " \"mars\": {\"alt\": 0.8334254026412964, \"az\": 2.8750030994415283},"
+            " \"venus\": {\"alt\": 0.834154486656189, \"az\": 3.184415102005005},"
+            " \"jupiter\": {\"alt\": -0.0059446850791573524, \"az\": 5.141014099121094},"
+            " \"saturn\": {\"alt\": -0.8723456859588623, \"az\": 6.078963279724121},"
+            " \"time\": \"2023/07/25 14:07:57\", \"z\": \"local\"}";
+
+    {
+        const char *m[] = { "sun", 0 };
+        TestMatch tm(m, "xx");
+        Section sec;
+        set_section(& sec, json);
+        Parser p(& tm);
+        p.parse(& sec);
+        EXPECT_FALSE(tm.result);
+        EXPECT_EQ(2, tm.found); // finds all elements of "sun"
+    }
+    {
+        const char *m[] = { "moon", "phase", 0 };
+        TestMatch tm(m, "0.4673593289770038");
+        Section sec;
+        set_section(& sec, json);
+        Parser p(& tm);
+        p.parse(& sec);
+        EXPECT_TRUE(tm.result);
+        EXPECT_EQ(1, tm.found);
+    }
+    {
+        const char *m[] = { "jupiter", "az", 0 };
+        TestMatch tm(m, "5.141014099121094");
+        Section sec;
+        set_section(& sec, json);
+        Parser p(& tm);
+        p.parse(& sec);
+        EXPECT_TRUE(tm.result);
+        EXPECT_EQ(1, tm.found);
+    }
+    {
+        const char *m[] = { "jupiterx", "az", 0 };
+        TestMatch tm(m, "5.141014099121094");
+        Section sec;
+        set_section(& sec, json);
+        Parser p(& tm);
+        p.parse(& sec);
+        EXPECT_FALSE(tm.result);
+        EXPECT_EQ(0, tm.found);
     }
 }
 

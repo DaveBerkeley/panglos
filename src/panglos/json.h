@@ -1,9 +1,15 @@
 
 namespace panglos {
 
-/*
- *  https://www.json.org/json-en.html
- */
+    /*
+     *  https://www.json.org/json-en.html
+     */
+
+namespace json {
+
+    /*
+     *  Text slice : points to start and end of the slice
+     */
 
 class Section
 {
@@ -12,10 +18,11 @@ public:
     const char *e;
 
     bool skip(char c='\0');
+    bool match(const char *s);
 };
 
     /*
-     *
+     *  Callback class
      */
 
 class Handler
@@ -37,12 +44,13 @@ class Parser
 public:
     enum Error {
         OKAY = 0,
-        MISSING_COLON,
+        COLON_EXPECTED,
         KEY_EXPECTED,
-        MISSING_CLOSE_BRACE,
-        MISSING_CLOSE_BRACKET,
+        CLOSE_BRACE_EXPECTED,
+        CLOSE_BRACKET_EXPECTED,
         UNTERMINATED_STRING,
     };
+
 private:
     Handler *handler;
     bool verbose;
@@ -68,6 +76,35 @@ public:
     enum Error get_error(Section *sec);
 };
 
+    /*
+     *
+     */
+
+class Match : public Handler
+{
+    class Level;
+
+    void check(Section *sec);
+
+    virtual void on_object(bool push) override;
+    virtual void on_array(bool push) override;
+    virtual void on_number(Section *sec) override;
+    virtual void on_string(Section *sec, bool key) override;
+    virtual void on_primitive(Section *sec) override;
+
+    const char **keys;
+    int nest;
+    int max_nest;
+    Level *levels;
+
+public:
+    virtual void on_match(Section *sec) = 0;
+
+    Match(const char **keys, int nlevels=10);
+    ~Match();
+};
+
+}   //  namespace json
 }   //  namespace panglos
 
 //  FIN

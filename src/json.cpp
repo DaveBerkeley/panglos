@@ -9,6 +9,7 @@
 #include "panglos/json.h"
 
 namespace panglos {
+namespace json {
 
 static const char *whitespace = " \t\r\n";
 static const char *numeric = "0123456789+-.eE";
@@ -28,6 +29,14 @@ bool Section::skip(char c)
         s += 1;
     }
     return found;
+}
+
+bool Section::match(const char *match)
+{
+    if (!match) return false;
+    const int size = (int) strlen(match);
+    if (size != (1 + e - s)) return false;
+    return strncmp(match, s, size) == 0;
 }
 
     /*
@@ -54,10 +63,10 @@ enum Parser::Error Parser::get_error(Section *sec)
 
 const LUT Parser::err_lut[] = {
     {   "OKAY", Parser::OKAY },
-    {   "MISSING_COLON", Parser::MISSING_COLON },
+    {   "COLON_EXPECTED", Parser::COLON_EXPECTED },
     {   "KEY_EXPECTED", Parser::KEY_EXPECTED },
-    {   "MISSING_CLOSE_BRACE", Parser::MISSING_CLOSE_BRACE },
-    {   "MISSING_CLOSE_BRACKET", Parser::MISSING_CLOSE_BRACKET },
+    {   "CLOSE_BRACE_EXPECTED", Parser::CLOSE_BRACE_EXPECTED },
+    {   "CLOSE_BRACKET_EXPECTED", Parser::CLOSE_BRACKET_EXPECTED },
     {   "UNTERMINATED_STRING", Parser::UNTERMINATED_STRING },
     {   0, 0 },
 };
@@ -104,7 +113,7 @@ bool Parser::object(Section *sec)
 
         if (!sec->skip(':'))
         {
-            return error(sec, MISSING_COLON);
+            return error(sec, COLON_EXPECTED);
         }
 
         if (!value(sec))
@@ -120,7 +129,7 @@ bool Parser::object(Section *sec)
 
     if (!sec->skip('}'))
     {
-        return error(sec, MISSING_CLOSE_BRACE);
+        return error(sec, CLOSE_BRACE_EXPECTED);
     }
 
     handler->on_object(false);
@@ -158,7 +167,7 @@ bool Parser::array(Section *sec)
 
     if (!sec->skip(']'))
     {
-        return error(sec, MISSING_CLOSE_BRACKET);
+        return error(sec, CLOSE_BRACKET_EXPECTED);
     }
 
     handler->on_array(false);
@@ -278,6 +287,128 @@ bool Parser::parse(Section *sec)
     return value(sec);
 }
 
+    /*
+     *
+     */
+
+class Match::Level
+{
+public:
+    enum Type { OBJECT, ARRAY, NONE };
+    Section key;
+    enum Type type;
+    int idx;
+
+    Level()
+    :   type(NONE),
+        idx(-1)
+    {
+        set_key(0);
+    }
+
+    void init(enum Type t)
+    {
+        type = t;
+        set_key(0);
+        idx = -1;
+    }
+    void set_key(Section *sec)
+    {
+        if (sec)
+        {
+            key = *sec;
+        }
+        else
+        {
+            key.s = key.e = 0;
+        }
+    }
+};
+
+Match::Match(const char **_keys, int nlevels)
+:   keys(_keys),
+    nest(0),
+    max_nest(nlevels),
+    levels(0)
+{
+    levels = new Level[nlevels];
+}
+Match::~Match()
+{
+    delete[] levels;
+}
+
+void Match::check(Section *sec)
+{
+    if (nest >= max_nest) return;
+
+    for (int i = 1; i <= nest; i++)
+    {
+        Level *level = & levels[i];
+        const char *key = keys[i-1];
+        if (!key)
+            break;
+        if (!level->key.match(key))
+            break;
+
+        if (keys[i] == 0)
+        {
+            on_match(sec);
+            break;
+        }
+    }
+}
+
+void Match::on_object(bool push)
+{
+    nest += push ? 1 : -1;
+    if (nest >= max_nest) return;
+    if (push)
+    {
+        levels[nest].init(Level::OBJECT);
+    }
+}
+
+void Match::on_array(bool push)
+{
+    nest += push ? 1 : -1;
+    if (nest >= max_nest) return;
+    if (push)
+    {
+        levels[nest].init(Level::ARRAY);
+    }
+}
+
+void Match::on_number(Section *sec)
+{
+    if (nest >= max_nest) return;
+    check(sec);
+    levels[nest].set_key(0);
+}
+
+void Match::on_string(Section *sec, bool key)
+{
+    if (nest >= max_nest) return;
+    if (key)
+    {
+        ASSERT(levels[nest].type == Level::OBJECT);
+        levels[nest].set_key(sec);
+    }
+    else
+    {
+        check(sec);
+        levels[nest].set_key(0);
+    }
+}
+
+void Match::on_primitive(Section *sec)
+{
+    if (nest >= max_nest) return;
+    check(sec);
+    levels[nest].set_key(0);
+}
+
+}   //  namespace json
 }   //  namespace panglos
 
 //  FIN
