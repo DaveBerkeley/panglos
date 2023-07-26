@@ -11,6 +11,7 @@ files = [
     'src/thread.cpp',
     'src/device.cpp',
     'src/action.cpp',
+    'src/json.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/keyboard.cpp',
@@ -58,6 +59,7 @@ files = [
     'unit-tests/pzem004t.cpp',
     'unit-tests/nmea.cpp',
     'unit-tests/ds3231.cpp',
+    'unit-tests/json.cpp',
 ]
 
 ccflags = [
