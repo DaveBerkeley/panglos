@@ -23,6 +23,7 @@ files = [
     'src/drivers/nmea.cpp',
     'src/drivers/spi_bitbang.cpp',
     'src/drivers/ds3231.cpp',
+    'src/drivers/mcp6s91.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
@@ -60,6 +61,7 @@ files = [
     'unit-tests/nmea.cpp',
     'unit-tests/ds3231.cpp',
     'unit-tests/json.cpp',
+    'unit-tests/mcp6s91.cpp',
 ]
 
 ccflags = [
