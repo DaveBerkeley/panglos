@@ -196,6 +196,8 @@ TEST(Json, File)
         enum Parser::Error e = p.get_error(0);
         EXPECT_EQ(e, tests[i].err);
         EXPECT_EQ(ok, tests[i].err == Parser::OKAY);
+
+        free(data);
     }
 }
 

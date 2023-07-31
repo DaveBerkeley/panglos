@@ -18,7 +18,7 @@ bool Section::skip(char c)
 {
     bool found = c == '\0';
 
-    while (*s)
+    while (s <= e)
     {
         found |= *s == c;
         if ((!strchr(whitespace, *s)) && (*s != c))
