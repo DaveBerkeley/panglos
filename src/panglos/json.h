@@ -23,6 +23,7 @@ public:
 
     bool skip(char c='\0');
     bool match(const char *s);
+    char *strncpy(char *buff, size_t s);
 
     Section()
     :   s(0),

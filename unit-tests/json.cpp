@@ -14,38 +14,6 @@ using namespace panglos;
 using namespace json;
 
     /*
-     *  Utility class to print a Section
-     */
-
-class Printer
-{
-    char *buff;
-    size_t limit;
-public:
-    Printer(Section *sec, size_t _limit=80)
-    :   buff(0),
-        limit(_limit)
-    {
-        size_t size = 2 + sec->e - sec->s;
-        if (size > limit)
-            size = limit;
-        buff = new char[size];
-        memcpy(buff, sec->s, size-1);
-        buff[size-1] = '\0';
-    }
-
-    ~Printer()
-    {
-        delete buff;
-    }
-
-    const char *get()
-    {
-        return buff;
-    }
-};
-
-    /*
      *
      */
 
@@ -108,6 +76,34 @@ TEST(Json, SectionMatch)
     EXPECT_FALSE(sec.match(" hello"));
     EXPECT_FALSE(sec.match(" hell"));
     EXPECT_FALSE(sec.match(0));
+}
+
+TEST(Json, SectionCpy)
+{
+    Section sec;
+    const char *hello = "hello world!";
+
+    {
+        set_section(& sec, hello);
+        char buff[64];
+        char *s = sec.strncpy(buff, sizeof(buff));
+        EXPECT_EQ(s, buff);
+        EXPECT_STREQ(buff, hello);
+    }
+    {
+        set_section(& sec, hello);
+        char buff[4];
+        char *s = sec.strncpy(buff, sizeof(buff));
+        EXPECT_EQ(s, buff);
+        EXPECT_STREQ(buff, "hel");
+    }
+    {
+        set_section(& sec, "");
+        char buff[4];
+        char *s = sec.strncpy(buff, sizeof(buff));
+        EXPECT_EQ(s, buff);
+        EXPECT_STREQ(buff, "");
+    }
 }
 
 TEST(Json, Int)

@@ -39,6 +39,21 @@ bool Section::match(const char *match)
     return strncmp(match, s, size) == 0;
 }
 
+char *Section::strncpy(char *buff, size_t size)
+{
+    for (size_t i = 0; i < size; i++)
+    {
+        buff[i] = '\0';
+        if (& s[i] > e)
+        {
+            return buff;
+        }
+        buff[i] = s[i];
+    }
+    buff[size-1] = '\0'; // always terminate the string
+    return buff;
+}
+
     /*
      *  Printer class
      */
