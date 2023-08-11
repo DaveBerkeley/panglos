@@ -337,43 +337,50 @@ bool NMEA::rmc(NMEA::Location *loc, char **parts, int n)
         return false;
     }
 
-    if (strcmp("A", parts[idx])) // Active
+    bool active = !strcmp("A", parts[idx]);
+    bool _void  = !strcmp("V", parts[idx]);
+
+    if (!(active || _void))
     {
-        if (strcmp("V", parts[idx])) // Void
-        {
-            PO_ERROR("validity=%s", parts[idx]);
-        }
+        PO_ERROR("validity=%s", parts[idx]);
         // Not Valid
         return false;
     }
     idx += 1;
 
-    if (!parse_latlon(& loc->lat, parts[idx], parts[idx+1]))
+    if (active)
     {
-        PO_ERROR("lat '%s' '%s'", parts[idx], parts[idx+1]);
-        return false;
-    }
-    idx += 2;
+        if (!parse_latlon(& loc->lat, parts[idx], parts[idx+1]))
+        {
+            PO_ERROR("lat '%s' '%s'", parts[idx], parts[idx+1]);
+            return false;
+        }
+        idx += 2;
 
-    if (!parse_latlon(& loc->lon, parts[idx], parts[idx+1]))
-    {
-        PO_ERROR("lon");
-        return false;
-    }
-    idx += 2;
+        if (!parse_latlon(& loc->lon, parts[idx], parts[idx+1]))
+        {
+            PO_ERROR("lon");
+            return false;
+        }
+        idx += 2;
 
-    double speed;
-    if (!parse_double(& speed, parts[idx++]))
-    {
-        PO_ERROR("speed");
-        return false;
-    }
+        double speed;
+        if (!parse_double(& speed, parts[idx++]))
+        {
+            PO_ERROR("speed");
+            return false;
+        }
 
-    double course;
-    if (!parse_double(& course, parts[idx++]))
+        double course;
+        if (!parse_double(& course, parts[idx++]))
+        {
+            PO_ERROR("course");
+            return false;
+        }
+    }
+    else
     {
-        PO_ERROR("course");
-        return false;
+        idx += 6;
     }
 
     if (!parse_dmy(& loc->ymd, parts[idx++]))
@@ -477,7 +484,7 @@ bool NMEA::parse(Location *loc, char *line)
     }
 
     // Not a recognised message
-    PO_ERROR("Unknown Message '%s'", parts[0]);
+    //PO_ERROR("Unknown Message '%s'", parts[0]);
     return false;
 }
 

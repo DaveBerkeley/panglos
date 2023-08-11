@@ -315,6 +315,24 @@ TEST(NMEA, RMC)
         EXPECT_NEAR(48.117300, loc.lat, 0.001);
         EXPECT_NEAR(11.516667, loc.lon, 0.001);
     }
+    {
+        const char *rmc = "$GPRMC,121601.00,V,,,,,,,110823,,,N*71\n";
+        nmea.set(rmc);
+
+        NMEA::Location loc = { { 0, }, };
+
+        bool ok = NMEA::parse(& loc, nmea.line);
+        EXPECT_TRUE(ok);
+
+        EXPECT_EQ(12, loc.hms.h);
+        EXPECT_EQ(16, loc.hms.m);
+        EXPECT_EQ(1, loc.hms.s);
+        EXPECT_EQ(2023, loc.ymd.yy);
+        EXPECT_EQ(8, loc.ymd.mm);
+        EXPECT_EQ(11, loc.ymd.dd);
+        EXPECT_NEAR(0.0, loc.lat, 0.001);
+        EXPECT_NEAR(0.0, loc.lon, 0.001);
+    }
 }
 
 //  FIN
