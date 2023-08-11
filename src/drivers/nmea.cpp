@@ -1,4 +1,5 @@
 
+#include <ctype.h>
 #include <string.h>
 
 #include "panglos/debug.h"
@@ -203,6 +204,33 @@ bool NMEA::parse_hms(Time *t, char *field)
     return true;
 }
 
+bool NMEA::parse_dmy(Date *d, char *field)
+{
+    ASSERT(d);
+    d->yy = 0;
+    d->mm = 0;
+    d->dd = 0;
+
+    for (int i = 0; i < 6; i++)
+    {
+        if (!isdigit(field[i]))
+        {
+            PO_ERROR("Bad date char at %d : '%c'", i, field[i]);
+            return false;
+        }
+    }
+
+    int idx = 0;
+    d->dd  = (field[idx++] - '0') * 10;
+    d->dd += (field[idx++] - '0');
+    d->mm  = (field[idx++] - '0') * 10;
+    d->mm += (field[idx++] - '0');
+    d->yy  = 2000 + ((field[idx++] - '0') * 10);
+    d->yy += (field[idx++] - '0');
+
+    return field[idx++] == '\0';
+}
+
     /*
      *  http://aprs.gids.nl/nmea/#gga
      */
@@ -280,6 +308,81 @@ bool NMEA::gga(NMEA::Location *loc, char **parts, int n)
         return false;
     }
 
+    return true;
+}
+
+    /*
+     *
+     */
+
+    /*
+     *  http://aprs.gids.nl/nmea/#rmc
+     */
+
+bool NMEA::rmc(NMEA::Location *loc, char **parts, int n)
+{
+    int idx = 0;
+    ASSERT(loc);
+    ASSERT(parts[idx++]);
+    if (!((n == 13) || (n == 12)))
+    {
+        // Needs all enough fields
+        PO_ERROR("n=%d", n);
+        return false;
+    }
+
+    if (!parse_hms(& loc->hms, parts[idx++]))
+    {
+        PO_ERROR("hhmms '%s'", parts[idx-1]);
+        return false;
+    }
+
+    if (strcmp("A", parts[idx])) // Active
+    {
+        if (strcmp("V", parts[idx])) // Void
+        {
+            PO_ERROR("validity=%s", parts[idx]);
+        }
+        // Not Valid
+        return false;
+    }
+    idx += 1;
+
+    if (!parse_latlon(& loc->lat, parts[idx], parts[idx+1]))
+    {
+        PO_ERROR("lat '%s' '%s'", parts[idx], parts[idx+1]);
+        return false;
+    }
+    idx += 2;
+
+    if (!parse_latlon(& loc->lon, parts[idx], parts[idx+1]))
+    {
+        PO_ERROR("lon");
+        return false;
+    }
+    idx += 2;
+
+    double speed;
+    if (!parse_double(& speed, parts[idx++]))
+    {
+        PO_ERROR("speed");
+        return false;
+    }
+
+    double course;
+    if (!parse_double(& course, parts[idx++]))
+    {
+        PO_ERROR("course");
+        return false;
+    }
+
+    if (!parse_dmy(& loc->ymd, parts[idx++]))
+    {
+        PO_ERROR("YMD");
+        return false;
+    }
+
+    //  Ignore any trailing fields
     return true;
 }
 
@@ -368,8 +471,13 @@ bool NMEA::parse(Location *loc, char *line)
         return gga(loc, parts, n);
     }
 
+    if (!strcmp("$GPRMC", parts[0]))
+    {
+        return rmc(loc, parts, n);
+    }
+
     // Not a recognised message
-    //PO_ERROR("Unknown Message '%s'", parts[0]);
+    PO_ERROR("Unknown Message '%s'", parts[0]);
     return false;
 }
 

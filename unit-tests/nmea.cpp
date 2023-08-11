@@ -275,4 +275,46 @@ TEST(NMEA, GGA)
     EXPECT_NEAR(545.4, loc.alt, 0.1);
 }
 
+TEST(NMEA, RMC)
+{
+    NmeaLine nmea;
+
+    {
+        const char *rmc = "$GPRMC,081836,A,4807.038,N,01131.000,E,0.413,,110823,,,A*57\n";
+        nmea.set(rmc);
+
+        NMEA::Location loc = { { 0, }, };
+
+        bool ok = NMEA::parse(& loc, nmea.line);
+        EXPECT_TRUE(ok);
+
+        EXPECT_EQ(8, loc.hms.h);
+        EXPECT_EQ(18, loc.hms.m);
+        EXPECT_EQ(36, loc.hms.s);
+        EXPECT_EQ(2023, loc.ymd.yy);
+        EXPECT_EQ(8, loc.ymd.mm);
+        EXPECT_EQ(11, loc.ymd.dd);
+        EXPECT_NEAR(48.117300, loc.lat, 0.001);
+        EXPECT_NEAR(11.516667, loc.lon, 0.001);
+    }
+    {
+        const char *rmc = "$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230326,003.1,W*63\n";
+        nmea.set(rmc);
+
+        NMEA::Location loc = { { 0, }, };
+
+        bool ok = NMEA::parse(& loc, nmea.line);
+        EXPECT_TRUE(ok);
+
+        EXPECT_EQ(12, loc.hms.h);
+        EXPECT_EQ(35, loc.hms.m);
+        EXPECT_EQ(19, loc.hms.s);
+        EXPECT_EQ(2026, loc.ymd.yy);
+        EXPECT_EQ(3, loc.ymd.mm);
+        EXPECT_EQ(23, loc.ymd.dd);
+        EXPECT_NEAR(48.117300, loc.lat, 0.001);
+        EXPECT_NEAR(11.516667, loc.lon, 0.001);
+    }
+}
+
 //  FIN

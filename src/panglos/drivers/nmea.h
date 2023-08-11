@@ -14,11 +14,17 @@ class NMEA {
 public:
 
     typedef struct {
+        int yy;
+        int mm;
+        int dd;
+    }   Date;
+    typedef struct {
         int h;
         int m;
         int s;
     }   Time;
     typedef struct {
+        Date ymd;
         Time hms;
         double lat;
         double lon;
@@ -33,7 +39,9 @@ public:
     static int split(char *text, char **parts, int n, char delim=',');
     static bool parse_latlon(double *f, char *field, const char *rose);
     static bool parse_hms(Time *t, char *field);
+    static bool parse_dmy(Date *t, char *field);
     static bool gga(NMEA::Location *loc, char **parts, int n);
+    static bool rmc(NMEA::Location *loc, char **parts, int n);
 };
 
 }   //  namespace panglos
