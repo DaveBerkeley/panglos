@@ -8,6 +8,11 @@
 
 namespace panglos {
 
+NMEA::NMEA(bool v)
+:   verbose(v)
+{
+}
+
     /*
      *  Split text into fields, separated by 'delim'
      *
@@ -185,14 +190,14 @@ bool NMEA::parse_hms(Time *t, char *field)
 
     if (strlen(field) != 6)
     {
-        //PO_ERROR("len %s", field);
+        if (verbose) PO_ERROR("len %s", field);
         return false;
     }
 
     int num = 0;
     if (!parse_int(& num, field))
     {
-        //PO_ERROR("hhmms %s", field);
+        if (verbose) PO_ERROR("hhmms %s", field);
         return false;
     }
 
@@ -215,7 +220,7 @@ bool NMEA::parse_dmy(Date *d, char *field)
     {
         if (!isdigit(field[i]))
         {
-            PO_ERROR("Bad date char at %d : '%c'", i, field[i]);
+            if (verbose) PO_ERROR("Bad date char at %d : '%c'", i, field[i]);
             return false;
         }
     }
@@ -243,26 +248,26 @@ bool NMEA::gga(NMEA::Location *loc, char **parts, int n)
     if (n != 15)
     {
         // Needs all the fields
-        PO_ERROR("n=%d", n);
+        if (verbose) PO_ERROR("n=%d", n);
         return false;
     }
 
     if (!parse_hms(& loc->hms, parts[idx++]))
     {
-        PO_ERROR("hhmms '%s'", parts[idx-1]);
+        if (verbose) PO_ERROR("hhmms '%s'", parts[idx-1]);
         return false;
     }
 
     if (!parse_latlon(& loc->lat, parts[idx], parts[idx+1]))
     {
-        PO_ERROR("lat '%s' '%s'", parts[idx], parts[idx+1]);
+        if (verbose) PO_ERROR("lat '%s' '%s'", parts[idx], parts[idx+1]);
         return false;
     }
     idx += 2;
 
     if (!parse_latlon(& loc->lon, parts[idx], parts[idx+1]))
     {
-        PO_ERROR("lon");
+        if (verbose) PO_ERROR("lon");
         return false;
     }
     idx += 2;
@@ -270,14 +275,14 @@ bool NMEA::gga(NMEA::Location *loc, char **parts, int n)
     if (!strstr("012", parts[idx++]))
     {
         // Fix Quality
-        PO_ERROR("Fix");
+        if (verbose) PO_ERROR("Fix");
         return false;
     }
 
     int satellites = 0;
     if (!parse_int(& satellites, parts[idx++]))
     {
-        PO_ERROR("satellites");
+        if (verbose) PO_ERROR("satellites");
         return false;
     }
 
@@ -287,24 +292,24 @@ bool NMEA::gga(NMEA::Location *loc, char **parts, int n)
 
     if (!parse_double(& loc->alt, parts[idx++]))
     {
-        PO_ERROR("altitude");
+        if (verbose) PO_ERROR("altitude");
         return false;
     }
     if (!strstr("M", parts[idx++])) // metres
     {
-        PO_ERROR("alt M");
+        if (verbose) PO_ERROR("alt M");
         return false;
     }
 
     double geoid = 0;
     if (!parse_double(& geoid, parts[idx++]))
     {
-        PO_ERROR("geoid");
+        if (verbose) PO_ERROR("geoid");
         return false;
     }
     if (!strstr("M", parts[idx++])) // metres
     {
-        PO_ERROR("geoid M");
+        if (verbose) PO_ERROR("geoid M");
         return false;
     }
 
@@ -327,13 +332,13 @@ bool NMEA::rmc(NMEA::Location *loc, char **parts, int n)
     if (!((n == 13) || (n == 12)))
     {
         // Needs all enough fields
-        PO_ERROR("n=%d", n);
+        if (verbose) PO_ERROR("n=%d", n);
         return false;
     }
 
     if (!parse_hms(& loc->hms, parts[idx++]))
     {
-        PO_ERROR("hhmms '%s'", parts[idx-1]);
+        if (verbose) PO_ERROR("hhmms '%s'", parts[idx-1]);
         return false;
     }
 
@@ -342,7 +347,7 @@ bool NMEA::rmc(NMEA::Location *loc, char **parts, int n)
 
     if (!(active || _void))
     {
-        PO_ERROR("validity=%s", parts[idx]);
+        if (verbose) PO_ERROR("validity=%s", parts[idx]);
         // Not Valid
         return false;
     }
@@ -352,14 +357,14 @@ bool NMEA::rmc(NMEA::Location *loc, char **parts, int n)
     {
         if (!parse_latlon(& loc->lat, parts[idx], parts[idx+1]))
         {
-            PO_ERROR("lat '%s' '%s'", parts[idx], parts[idx+1]);
+            if (verbose) PO_ERROR("lat '%s' '%s'", parts[idx], parts[idx+1]);
             return false;
         }
         idx += 2;
 
         if (!parse_latlon(& loc->lon, parts[idx], parts[idx+1]))
         {
-            PO_ERROR("lon");
+            if (verbose) PO_ERROR("lon");
             return false;
         }
         idx += 2;
@@ -367,14 +372,14 @@ bool NMEA::rmc(NMEA::Location *loc, char **parts, int n)
         double speed;
         if (!parse_double(& speed, parts[idx++]))
         {
-            PO_ERROR("speed");
+            if (verbose) PO_ERROR("speed");
             return false;
         }
 
         double course;
         if (!parse_double(& course, parts[idx++]))
         {
-            PO_ERROR("course");
+            if (verbose) PO_ERROR("course");
             return false;
         }
     }
@@ -385,7 +390,7 @@ bool NMEA::rmc(NMEA::Location *loc, char **parts, int n)
 
     if (!parse_dmy(& loc->ymd, parts[idx++]))
     {
-        PO_ERROR("YMD");
+        if (verbose) PO_ERROR("YMD");
         return false;
     }
 
@@ -424,7 +429,7 @@ bool NMEA::checksum(char *line)
     char *s = strtok_r(line, "*", & save);
     if (!s)
     {
-        PO_ERROR("No '*'");
+        if (verbose) PO_ERROR("No '*'");
         return false;
     }
     int cs = 0;
@@ -435,12 +440,12 @@ bool NMEA::checksum(char *line)
     int mcs = 0;
     if (!parse_int(& mcs, save, 16))
     {
-        PO_ERROR("parse cs '%s'", save);
+        if (verbose) PO_ERROR("parse cs '%s'", save);
         return false;
     }
     if (cs != mcs)
     {
-        PO_ERROR("cs=%#x mcs=%#x", cs, mcs);
+        if (verbose) PO_ERROR("cs=%#x mcs=%#x", cs, mcs);
         return false;
     }
 
@@ -469,7 +474,7 @@ bool NMEA::parse(Location *loc, char *line)
     const int n = split(line, parts, num, ',');
     if (!n)
     {
-        PO_ERROR("No Data");
+        if (verbose) PO_ERROR("No Data");
         return false;
     }
 
@@ -484,7 +489,7 @@ bool NMEA::parse(Location *loc, char *line)
     }
 
     // Not a recognised message
-    //PO_ERROR("Unknown Message '%s'", parts[0]);
+    if (verbose) PO_ERROR("Unknown Message '%s'", parts[0]);
     return false;
 }
 

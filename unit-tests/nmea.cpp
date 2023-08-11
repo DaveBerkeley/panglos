@@ -34,23 +34,24 @@ public:
 
 TEST(NMEA, Strip)
 {
-    NmeaLine nmea;
+    NmeaLine line;
+    NMEA nmea;
 
-    nmea.set("hello\r\n");
-    NMEA::strip(nmea.line);
-    EXPECT_STREQ("hello", nmea.line);
+    line.set("hello\r\n");
+    nmea.strip(line.line);
+    EXPECT_STREQ("hello", line.line);
 
-    nmea.set("hello\r");
-    NMEA::strip(nmea.line);
-    EXPECT_STREQ("hello", nmea.line);
+    line.set("hello\r");
+    nmea.strip(line.line);
+    EXPECT_STREQ("hello", line.line);
 
-    nmea.set("hello\n");
-    NMEA::strip(nmea.line);
-    EXPECT_STREQ("hello", nmea.line);
+    line.set("hello\n");
+    nmea.strip(line.line);
+    EXPECT_STREQ("hello", line.line);
 
-    nmea.set("hello");
-    NMEA::strip(nmea.line);
-    EXPECT_STREQ("hello", nmea.line);
+    line.set("hello");
+    nmea.strip(line.line);
+    EXPECT_STREQ("hello", line.line);
 }
 
     /*
@@ -59,46 +60,48 @@ TEST(NMEA, Strip)
 
 TEST(NMEA, Split)
 {
-    NmeaLine nmea;
+    NmeaLine line;
 
     const int num = 20;
     char *parts[num];
     int n;
 
-    nmea.set("one,two,,four");
-    n = NMEA::split(nmea.line, parts, num);
+    NMEA nmea;
+
+    line.set("one,two,,four");
+    n = nmea.split(line.line, parts, num);
     EXPECT_EQ(n, 4);
 
-    nmea.set("one,two,,four,");
-    n = NMEA::split(nmea.line, parts, num);
+    line.set("one,two,,four,");
+    n = nmea.split(line.line, parts, num);
     EXPECT_EQ(n, 5);
 
-    nmea.set(",");
-    n = NMEA::split(nmea.line, parts, num);
+    line.set(",");
+    n = nmea.split(line.line, parts, num);
     EXPECT_EQ(n, 2);
 
-    nmea.set("one");
-    n = NMEA::split(nmea.line, parts, num);
+    line.set("one");
+    n = nmea.split(line.line, parts, num);
     EXPECT_EQ(n, 1);
 
-    nmea.set("");
-    n = NMEA::split(nmea.line, parts, num);
+    line.set("");
+    n = nmea.split(line.line, parts, num);
     EXPECT_EQ(n, 1);
 
-    nmea.set(",");
-    n = NMEA::split(nmea.line, parts, num);
+    line.set(",");
+    n = nmea.split(line.line, parts, num);
     EXPECT_EQ(n, 2);
 
-    nmea.set(",two,");
-    n = NMEA::split(nmea.line, parts, num);
+    line.set(",two,");
+    n = nmea.split(line.line, parts, num);
     EXPECT_EQ(n, 3);
 
-    nmea.set(",,,");
-    n = NMEA::split(nmea.line, parts, num);
+    line.set(",,,");
+    n = nmea.split(line.line, parts, num);
     EXPECT_EQ(n, 4);
 
-    nmea.set(",,,four");
-    n = NMEA::split(nmea.line, parts, num);
+    line.set(",,,four");
+    n = nmea.split(line.line, parts, num);
     EXPECT_EQ(n, 4);
 }
 
@@ -110,7 +113,7 @@ TEST(NMEA, Split)
 
 TEST(NMEA, Checksum)
 {
-    NmeaLine nmea;
+    NmeaLine line;
 
     const char *tests[] = {
         "$GPRMC,183729,A,3907.356,N,12102.482,W,000.0,360.0,080301,015.5,E*6F",
@@ -131,10 +134,12 @@ TEST(NMEA, Checksum)
         0,
     };
 
+    NMEA nmea;
+
     for (const char **test = tests; *test; test++)
     {
-        nmea.set(*test);
-        bool ok = NMEA::checksum(nmea.line);
+        line.set(*test);
+        bool ok = nmea.checksum(line.line);
         EXPECT_TRUE(ok);
     }
 }
@@ -143,11 +148,12 @@ TEST(NMEA, HMS)
 {
     char buff[128];
     NMEA::Time hms;
+    NMEA nmea;
 
     bool ok;
 
     strncpy(buff, "123456", sizeof(buff));
-    ok = NMEA::parse_hms(& hms, buff);
+    ok = nmea.parse_hms(& hms, buff);
     EXPECT_TRUE(ok);
     EXPECT_EQ(hms.h, 12);
     EXPECT_EQ(hms.m, 34);
@@ -155,17 +161,17 @@ TEST(NMEA, HMS)
 
     //too few chars
     strncpy(buff, "12345", sizeof(buff));
-    ok = NMEA::parse_hms(& hms, buff);
+    ok = nmea.parse_hms(& hms, buff);
     EXPECT_FALSE(ok);
 
     // too many chars
     strncpy(buff, "1234567", sizeof(buff));
-    ok = NMEA::parse_hms(& hms, buff);
+    ok = nmea.parse_hms(& hms, buff);
     EXPECT_FALSE(ok);
 
     // fractions
     strncpy(buff, "112233.000", sizeof(buff));
-    ok = NMEA::parse_hms(& hms, buff);
+    ok = nmea.parse_hms(& hms, buff);
     EXPECT_TRUE(ok);
     EXPECT_EQ(hms.h, 11);
     EXPECT_EQ(hms.m, 22);
@@ -185,69 +191,71 @@ TEST(NMEA, HMS)
     for (const char **b = bad; *b; b++)
     {
         strncpy(buff, *b, sizeof(buff));
-        ok = NMEA::parse_hms(& hms, buff);
+        ok = nmea.parse_hms(& hms, buff);
         EXPECT_FALSE(ok);
     }
 }
 
 TEST(NMEA, LatLon)
 {
-    NmeaLine nmea;
+    NmeaLine line;
 
     double d;
     bool ok;
 
-    nmea.set("4349.7294");
-    ok = NMEA::parse_latlon(& d, nmea.line, "N");
+    NMEA nmea;
+
+    line.set("4349.7294");
+    ok = nmea.parse_latlon(& d, line.line, "N");
     EXPECT_TRUE(ok);
     EXPECT_NEAR(d, 43.82882, 0.0001);
 
-    nmea.set("0100.0000");
-    ok = NMEA::parse_latlon(& d, nmea.line, "N");
+    line.set("0100.0000");
+    ok = nmea.parse_latlon(& d, line.line, "N");
     EXPECT_TRUE(ok);
     EXPECT_NEAR(d, 1.0, 0.0001);
 
-    nmea.set("0059.99999");
-    ok = NMEA::parse_latlon(& d, nmea.line, "N");
+    line.set("0059.99999");
+    ok = nmea.parse_latlon(& d, line.line, "N");
     EXPECT_TRUE(ok);
     EXPECT_NEAR(d, 1.0, 0.0001);
 
-    nmea.set("0000.00000");
-    ok = NMEA::parse_latlon(& d, nmea.line, "E");
+    line.set("0000.00000");
+    ok = nmea.parse_latlon(& d, line.line, "E");
     EXPECT_TRUE(ok);
     EXPECT_NEAR(d, 0.0, 0.0001);
 
-    nmea.set("17959.99999");
-    ok = NMEA::parse_latlon(& d, nmea.line, "E");
+    line.set("17959.99999");
+    ok = nmea.parse_latlon(& d, line.line, "E");
     EXPECT_TRUE(ok);
     EXPECT_NEAR(d, 180.0, 0.0001);
 
-    nmea.set("4530.00000");
-    ok = NMEA::parse_latlon(& d, nmea.line, "E");
+    line.set("4530.00000");
+    ok = nmea.parse_latlon(& d, line.line, "E");
     EXPECT_TRUE(ok);
     EXPECT_NEAR(d, 45.5, 0.0001);
 
     // West is negative
-    nmea.set("00000.294");
-    ok = NMEA::parse_latlon(& d, nmea.line, "W");
+    line.set("00000.294");
+    ok = nmea.parse_latlon(& d, line.line, "W");
     EXPECT_TRUE(ok);
     EXPECT_NEAR(d, -0.004900, 0.0001);
 
     // East is positive
-    nmea.set("00000.093");
-    ok = NMEA::parse_latlon(& d, nmea.line, "E");
+    line.set("00000.093");
+    ok = nmea.parse_latlon(& d, line.line, "E");
     EXPECT_TRUE(ok);
     EXPECT_NEAR(d, 0.001550, 0.0001);
 
     // North is positive
-    nmea.set("0001.483");
-    ok = NMEA::parse_latlon(& d, nmea.line, "N");
+    line.set("0001.483");
+    ok = nmea.parse_latlon(& d, line.line, "N");
     EXPECT_TRUE(ok);
     EXPECT_NEAR(d, 0.024717, 0.0001);
 
     // South is negative
-    nmea.set("0002.966");
-    ok = NMEA::parse_latlon(& d, nmea.line, "S");
+    line.set("0002.966");
+    ok = nmea.parse_latlon(& d, line.line, "S");
     EXPECT_TRUE(ok);
     EXPECT_NEAR(d, -0.049433, 0.0001);
 }
@@ -258,13 +266,15 @@ TEST(NMEA, LatLon)
 
 TEST(NMEA, GGA)
 {
-    NmeaLine nmea;
+    NmeaLine line;
     const char *gga = "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47\n";
-    nmea.set(gga);
+    line.set(gga);
+
+    NMEA nmea;
 
     NMEA::Location loc = { { 0, }, };
 
-    bool ok = NMEA::parse(& loc, nmea.line);
+    bool ok = nmea.parse(& loc, line.line);
     EXPECT_TRUE(ok);
 
     EXPECT_EQ(12, loc.hms.h);
@@ -277,15 +287,16 @@ TEST(NMEA, GGA)
 
 TEST(NMEA, RMC)
 {
-    NmeaLine nmea;
+    NmeaLine line;
+    NMEA nmea;
 
     {
         const char *rmc = "$GPRMC,081836,A,4807.038,N,01131.000,E,0.413,,110823,,,A*57\n";
-        nmea.set(rmc);
+        line.set(rmc);
 
         NMEA::Location loc = { { 0, }, };
 
-        bool ok = NMEA::parse(& loc, nmea.line);
+        bool ok = nmea.parse(& loc, line.line);
         EXPECT_TRUE(ok);
 
         EXPECT_EQ(8, loc.hms.h);
@@ -299,11 +310,11 @@ TEST(NMEA, RMC)
     }
     {
         const char *rmc = "$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230326,003.1,W*63\n";
-        nmea.set(rmc);
+        line.set(rmc);
 
         NMEA::Location loc = { { 0, }, };
 
-        bool ok = NMEA::parse(& loc, nmea.line);
+        bool ok = nmea.parse(& loc, line.line);
         EXPECT_TRUE(ok);
 
         EXPECT_EQ(12, loc.hms.h);
@@ -317,11 +328,11 @@ TEST(NMEA, RMC)
     }
     {
         const char *rmc = "$GPRMC,121601.00,V,,,,,,,110823,,,N*71\n";
-        nmea.set(rmc);
+        line.set(rmc);
 
         NMEA::Location loc = { { 0, }, };
 
-        bool ok = NMEA::parse(& loc, nmea.line);
+        bool ok = nmea.parse(& loc, line.line);
         EXPECT_TRUE(ok);
 
         EXPECT_EQ(12, loc.hms.h);
