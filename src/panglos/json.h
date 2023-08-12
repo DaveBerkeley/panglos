@@ -124,7 +124,7 @@ public:
 
     struct Item {
         const char **keys;
-        void (*on_match)(void *arg, Section *sec, enum Type type);
+        void (*on_match)(void *arg, Section *sec, enum Type type, const char **keys);
         void *arg;
 
         struct Item *next;

@@ -406,7 +406,7 @@ void Match::check(Section *sec, enum Type type)
             if (keys[i] == 0)
             {
                 ASSERT(item->on_match);
-                item->on_match(item->arg, sec, type);
+                item->on_match(item->arg, sec, type, item->keys);
                 break;
             }
         }

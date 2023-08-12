@@ -208,9 +208,12 @@ struct Matcher {
     bool same;
 };
 
-static void on_match(void *arg, Section *sec, enum Match::Type type)
+static void on_match(void *arg, Section *sec, enum Match::Type type, const char **keys)
 {
-    PO_DEBUG("");
+    for (int i = 0; keys[i]; i++)
+    {
+        //PO_DEBUG("%s", keys[i]);
+    }
     ASSERT(arg);
 
     struct Matcher *m = (struct Matcher *) arg;
