@@ -22,31 +22,6 @@ const LUT Severity_lut[] = {
     { 0, S_NONE},
 };
 
-const char *lut(const LUT *codes, int err)
-{
-    for (const LUT *code = codes; code->text; code++)
-    {
-        if (code->code == err)
-        {
-            return code->text;
-        }
-    }
-
-    return "unknown";
-}
-
-int rlut(const LUT *lut, const char *s)
-{
-    for (; lut->text; lut++)
-    {
-        if (!strcmp(lut->text, s))
-        {
-            return lut->code;
-        }
-    }
-    return 0;
-}
-
 void Error_Handler(void)
 {
     printf("ERROR\n");

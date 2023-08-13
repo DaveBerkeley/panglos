@@ -1,4 +1,6 @@
 
+#include <string.h>
+
 #include "panglos/debug.h"
 
 #include "panglos/arch.h"
@@ -9,6 +11,35 @@
     /*
      *
      */
+
+    /*
+     *
+     */
+
+const char *lut(const LUT *codes, int err)
+{
+    for (const LUT *code = codes; code->text; code++)
+    {
+        if (code->code == err)
+        {
+            return code->text;
+        }
+    }
+
+    return "unknown";
+}
+
+int rlut(const LUT *lut, const char *s)
+{
+    for (; lut->text; lut++)
+    {
+        if (!strcmp(lut->text, s))
+        {
+            return lut->code;
+        }
+    }
+    return 0;
+}
 
 namespace panglos {
 
