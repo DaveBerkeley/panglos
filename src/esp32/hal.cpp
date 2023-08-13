@@ -1,7 +1,11 @@
 
 #if defined(ESP32)
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 #include "panglos/debug.h"
+#include "panglos/thread.h"
 
 #include "panglos/esp32/hal.h"
 
@@ -20,6 +24,28 @@ const LUT Severity_lut[] = {
     {   "DEBUG", S_DEBUG, },
     { 0, 0 },
 };
+
+    /*
+     *
+     */
+
+void Error_Handler(void)
+{
+    printf("ERROR ERROR ERROR\n\r");
+    abort();
+}
+
+uint32_t get_time(void)
+{
+    TickType_t ticks = xTaskGetTickCount();
+    return ticks;
+}
+
+const char *get_task(void)
+{
+    panglos::Thread *thread = panglos::Thread::get_current();
+    return thread ? thread->get_name() : pcTaskGetName(0);
+}
 
     /*
      *
