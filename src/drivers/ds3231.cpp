@@ -1,4 +1,6 @@
 
+#include <stdlib.h>
+
 #include "panglos/debug.h"
 
 #include "panglos/mutex.h"
@@ -63,7 +65,7 @@ bool DS3231::init()
 
     if (!i2c->write_read(ADDR, wr, sizeof(wr), rd, sizeof(rd)))
     {
-        PO_INFO("No DS3231 found");
+        PO_INFO("No DS3231 I2C RTC device found");
         return false;
     }
 
@@ -124,6 +126,42 @@ bool DS3231::get(DateTime *dt)
     dt->year  = uint16_t(from_bcd(rd[6]) + 2000);
 
     return true;
+}
+
+    /*
+     *
+     */
+
+// TODO : Move to an rtc.cpp file, not device specific
+// TODO : write unit tests?
+
+#include <time.h>
+
+bool RTC::parse_time(const char *s, RTC::DateTime *dt, const char *fmt)
+{
+    ASSERT(dt);
+    
+    if (!fmt)
+    {
+        fmt = "%Y/%m/%s %H:%M:%S";
+    }
+    
+    struct tm tm;
+    const char *err = strptime(s, fmt, & tm);
+    if (!err)
+    {
+        PO_DEBUG("Error parsing '%s'", s);
+        return false;
+    }
+
+    dt->year  = uint16_t(tm.tm_year);
+    dt->month = uint8_t(tm.tm_mon);
+    dt->day   = uint8_t(tm.tm_mday);
+    dt->hour  = uint8_t(tm.tm_hour);
+    dt->min   = uint8_t(tm.tm_min);
+    dt->sec   = uint8_t(tm.tm_sec);
+
+    return true; // validate(*dt);
 }
 
 }   //  namespace panglos

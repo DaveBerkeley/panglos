@@ -21,6 +21,8 @@ public:
 
     virtual bool set(const DateTime *dt) = 0;
     virtual bool get(DateTime *dt) = 0;
+
+    static bool parse_time(const char *s, DateTime *dt, const char *fmt=0);
 };
 
 }   //  namespace panglos
