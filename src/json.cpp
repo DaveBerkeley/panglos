@@ -72,7 +72,7 @@ Printer::Printer(json::Section *sec, size_t _limit)
 
 Printer::~Printer()
 {
-    delete buff;
+    delete[] buff;
 }
 
 const char *Printer::get()
