@@ -24,6 +24,7 @@ public:
     bool skip(char c='\0');
     bool match(const char *s);
     char *strncpy(char *buff, size_t s);
+    char *strdup();
 
     Section()
     :   s(0),
@@ -65,6 +66,7 @@ public:
 class Handler
 {
 public:
+    virtual ~Handler(){}
     virtual void on_object(bool push) = 0;
     virtual void on_array(bool push) = 0;
     virtual void on_number(Section *sec) = 0;

@@ -106,6 +106,17 @@ TEST(Json, SectionCpy)
     }
 }
 
+TEST(Json, SectionDup)
+{
+    Section sec;
+    const char *hello = "hello world!";
+
+    set_section(& sec, hello);
+    char *s = sec.strdup();
+    EXPECT_STREQ(hello, s);
+    free(s);
+}
+
 TEST(Json, Int)
 {
     const char *tests[] = {

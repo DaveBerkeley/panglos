@@ -3,6 +3,7 @@
      */
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "panglos/debug.h"
 
@@ -52,6 +53,15 @@ char *Section::strncpy(char *buff, size_t size)
     }
     buff[size-1] = '\0'; // always terminate the string
     return buff;
+}
+
+char *Section::strdup()
+{
+    size_t size = 1 + e - s;
+    char *str = (char *) malloc(size+1);
+    ::strncpy(str, s, size);
+    str[size] = '\0';
+    return str;
 }
 
     /*
