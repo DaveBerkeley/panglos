@@ -1,4 +1,7 @@
 
+#if !defined(__PANGLOS_JSON__)
+#define __PANGLOS_JSON__
+
 #include "panglos/list.h"
 
 namespace panglos {
@@ -167,5 +170,7 @@ public:
 
 }   //  namespace json
 }   //  namespace panglos
+
+#endif  //  __PANGLOS_JSON__
 
 //  FIN
