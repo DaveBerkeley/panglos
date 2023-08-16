@@ -9,12 +9,22 @@
 namespace panglos {
 
 Device::Device(const char *_name, const char **_needs, bool (*fn)(Device *, void*), void *_arg, uint16_t _flags)
-:   needs(_needs),
+:   name(_name),
+    needs(_needs),
     init(fn),
     arg(_arg),
     flags(_flags),
-    next(0),
-    name(_name)
+    next(0)
+{
+}
+
+Device::Device()
+:   name(0),
+    needs(0),
+    init(0),
+    arg(0),
+    flags(F_NONE),
+    next(0)
 {
 }
 

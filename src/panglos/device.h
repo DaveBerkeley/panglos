@@ -13,21 +13,22 @@ class Device
     bool init_device(List<Device *> & done, List<Device *> & todo, bool verbose, int nest);
     static int match_name(Device *dev, void *arg);
 
+public:
+    const char *name;
     const char **needs;
     bool (*init)(Device *dev, void *arg);
     void *arg;
     uint16_t flags;
     Device *next;
-public:
+ 
     typedef enum {
         F_NONE = 0,
         F_CAN_FAIL = 1 << 0,
         F_DONT_REGISTER = 1 << 1,
     }   Flags;
 
-    const char *name;
-
     Device(const char *name, const char **needs, bool (*fn)(Device *, void *), void *arg, uint16_t flags=0);
+    Device();
 
     const char *find_has(const char *part);
 
