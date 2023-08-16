@@ -130,16 +130,19 @@ bool Device::init_device(List<Device *> & done, List<Device *> & todo, bool verb
     return true;
 }
 
-bool Device::init_devices(List<Device *> & todo, bool verbose, int loops)
+bool Device::init_devices(List<Device *> & todo, bool verbose, List<Device *> *_done, int loops)
 {
-    List<Device *> done(Device::get_next);
+    List<Device *> xdone(Device::get_next);
+
+    List<Device *> *done = _done ? _done : & xdone;
+
     int loop_detect = 0;
 
     while (!todo.empty())
     {
         Device *dev = todo.head;
 
-        if (!dev->init_device(done, todo, verbose, loops))
+        if (!dev->init_device(*done, todo, verbose, loops))
         {
             return false;
         }
@@ -152,7 +155,7 @@ bool Device::init_devices(List<Device *> & todo, bool verbose, int loops)
     }
 
     // Restore the todo list
-    todo.head = done.head;
+    //todo.head = done.head;
 
     return true;
 }

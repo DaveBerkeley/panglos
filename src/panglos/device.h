@@ -35,7 +35,7 @@ public:
     // List utils
     static Device **get_next(Device *d) { return & d->next; }
 
-    static bool init_devices(List<Device *> & todo, bool verbose=false, int loops=100);
+    static bool init_devices(List<Device *> & todo, bool verbose=false, List<Device *> *done=0, int loops=100);
     void add(Objects* list, void *obj);
 };
 

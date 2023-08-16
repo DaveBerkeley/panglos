@@ -258,7 +258,7 @@ TEST(Device, NoSuchDevice)
     Mutex *m = 0;
     devices.push(& a, m);
 
-    bool ok = Device::init_devices(devices, verbose, 5);
+    bool ok = Device::init_devices(devices, verbose, 0, 5);
     EXPECT_FALSE(ok);
 
     delete objects;
@@ -315,6 +315,51 @@ TEST(Device, CanFail)
     ok = objects->get("a");
     EXPECT_FALSE(ok);
     
+    delete objects;
+}
+
+TEST(Device, Repeated)
+{
+    bool verbose = true;
+    Objects *objects = Objects::create();
+
+    struct DevInit di = {
+        .objects = objects,
+        .verbose = verbose,
+    };
+
+    // done list allows repeated calls to init_devices() to find earlier 'needs' devs
+    List<Device*> done(Device::get_next);
+
+    static Device reset("net", 0, init_gpio, & di);
+    const char *irq_needs[] = { "net", 0 };
+    static Device irq("mqtt", irq_needs, init_gpio, & di);
+
+    {
+        List<Device*> devices(Device::get_next);
+        devices.push(& reset, 0);
+        devices.push(& irq, 0);
+
+        bool ok = Device::init_devices(devices, verbose, & done);
+        EXPECT_TRUE(ok);
+    }
+
+    bool ok = objects->get("net");
+    EXPECT_TRUE(ok);
+    ok = objects->get("mqtt");
+    EXPECT_TRUE(ok);
+    
+    const char *clock_needs[] = { "mqtt", 0 };
+    static Device clock("clock", clock_needs, init_gpio, & di);
+
+    {
+        List<Device*> devices(Device::get_next);
+        devices.push(& clock, 0);
+
+        bool ok = Device::init_devices(devices, verbose, & done);
+        EXPECT_TRUE(ok);
+    }
+
     delete objects;
 }
 
