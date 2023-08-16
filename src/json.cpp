@@ -94,6 +94,18 @@ const char *Printer::get()
      *
      */
 
+const LUT *Handler::get_lut()
+{
+    static const LUT table[] = {
+        { 0, 0 },
+    };
+    return table;
+}
+
+    /*
+     *
+     */
+
 Parser::Parser(Handler *h, bool v)
 :   handler(h),
     verbose(v),
@@ -132,6 +144,17 @@ bool Parser::error(Section *sec, enum Error _err)
     return false;
 }
 
+bool Parser::user_error(Section *sec, enum Handler::Error _err)
+{
+    err = USER_ERROR;
+    err_sec = *sec;
+    if (verbose)
+    {
+        PO_ERROR("%s", lut(handler->get_lut(), _err));
+    }
+    return false;
+}
+
 bool Parser::object(Section *sec)
 {
     //PO_DEBUG("OBJECT %-*s", int(sec->e - sec->s), sec->s);
@@ -140,7 +163,11 @@ bool Parser::object(Section *sec)
     sec->s += 1;
 
     // An Object contains a sequence of one or more key : value pairs,
-    handler->on_object(true);
+    Handler::Error err = handler->on_object(true);
+    if (err != Handler::OKAY)
+    {
+        return user_error(sec, err);
+    }
 
     while (sec->s <= sec->e)
     {
@@ -182,7 +209,11 @@ bool Parser::object(Section *sec)
         return error(sec, CLOSE_BRACE_EXPECTED);
     }
 
-    handler->on_object(false);
+    err = handler->on_object(false);
+    if (err != Handler::OKAY)
+    {
+        return user_error(sec, err);
+    }
     return true;
 }
 
@@ -193,7 +224,11 @@ bool Parser::array(Section *sec)
     sec->s += 1;
 
     // Array is a list of zero or more "," seperated values
-    handler->on_array(true);
+    Handler::Error err = handler->on_array(true);
+    if (err != Handler::OKAY)
+    {
+        return user_error(sec, err);
+    }
 
     while (sec->s <= sec->e)
     {
@@ -220,7 +255,11 @@ bool Parser::array(Section *sec)
         return error(sec, CLOSE_BRACKET_EXPECTED);
     }
 
-    handler->on_array(false);
+    err = handler->on_array(false);
+    if (err != Handler::OKAY)
+    {
+        return user_error(sec, err);
+    }
     return true;
 }
 
@@ -242,7 +281,11 @@ bool Parser::number(Section *sec)
     }
     sec->s = s;
 
-    handler->on_number(& num);
+    Handler::Error err = handler->on_number(& num);
+    if (err != Handler::OKAY)
+    {
+        return user_error(sec, err);
+    }
     return true;
 }
 
@@ -276,7 +319,11 @@ bool Parser::string(Section *sec, bool key)
     // step past the string
     sec->s = s + 1;
 
-    handler->on_string(& str, key);
+    Handler::Error err = handler->on_string(& str, key);
+    if (err != Handler::OKAY)
+    {
+        return user_error(sec, err);
+    }
     return true;
 }
 
@@ -303,7 +350,11 @@ bool Parser::primitive(Section *sec)
             continue;
         }
         Section primitive = { s, s+n };
-        handler->on_primitive(& primitive);
+        Handler::Error err = handler->on_primitive(& primitive);
+        if (err != Handler::OKAY)
+        {
+            return user_error(sec, err);
+        }
         sec->s += n;
         return true;
     }
@@ -423,36 +474,39 @@ void Match::check(Section *sec, enum Type type)
     }
 }
 
-void Match::on_object(bool push)
+enum Match::Error Match::on_object(bool push)
 {
     nest += push ? 1 : -1;
-    if (nest >= max_nest) return;
+    if (nest >= max_nest) return OKAY;
     if (push)
     {
         levels[nest].init(Level::OBJECT);
     }
+    return OKAY;
 }
 
-void Match::on_array(bool push)
+enum Match::Error Match::on_array(bool push)
 {
     nest += push ? 1 : -1;
-    if (nest >= max_nest) return;
+    if (nest >= max_nest) return OKAY;
     if (push)
     {
         levels[nest].init(Level::ARRAY);
     }
+    return OKAY;
 }
 
-void Match::on_number(Section *sec)
+enum Match::Error Match::on_number(Section *sec)
 {
-    if (nest >= max_nest) return;
+    if (nest >= max_nest) return OKAY;
     check(sec, Match::NUMBER);
     levels[nest].set_key(0);
+    return OKAY;
 }
 
-void Match::on_string(Section *sec, bool key)
+enum Match::Error Match::on_string(Section *sec, bool key)
 {
-    if (nest >= max_nest) return;
+    if (nest >= max_nest) return OKAY;
     if (key)
     {
         ASSERT(levels[nest].type == Level::OBJECT);
@@ -463,13 +517,15 @@ void Match::on_string(Section *sec, bool key)
         check(sec, Match::STRING);
         levels[nest].set_key(0);
     }
+    return OKAY;
 }
 
-void Match::on_primitive(Section *sec)
+enum Match::Error Match::on_primitive(Section *sec)
 {
-    if (nest >= max_nest) return;
+    if (nest >= max_nest) return OKAY;
     check(sec, Match::PRIMITIVE);
     levels[nest].set_key(0);
+    return OKAY;
 }
 
 }   //  namespace json

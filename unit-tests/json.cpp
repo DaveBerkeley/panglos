@@ -22,30 +22,35 @@ class P : public Handler
 public:
     P() { }
 
-    virtual void on_object(bool push) override
+    virtual enum Error on_object(bool push) override
     {
         IGNORE(push);
+        return OKAY;
     }
 
-    virtual void on_array(bool push) override
+    virtual enum Error on_array(bool push) override
     {
         IGNORE(push);
+        return OKAY;
     }
 
-    virtual void on_number(Section *sec) override
+    virtual enum Error on_number(Section *sec) override
     {
         IGNORE(sec);
+        return OKAY;
     }
 
-    virtual void on_string(Section *sec, bool key) override
+    virtual enum Error on_string(Section *sec, bool key) override
     {
         IGNORE(sec);
         IGNORE(key);
+        return OKAY;
     }
 
-    virtual void on_primitive(Section *sec) override
+    virtual enum Error on_primitive(Section *sec) override
     {
         IGNORE(sec);
+        return OKAY;
     }
 };
 

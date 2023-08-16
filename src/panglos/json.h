@@ -66,12 +66,16 @@ public:
 class Handler
 {
 public:
+    enum Error { OKAY = 0, ERROR };
+
     virtual ~Handler(){}
-    virtual void on_object(bool push) = 0;
-    virtual void on_array(bool push) = 0;
-    virtual void on_number(Section *sec) = 0;
-    virtual void on_string(Section *sec, bool key) = 0;
-    virtual void on_primitive(Section *sec) = 0;
+    virtual enum Error on_object(bool push) = 0;
+    virtual enum Error on_array(bool push) = 0;
+    virtual enum Error on_number(Section *sec) = 0;
+    virtual enum Error on_string(Section *sec, bool key) = 0;
+    virtual enum Error on_primitive(Section *sec) = 0;
+
+    virtual const LUT* get_lut();
 };
 
     /*
@@ -88,6 +92,7 @@ public:
         CLOSE_BRACE_EXPECTED,
         CLOSE_BRACKET_EXPECTED,
         UNTERMINATED_STRING,
+        USER_ERROR,
     };
 
 private:
@@ -105,6 +110,7 @@ private:
     bool value(Section *sec);
 
     bool error(Section *sec, enum Error _err);
+    bool user_error(Section *sec, enum Handler::Error _err);
 
 public:
     Parser(Handler *handler, bool verbose=true);
@@ -139,11 +145,11 @@ private:
     void check(Section *sec, enum Type type);
 
     // Handler used to check match
-    virtual void on_object(bool push) override;
-    virtual void on_array(bool push) override;
-    virtual void on_number(Section *sec) override;
-    virtual void on_string(Section *sec, bool key) override;
-    virtual void on_primitive(Section *sec) override;
+    virtual enum Error on_object(bool push) override;
+    virtual enum Error on_array(bool push) override;
+    virtual enum Error on_number(Section *sec) override;
+    virtual enum Error on_string(Section *sec, bool key) override;
+    virtual enum Error on_primitive(Section *sec) override;
 
     int nest;
     int max_nest;
