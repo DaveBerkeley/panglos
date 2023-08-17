@@ -10,9 +10,11 @@
 
 namespace panglos {
 
-static bool error(esp_err_t err, const char *fn, int line)
+static bool error(esp_err_t err, const char *fn, int line, const char *ns=0, const char *extra=0)
 {
-    PO_ERROR("err=%s err=%d fn=%s +%d", lut(err_lut, err), err, fn, line);
+    PO_ERROR("err=%s err=%d fn=%s +%d %s.%s", lut(err_lut, err), err, fn, line, 
+            ns ? ns : "",
+            extra ? extra : "");
     return false;
 }
 
@@ -31,7 +33,7 @@ Storage::Storage(const char *_ns, bool _verbose)
 
     if (err != ESP_OK)
     {
-        error(err, __FUNCTION__, __LINE__);
+        error(err, __FUNCTION__, __LINE__, ns);
         return;
     }
 
@@ -55,7 +57,7 @@ bool Storage::commit()
     esp_err_t err = nvs_commit((nvs_handle_t) handle);
     if (err != ESP_OK)
     {
-        return error(err, __FUNCTION__, __LINE__);
+        return error(err, __FUNCTION__, __LINE__, ns);
     }
     return err == ESP_OK;
 }
@@ -98,7 +100,7 @@ bool Storage::set(const char *key, const char *value)
     esp_err_t err = nvs_set_str((nvs_handle_t) handle, key, value);
     if (err != ESP_OK)
     {
-        return error(err, __FUNCTION__, __LINE__);
+        return error(err, __FUNCTION__, __LINE__, ns, key);
     }
 
     return true;
@@ -113,7 +115,7 @@ bool Storage::set(const char *key, int32_t value)
     esp_err_t err = nvs_set_i32((nvs_handle_t) handle, key, value);
     if (err != ESP_OK)
     {
-        return error(err, __FUNCTION__, __LINE__);
+        return error(err, __FUNCTION__, __LINE__, ns, key);
     }
 
     return true;
@@ -129,7 +131,7 @@ bool Storage::get(const char *key, int8_t *value)
     esp_err_t err = nvs_get_i8((nvs_handle_t) handle, key, value);
     if (err != ESP_OK)
     {
-        return error(err, __FUNCTION__, __LINE__);
+        return error(err, __FUNCTION__, __LINE__, ns, key);
     }
 
     return true;
@@ -141,7 +143,7 @@ bool Storage::get(const char *key, int16_t *value)
     esp_err_t err = nvs_get_i16((nvs_handle_t) handle, key, value);
     if (err != ESP_OK)
     {
-        return error(err, __FUNCTION__, __LINE__);
+        return error(err, __FUNCTION__, __LINE__, ns, key);
     }
 
     return true;
@@ -153,7 +155,7 @@ bool Storage::get(const char *key, int32_t *value)
     esp_err_t err = nvs_get_i32((nvs_handle_t) handle, key, value);
     if (err != ESP_OK)
     {
-        return error(err, __FUNCTION__, __LINE__);
+        return error(err, __FUNCTION__, __LINE__, ns, key);
     }
 
     return true;
@@ -165,19 +167,19 @@ bool Storage::get(const char *key, char *value, size_t *s)
     esp_err_t err = nvs_get_str((nvs_handle_t) handle, key, value, s);
     if (err != ESP_OK)
     {
-        return error(err, __FUNCTION__, __LINE__);
+        PO_ERROR("k=%s", key);
+        return error(err, __FUNCTION__, __LINE__, ns, key);
     }
 
     return true;
 }
-
 
 bool Storage::erase(const char *key)
 {
     esp_err_t err = nvs_erase_key((nvs_handle_t) handle, key);
     if (err != ESP_OK)
     {
-        return error(err, __FUNCTION__, __LINE__);
+        return error(err, __FUNCTION__, __LINE__, ns, key);
     }
 
     return true;
