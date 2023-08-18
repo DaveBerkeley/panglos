@@ -17,19 +17,21 @@ static const char *numeric = "0123456789+-.eE";
 
 bool Section::skip(char c)
 {
-    bool found = c == '\0';
-
     while (s <= e)
     {
-        found |= *s == c;
-        if ((!strchr(whitespace, *s)) && (*s != c))
+        if (c == *s)
         {
-            return found;
+            s += 1;
+            return true;
+        }
+        if (!strchr(whitespace, *s))
+        {
+            return false;
         }
         //PO_DEBUG("skip '%c'", *s);
         s += 1;
     }
-    return found;
+    return false;
 }
 
 bool Section::match(const char *match)

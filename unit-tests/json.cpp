@@ -122,6 +122,24 @@ TEST(Json, SectionDup)
     free(s);
 }
 
+TEST(Json, Skip)
+{
+    bool ok;
+    Section sec("  {}");
+
+    sec.skip();
+    ok = sec.match("{}");
+    EXPECT_TRUE(ok);
+    ok = sec.skip('{');
+    EXPECT_TRUE(ok);
+    ok = sec.match("}");
+    EXPECT_TRUE(ok);
+    ok = sec.skip('}');
+    EXPECT_TRUE(ok);
+    ok = sec.match("");
+    EXPECT_TRUE(ok);
+}
+
 TEST(Json, Int)
 {
     const char *tests[] = {
