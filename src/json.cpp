@@ -66,6 +66,20 @@ char *Section::strdup()
     return str;
 }
 
+bool Section::to_int(int *d, int base)
+{
+    char *end = 0;
+    *d = (int) strtol(s, & end, base);
+    return end == (e + 1);
+}
+
+bool Section::to_double(double *d)
+{
+    char *end = 0;
+    *d = strtof(s, & end);
+    return end == (e + 1);
+}
+
     /*
      *  Printer class
      */
@@ -428,12 +442,14 @@ public:
     }
 };
 
-Match::Match(int nlevels)
-:   nest(0),
+Match::Match(bool _verbose, int nlevels)
+:   verbose(_verbose),
+    nest(0),
     max_nest(nlevels),
     levels(0),
     items(Item::get_next)
 {
+    if (verbose) PO_DEBUG("");
     levels = new Level[nlevels];
 }
 
@@ -444,11 +460,17 @@ Match::~Match()
 
 void Match::add_item(struct Item *item, Mutex *m)
 {
+    if (verbose) PO_DEBUG("");
     items.push(item, m);
 }
 
 void Match::check(Section *sec, enum Type type)
 {
+    if (verbose)
+    {
+        json::Printer p(sec);
+        PO_DEBUG("%s", p.get());
+    }
     if (nest >= max_nest) return;
 
     struct Item *item = 0;
@@ -461,6 +483,7 @@ void Match::check(Section *sec, enum Type type)
         {
             Level *level = & levels[i];
             const char *key = keys[i-1];
+            //PO_DEBUG("nest=%d i=%d %s", nest, i, key);
             if (!key)
                 break;
             if (!level->key.match(key))
@@ -479,6 +502,7 @@ void Match::check(Section *sec, enum Type type)
 enum Match::Error Match::on_object(bool push)
 {
     nest += push ? 1 : -1;
+    //PO_DEBUG("nest=%d push=%d", nest, push);
     if (nest >= max_nest) return OKAY;
     if (push)
     {
@@ -490,6 +514,7 @@ enum Match::Error Match::on_object(bool push)
 enum Match::Error Match::on_array(bool push)
 {
     nest += push ? 1 : -1;
+    //PO_DEBUG("nest=%d push=%d", nest, push);
     if (nest >= max_nest) return OKAY;
     if (push)
     {
@@ -511,6 +536,11 @@ enum Match::Error Match::on_string(Section *sec, bool key)
     if (nest >= max_nest) return OKAY;
     if (key)
     {
+        if (verbose)
+        {
+            json::Printer p(sec);
+            PO_DEBUG("key:%s", p.get());
+        }
         ASSERT(levels[nest].type == Level::OBJECT);
         levels[nest].set_key(sec);
     }

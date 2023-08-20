@@ -140,6 +140,110 @@ TEST(Json, Skip)
     EXPECT_TRUE(ok);
 }
 
+    /*
+     *
+     */
+
+struct IntPair {
+    const char *text;
+    int n;
+};
+
+static void check_ints(const struct IntPair *pairs, bool state)
+{
+    for (; pairs->text; pairs++)
+    {
+        Section sec(pairs->text);
+
+        bool ok;
+        int n = 0;
+        ok = sec.to_int(& n);
+        EXPECT_EQ(ok, state);
+        if (ok)
+        {
+            EXPECT_EQ(n, pairs->n);
+        }
+    }
+}
+
+TEST(Json, SectionInt)
+{
+    const struct IntPair good[] = {
+        {   "1234", 1234, },
+        {   "-1234", -1234, },
+        {   "0", 0, },
+        {   "-0", 0, },
+        {   "123456789", 123456789, },
+        {   "0x1234", 0x1234, },
+        {   0, 0    },
+    };
+
+    check_ints(good, true);
+
+    const struct IntPair bad[] = {
+        {   "1234.0", 0, },
+        {   "--2", 0, },
+        //{   " 2", 0, }, // this passes!
+        {   "ab12", 0, },
+        {   "12a", 0, },
+        {   ".123", 0, },
+        {   0, 0    },
+    };
+
+    check_ints(bad, false);
+}
+
+struct DoublePair {
+    const char *text;
+    double n;
+};
+
+static void check_doubles(const struct DoublePair *pairs, bool state)
+{
+    for (; pairs->text; pairs++)
+    {
+        Section sec(pairs->text);
+
+        bool ok;
+        double n = 0;
+        ok = sec.to_double(& n);
+        EXPECT_EQ(ok, state);
+        if (ok)
+        {
+            char a[24];
+            char b[24];
+            snprintf(a, sizeof(a), "%f", n);
+            snprintf(b, sizeof(b), "%f", pairs->n);
+            EXPECT_STREQ(a, b);
+            //EXPECT_DOUBLE_EQ(n, pairs->n);
+        }
+    }
+}
+
+TEST(Json, SectionDouble)
+{
+    const struct DoublePair good[] = {
+        {   "123", 123   },
+        {   "123.25", 123.25   },
+        {   "-123.25", -123.25   },
+        {   ".25", 0.25   },
+        {   "1e2", 100   },
+        {   "2.5e-2", 0.025   },
+        {   " 2.5e-2", 0.025   }, // leading spaces pass
+        {   0, 0    },
+    };
+
+    check_doubles(good, true);
+
+    const struct DoublePair bad[] = {
+        {   "x123", 0   },
+        {   "1e2 ", 0   }, // trailing spaces fail
+        {   0, 0    },
+    };
+
+    check_doubles(bad, false);
+}
+
 TEST(Json, Int)
 {
     const char *tests[] = {

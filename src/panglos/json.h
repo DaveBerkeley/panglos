@@ -28,22 +28,20 @@ public:
     bool match(const char *s);
     char *strncpy(char *buff, size_t s);
     char *strdup();
+    void clear() { s = 0; e = 0; }
 
-    Section()
-    :   s(0),
-        e(0)
-    {
-    }
+    bool to_int(int *, int base=0);
+    bool to_double(double *);
+
+    Section() :   s(0), e(0) { }
 
     Section(const char *t)
-    :   s(t),
-        e(& t[strlen(t)-1])
+    :   s(t), e(& t[strlen(t)-1])
     {
     }
 
     Section(const char *_s, const char *_e)
-    :   s(_s),
-        e(_e)
+    :   s(_s), e(_e)
     {
     }
 };
@@ -130,6 +128,7 @@ public:
 
 class Match : public Handler
 {
+    bool verbose;
 public:
     enum Type { STRING, NUMBER, PRIMITIVE };
 
@@ -164,7 +163,7 @@ private:
 public:
     void add_item(struct Item *item, Mutex *m=0);
 
-    Match(int nlevels=10);
+    Match(bool verbose=false, int nlevels=10);
     ~Match();
 };
 
