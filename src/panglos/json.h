@@ -32,6 +32,7 @@ public:
 
     bool to_int(int *, int base=0);
     bool to_double(double *);
+    bool to_bool(bool *);
 
     Section() :   s(0), e(0) { }
 

@@ -12,7 +12,8 @@
 namespace panglos {
 namespace json {
 
-static const char *whitespace = " \t\r\n";
+#define WHITESPACE " \t\r\n"
+static const char *whitespace = WHITESPACE;
 static const char *numeric = "0123456789+-.eE";
 
 bool Section::skip(char c)
@@ -68,6 +69,7 @@ char *Section::strdup()
 
 bool Section::to_int(int *d, int base)
 {
+    ASSERT(d);
     char *end = 0;
     *d = (int) strtol(s, & end, base);
     return end == (e + 1);
@@ -75,9 +77,26 @@ bool Section::to_int(int *d, int base)
 
 bool Section::to_double(double *d)
 {
+    ASSERT(d);
     char *end = 0;
     *d = strtof(s, & end);
     return end == (e + 1);
+}
+
+bool Section::to_bool(bool *d)
+{
+    ASSERT(d);
+    if (match("true"))
+    {
+        *d = true;
+        return true;
+    }
+    if (match("false"))
+    {
+        *d = false;
+        return true;
+    }
+    return false;
 }
 
     /*
@@ -361,11 +380,11 @@ bool Parser::primitive(Section *sec)
             continue;
         }
         // check for trailing chars
-        if (!strchr("\r\n\t ,}]", sec->s[n]))
+        if (!strchr(WHITESPACE ",}]", sec->s[n]))
         {
             continue;
         }
-        Section primitive = { s, s+n };
+        Section primitive = { s, s+n-1 };
         Handler::Error err = handler->on_primitive(& primitive);
         if (err != Handler::OKAY)
         {

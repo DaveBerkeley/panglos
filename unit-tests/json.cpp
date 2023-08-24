@@ -283,28 +283,92 @@ TEST(Json, Int)
     }
 }
 
+    /*
+     *
+     */
+
+class PrimitiveState
+{
+public:
+    bool t;
+    bool f;
+    bool n;
+
+    PrimitiveState()
+    :   t(false), f(false), n(false)
+    {
+    }
+};
+
+class PrimitiveHandler : public P
+{
+    PrimitiveState &state;
+public:
+
+    virtual enum Error on_primitive(Section *sec)
+    {
+        if (sec->match("true"))
+        {
+            state.t = true;
+            return OKAY;
+        }
+        if (sec->match("false"))
+        {
+            state.f = true;
+            return OKAY;
+        }
+        if (sec->match("null"))
+        {
+            state.n = true;
+            return OKAY;
+        }
+
+        return P::on_primitive(sec);
+    }
+
+    PrimitiveHandler(PrimitiveState & s)
+    :   state(s)
+    {
+    }
+};
+
 TEST(Json, Primitive)
 {
-    const char *tests[] = {
-        "true",
-        "true\n",
-        "true ",
-        " false",
-        " false   ",
-        " false",
-        "false",
-        "false\r\t",
-        "null\r\t",
-        0,
+    struct Test
+    {
+        const char *json;
+        enum STATE { T, F, N, X };
+        enum STATE state;
+    };
+    struct Test tests[] = {
+        { "true",           Test::T, },
+        { "true\n",         Test::T, },
+        { "true ",          Test::T, },
+        { " false",         Test::F, },
+        { " false   ",      Test::F, },
+        { " false",         Test::F, },
+        { "false",          Test::F, },
+        { "false\r\t",      Test::F, },
+        { "null\r\t",       Test::N, },
+        { "\r\nnull\r\t",   Test::N, },
+        { 0,  Test::T, },
     };
 
-    for (const char **test = tests; *test; test++)
+    for (struct Test *test = tests; test->json; test++)
     {
-        P handler;
-        Section sec(*test);
+        PrimitiveState state;
+        PrimitiveHandler handler(state);
+        Section sec(test->json);
         Parser p(& handler);
         bool ok = p.parse(& sec);
         EXPECT_TRUE(ok);
+        switch (test->state)
+        {
+            case Test::T : { EXPECT_TRUE(state.t); break; }
+            case Test::F : { EXPECT_TRUE(state.f); break; }
+            case Test::N : { EXPECT_TRUE(state.n); break; }
+            default : { ASSERT(0); }
+        }
     }
 }
 
