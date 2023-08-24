@@ -283,6 +283,30 @@ TEST(Json, Int)
     }
 }
 
+TEST(Json, Primitive)
+{
+    const char *tests[] = {
+        "true",
+        "true\n",
+        "true ",
+        " false",
+        " false   ",
+        " false",
+        "false",
+        "false\r\t",
+        "null\r\t",
+        0,
+    };
+
+    for (const char **test = tests; *test; test++)
+    {
+        P handler;
+        Section sec(*test);
+        Parser p(& handler);
+        bool ok = p.parse(& sec);
+        EXPECT_TRUE(ok);
+    }
+}
 
 TEST(Json, File)
 {

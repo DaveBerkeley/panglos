@@ -131,6 +131,7 @@ class Match : public Handler
     bool verbose;
 public:
     enum Type { STRING, NUMBER, PRIMITIVE };
+    static LUT type_lut[];
 
     struct Item {
         const char **keys;

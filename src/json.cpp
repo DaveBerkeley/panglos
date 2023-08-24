@@ -361,7 +361,7 @@ bool Parser::primitive(Section *sec)
             continue;
         }
         // check for trailing chars
-        if (!strchr(" ,}]", sec->s[n]))
+        if (!strchr("\r\n\t ,}]", sec->s[n]))
         {
             continue;
         }
@@ -457,6 +457,13 @@ Match::~Match()
 {
     delete[] levels;
 }
+
+LUT Match::type_lut[] = {
+    {   "STRING", STRING, },
+    {   "NUMBER", NUMBER, },
+    {   "PRIMITIVE", PRIMITIVE, },
+    { 0, 0 },
+};
 
 void Match::add_item(struct Item *item, Mutex *m)
 {
