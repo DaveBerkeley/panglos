@@ -14,11 +14,6 @@ namespace panglos {
      *  List utils
      */
 
-static MqttSub **subs_next(MqttSub *sub)
-{
-    return & sub->next;
-}
-
 struct Match 
 {
     const char *topic;
@@ -110,7 +105,7 @@ MqttClient::MqttClient()
 :   handle(0),
     connected(false),
     next(0), 
-    subs(subs_next)
+    subs(MqttSub::get_next)
 {
 }
 
