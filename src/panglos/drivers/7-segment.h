@@ -10,7 +10,14 @@ namespace panglos {
 
 class I2C;
 
-class SevenSegment
+class Display
+{
+public:
+    virtual ~Display(){}
+    virtual void write(const char *text) = 0;
+};
+
+class SevenSegment : public Display
 {
     panglos::I2C *i2c;
     uint8_t addr;
@@ -19,6 +26,7 @@ class SevenSegment
     static const char *next_seg(const char *text, uint8_t *seg);
 public:
     SevenSegment(panglos::I2C *_i2c, uint8_t _addr=0x70);
+    SevenSegment();
 
     bool probe();
 
@@ -28,7 +36,7 @@ public:
 
     void set_colon(bool state);
 
-    void write(const char *text);
+    virtual void write(const char *text) override;
 };
 
 }   //  namespace panglos

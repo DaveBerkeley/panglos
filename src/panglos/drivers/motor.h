@@ -109,6 +109,7 @@ private:
 
 public:
     Stepper(int cycle, MotorIo* io, uint32_t time=1000, int32_t slow=-1, int steps=2);
+    Stepper();
     virtual ~Stepper();
 
     virtual int position();
