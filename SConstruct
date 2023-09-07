@@ -10,8 +10,8 @@ files = [
     'src/logger.cpp',
     'src/thread.cpp',
     'src/device.cpp',
-    'src/action.cpp',
     'src/json.cpp',
+    'src/event_queue.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/keyboard.cpp',
@@ -53,7 +53,6 @@ files = [
     'unit-tests/logger.cpp',
     'unit-tests/io.cpp',
     'unit-tests/device.cpp',
-    'unit-tests/action.cpp',
     'unit-tests/aht25.cpp',
     'unit-tests/queue.cpp',
     'unit-tests/thread.cpp',
@@ -62,6 +61,7 @@ files = [
     'unit-tests/ds3231.cpp',
     'unit-tests/json.cpp',
     'unit-tests/mcp6s91.cpp',
+    'unit-tests/event_queue.cpp',
 ]
 
 ccflags = [
