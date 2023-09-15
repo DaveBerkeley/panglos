@@ -26,6 +26,11 @@ public:
 
     bool skip(char c='\0');
     bool match(const char *s);
+    const char *find(char c);
+    bool empty();
+
+    bool split(Section *head, char c);
+
     char *strncpy(char *buff, size_t s);
     char *strdup();
     void clear() { s = 0; e = 0; }

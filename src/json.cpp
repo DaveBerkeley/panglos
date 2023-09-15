@@ -99,6 +99,44 @@ bool Section::to_bool(bool *d)
     return false;
 }
 
+const char *json::Section::find(char c)
+{
+    for (const char *t = s; t <= e; t++)
+    {
+        if (c == *t)
+        {
+            return t;
+        }
+    }
+    return 0;
+}
+
+bool json::Section::split(json::Section *head, char c)
+{
+    ASSERT(head);
+    const char *f = 0;
+    while (!!(f = find(c)))
+    {
+        head->s = s;
+        head->e = f-1;
+        s = f+1;
+        return true;
+    }
+
+    *head = *this;
+    clear();
+    return false;
+}
+
+bool json::Section::empty()
+{
+    if ((s == 0) || (e == 0))
+    {
+        return true;
+    }
+    return s > e;
+}
+
     /*
      *  Printer class
      */

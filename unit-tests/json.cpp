@@ -122,7 +122,7 @@ TEST(Json, SectionDup)
     free(s);
 }
 
-TEST(Json, Skip)
+TEST(Json, SectionSkip)
 {
     bool ok;
     Section sec("  {}");
@@ -138,6 +138,62 @@ TEST(Json, Skip)
     EXPECT_TRUE(ok);
     ok = sec.match("");
     EXPECT_TRUE(ok);
+}
+
+TEST(Json, SectionFind)
+{
+    {
+        const char *s = "hello|world";
+        json::Section sec(s);
+
+        const char *f = sec.find('|');
+        EXPECT_TRUE(f);
+        EXPECT_EQ(*f, '|');
+    }
+    {
+        const char *s = "hello world";
+        json::Section sec(s);
+
+        const char *f = sec.find('|');
+        EXPECT_FALSE(f);
+    }
+}
+
+TEST(Json, SectionSplit)
+{
+    {
+        const char *s = "hello|world";
+        json::Section sec(s);
+        json::Section head;
+
+        bool ok;
+        ok = sec.split(& head, '|');
+        EXPECT_TRUE(ok);
+        ok = head.match("hello");
+        EXPECT_TRUE(ok);
+        ok = sec.match("world");
+        EXPECT_TRUE(ok);
+
+        ok = sec.split(& head, '|');
+        EXPECT_FALSE(ok);
+        ok = head.match("world");
+        EXPECT_TRUE(ok);
+        ok = sec.empty();
+        EXPECT_TRUE(ok);
+    }
+    {
+        const char *s = "hello world";
+        json::Section sec(s);
+        json::Section head;
+
+        bool ok;
+        ok = sec.split(& head, '|');
+        EXPECT_FALSE(ok);
+        ok = head.match("hello world");
+        EXPECT_TRUE(ok);
+        ok = sec.empty();
+        EXPECT_TRUE(ok);
+    }
 }
 
     /*
