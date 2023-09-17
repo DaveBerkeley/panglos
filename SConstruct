@@ -24,6 +24,7 @@ files = [
     'src/drivers/spi_bitbang.cpp',
     'src/drivers/ds3231.cpp',
     'src/drivers/mcp6s91.cpp',
+    'src/drivers/mhz19b.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
@@ -62,6 +63,7 @@ files = [
     'unit-tests/json.cpp',
     'unit-tests/mcp6s91.cpp',
     'unit-tests/event_queue.cpp',
+    'unit-tests/mhz19b.cpp',
 ]
 
 ccflags = [
