@@ -119,6 +119,8 @@ private:
     bool error(Section *sec, enum Error _err);
     bool user_error(Section *sec, enum Handler::Error _err);
 
+    bool error_check(Section *sec, enum Handler::Error err);
+
 public:
     Parser(Handler *handler, bool verbose=true);
 

@@ -228,6 +228,19 @@ bool Parser::user_error(Section *sec, enum Handler::Error _err)
     return false;
 }
 
+bool Parser::error_check(Section *sec, enum Handler::Error err)
+{
+    if (err != Handler::OKAY)
+    {
+        return user_error(sec, err);
+    }
+    return true;
+}
+
+    /*
+     *
+     */
+
 bool Parser::object(Section *sec)
 {
     //PO_DEBUG("OBJECT %-*s", int(sec->e - sec->s), sec->s);
@@ -282,12 +295,7 @@ bool Parser::object(Section *sec)
         return error(sec, CLOSE_BRACE_EXPECTED);
     }
 
-    err = handler->on_object(false);
-    if (err != Handler::OKAY)
-    {
-        return user_error(sec, err);
-    }
-    return true;
+    return error_check(sec, handler->on_object(false));
 }
 
 bool Parser::array(Section *sec)
@@ -328,12 +336,7 @@ bool Parser::array(Section *sec)
         return error(sec, CLOSE_BRACKET_EXPECTED);
     }
 
-    err = handler->on_array(false);
-    if (err != Handler::OKAY)
-    {
-        return user_error(sec, err);
-    }
-    return true;
+    return error_check(sec, handler->on_array(false));
 }
 
 bool Parser::number(Section *sec)
@@ -354,12 +357,7 @@ bool Parser::number(Section *sec)
     }
     sec->s = s;
 
-    Handler::Error err = handler->on_number(& num);
-    if (err != Handler::OKAY)
-    {
-        return user_error(sec, err);
-    }
-    return true;
+    return error_check(sec, handler->on_number(& num));
 }
 
 bool Parser::string(Section *sec, bool key)
@@ -392,12 +390,7 @@ bool Parser::string(Section *sec, bool key)
     // step past the string
     sec->s = s + 1;
 
-    Handler::Error err = handler->on_string(& str, key);
-    if (err != Handler::OKAY)
-    {
-        return user_error(sec, err);
-    }
-    return true;
+    return error_check(sec, handler->on_string(& str, key));
 }
 
 bool Parser::primitive(Section *sec)
