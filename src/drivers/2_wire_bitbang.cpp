@@ -25,14 +25,10 @@ TwoWire::TwoWire(GPIO *_scl, GPIO *_sda, Mutex *m)
     scl->set(1);
 }
 
-void TwoWire::wait(int n)
+void TwoWire::wait()
 {
-    // TODO
-    for (int j = 0; j < n; j++)
+    for (volatile int i = 0; i < 100; i++)
     {
-        for (volatile int i = 0; i < 100; i++)
-        {
-        }
     }
 }
 
@@ -92,8 +88,6 @@ bool TwoWire::tx(uint8_t data, uint8_t *rx)
         *rx = rd;
     }
 
-    wait(5);
-
     return !ack;
 }
 
@@ -138,7 +132,6 @@ int TwoWire::write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_
     start();
     const int n = io(wr, len_wr, rd, len_rd);
     stop();
-    wait(20);
     return n;
 }
 

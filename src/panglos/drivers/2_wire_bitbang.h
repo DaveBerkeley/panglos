@@ -12,7 +12,7 @@ class TwoWire : public I2C
     void stop();
     bool bit(bool tx);
     bool tx(uint8_t data, uint8_t *rx);
-    void wait(int n=1);
+    void wait();
 
     int io(const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd);
 public:
