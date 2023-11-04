@@ -223,7 +223,7 @@ bool Parser::user_error(Section *sec, enum Handler::Error _err)
     err_sec = *sec;
     if (verbose)
     {
-        PO_ERROR("%s", lut(handler->get_lut(), _err));
+        PO_ERROR("%s %d", lut(handler->get_lut(), _err), _err);
     }
     return false;
 }
