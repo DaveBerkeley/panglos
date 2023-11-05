@@ -8,6 +8,7 @@ namespace panglos {
 class MHZ19B {
     UART *uart;
 
+    bool flush();
 public:
 
     enum CMD { START=0xff, READ=0x86, ZERO=0x87, CAL=0x79, RANGE=0x99 };

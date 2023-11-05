@@ -39,29 +39,46 @@ bool MHZ19B::request()
     return sent == sizeof(packet);
 }
 
+bool MHZ19B::flush()
+{
+    uint8_t packet[PACKET];
+    int rx = uart->rx((char *) packet, sizeof(packet));
+    PO_DEBUG("rx=%d", rx);
+    return false;
+}
+
 bool MHZ19B::read(struct Data *data)
 {
     uint8_t packet[PACKET];
 
     int rx = uart->rx((char *) packet, sizeof(packet));
+
+//    PO_DEBUG("%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X",
+//            packet[0], packet[1], packet[2], packet[3],
+//            packet[4], packet[5], packet[6], packet[7], packet[8]);
+
     if (rx != sizeof(packet))
     {
-        return false;
+        PO_DEBUG("bad size");
+        return flush();
     }
 
     if (!checksum(packet))
     {
-        return false;
+        PO_DEBUG("bad sc");
+        return flush();
     }
 
     if (packet[0] != START)
     {
-        return false;
+        PO_DEBUG("bad start");
+        return flush();
     }
 
     if (packet[1] != READ)
     {
-        return false;
+        PO_DEBUG("bad READ");
+        return flush();
     }
 
     ASSERT(data);
