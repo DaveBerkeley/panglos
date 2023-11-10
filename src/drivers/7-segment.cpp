@@ -40,6 +40,14 @@ uint8_t SevenSegment::seg(char data)
     const uint8_t dp = 0x80;
     switch (data)
     {
+        case 0x01 : return a;
+        case 0x02 : return b;
+        case 0x03 : return c;
+        case 0x04 : return d;
+        case 0x05 : return e;
+        case 0x06 : return f;
+        case 0x07 : return g;
+
         case '0' : return a+b+c+d+e+f;
         case '1' : return b+c;
         case '2' : return a+b+g+e+d;
