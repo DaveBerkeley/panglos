@@ -25,7 +25,7 @@ TM1637::TM1637(TwoWire *_tw)
 
 void TM1637::write(const char *text)
 {
-    PO_DEBUG("'%s'", text);
+    //PO_DEBUG("'%s'", text);
 
     char buff[5] = { 0 };
 
