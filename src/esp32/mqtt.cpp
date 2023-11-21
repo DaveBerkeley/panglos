@@ -5,10 +5,13 @@
 #include "mqtt_client.h"
 
 #include "panglos/debug.h"
+#include "panglos/verbose.h"
 
 #include "panglos/mqtt.h"
 
 namespace panglos {
+
+static VERBOSE(mqtt, "mqtt", false);
 
     /*
      *  List utils
@@ -176,6 +179,7 @@ void MqttClient::on_data(MqttEvent *mevent)
         PO_ERROR("no handler for topic '%.*s'", event->topic_len, event->topic);
         return;
     }
+    if (mqtt.verbose) PO_DEBUG("%*s", event->topic_len, event->topic);
     ASSERT(item->handler);
     item->handler(item->arg, event->data, event->data_len);
 }
