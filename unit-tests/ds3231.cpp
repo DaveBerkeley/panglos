@@ -34,7 +34,7 @@ public:
         EXPECT_EQ(wr[5], 0x15);
         EXPECT_EQ(wr[6], 0x01);
         EXPECT_EQ(wr[7], 0x40);
-        return len;
+        return int(len);
     }
 
     virtual int write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd)
@@ -49,7 +49,7 @@ public:
         rd[4] = 0x19; // d
         rd[5] = 0x11; // m
         rd[6] = 0x22; // y
-        return len_rd;
+        return int(len_rd);
     }
 
     virtual int read(uint8_t addr, uint8_t* rd, uint32_t len)
@@ -57,7 +57,7 @@ public:
         IGNORE(addr);
         IGNORE(rd);
         ASSERT(0);
-        return len;
+        return int(len);
     }
 };
 

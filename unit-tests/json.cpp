@@ -499,10 +499,10 @@ TEST(Json, File)
         int err = fstat(fd, & stat);
         ASSERT_ERROR(err >= 0, "err=%d", err);
 
-        char *data = (char *) malloc(stat.st_size);
+        char *data = (char *) malloc(size_t(stat.st_size));
         ASSERT(data);
 
-        ssize_t s = read(fd, data, stat.st_size);
+        ssize_t s = read(fd, data, size_t(stat.st_size));
         ASSERT_ERROR(s == stat.st_size, "s=%d", (int) s);
 
         close(fd);

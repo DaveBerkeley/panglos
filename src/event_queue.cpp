@@ -12,7 +12,7 @@ namespace panglos {
 
 static int cmp_t(Time::tick_t t1, Time::tick_t t2)
 {
-    const int diff = t2 - t1;
+    const int diff = int(t2 - t1);
     //PO_DEBUG("%#x %#x %d", t1, t2, diff);
     return diff;
 }

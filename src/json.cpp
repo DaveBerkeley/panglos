@@ -40,7 +40,7 @@ bool Section::match(const char *match)
     if (!match) return false;
     const int size = (int) strlen(match);
     if (size != (1 + e - s)) return false;
-    return strncmp(match, s, size) == 0;
+    return strncmp(match, s, size_t(size)) == 0;
 }
 
 char *Section::strncpy(char *buff, size_t size)
@@ -60,7 +60,7 @@ char *Section::strncpy(char *buff, size_t size)
 
 char *Section::strdup()
 {
-    size_t size = 1 + e - s;
+    size_t size = size_t(1 + e - s);
     char *str = (char *) malloc(size+1);
     ::strncpy(str, s, size);
     str[size] = '\0';
@@ -145,7 +145,7 @@ Printer::Printer(json::Section *sec, size_t _limit)
 :   buff(0),
     limit(_limit)
 {
-    size_t size = 2 + sec->e - sec->s;
+    size_t size = size_t(2 + sec->e - sec->s);
     if (size > limit)
         size = limit;
     buff = new char[size];
@@ -406,7 +406,7 @@ bool Parser::primitive(Section *sec)
     {
         const char *s = primitives[i];
         const int n = (int) strlen(s);
-        if (strncmp(s, sec->s, n))
+        if (strncmp(s, sec->s, size_t(n)))
         {
             continue;
         }

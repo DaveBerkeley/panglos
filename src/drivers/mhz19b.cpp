@@ -22,7 +22,7 @@ uint8_t MHZ19B::checksum(const uint8_t *data)
     }
     total = char(0xff - total);
     total += 1;
-    return total;
+    return uint8_t(total);
 }
 
 bool MHZ19B::request()
@@ -82,7 +82,7 @@ bool MHZ19B::read(struct Data *data)
     }
 
     ASSERT(data);
-    data->co2 = packet[2] << 8;
+    data->co2 = uint16_t(packet[2] << 8);
     data->co2 += packet[3];
 
     return true;

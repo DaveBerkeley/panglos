@@ -17,19 +17,19 @@ public:
     {
         ASSERT(n == int(sizeof(buff)));
         ASSERT(data);
-        memset(data, 0, n);
+        memset(data, 0, size_t(n));
         data[0] = char(0xff);
         data[1] = char(0x86);
         data[2] = char(co2 >> 8);
         data[3] = char(co2 & 0xff);
-        data[8] = MHZ19B::checksum((const uint8_t*) data);
+        data[8] = char(MHZ19B::checksum((const uint8_t*) data));
         return n;
     }
 
     virtual int tx(const char* data, int n)
     {
         ASSERT(n <= int(sizeof(buff)));
-        memcpy(buff, data, n);
+        memcpy(buff, data, size_t(n));
         return n;
     }
 

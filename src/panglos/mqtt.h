@@ -22,7 +22,7 @@ typedef struct MqttSub
     const char *topic;
     void (*handler)(void *arg, const char *data, int len);
     void *arg;
-    struct MqttSub *next;
+    MqttSub *next;
     static MqttSub **get_next(MqttSub *sub) { return & sub->next; }
 
 }   MqttSub;

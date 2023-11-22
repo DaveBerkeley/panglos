@@ -119,7 +119,7 @@ int TwoWire::io(const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd
         }
     }
 
-    return len_wr + len_rd;
+    return int(len_wr + len_rd);
 }
 
     /*
