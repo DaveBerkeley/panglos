@@ -170,7 +170,7 @@ const char *SevenSegment::next_seg(const char *text, uint8_t *_seg)
     ASSERT(_seg);
     ASSERT(text);
 
-    uint8_t c =  *text ? *text++ : 0;
+    char c = *text ? *text++ : 0;
     uint8_t s = seg(c);
     if (*text == '.')
     {
