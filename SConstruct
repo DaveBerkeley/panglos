@@ -12,6 +12,7 @@ files = [
     'src/device.cpp',
     'src/json.cpp',
     'src/event_queue.cpp',
+    'src/verbose.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/2_wire_bitbang.cpp',
@@ -65,6 +66,7 @@ files = [
     'unit-tests/mcp6s91.cpp',
     'unit-tests/event_queue.cpp',
     'unit-tests/mhz19b.cpp',
+    'unit-tests/verbose.cpp',
 ]
 
 ccflags = [
