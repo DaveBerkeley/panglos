@@ -18,8 +18,6 @@
 
 namespace panglos {
 
-#define READ_REGS 0x04
-
     /*
      *  Helper functions to read 16 & 32-bit register data
      */
@@ -65,10 +63,8 @@ bool PZEM004T::request(Out *out)
     return out->tx((const char *) msg, sizeof(msg)) == sizeof(msg);
 }
 
-bool PZEM004T::parse(struct PZEM004T::Status *status, const uint8_t *data, int n)
+bool PZEM004T::crc_check(const uint8_t *data, int n)
 {
-    ASSERT(data);
-
     if (n <= 5)
     {
         // must have at least header + n + crc
@@ -86,16 +82,36 @@ bool PZEM004T::parse(struct PZEM004T::Status *status, const uint8_t *data, int n
         return false;
     }
 
-    int idx = 0;
+    return true;
+}
 
-    if ((data[idx++]) != addr)
+enum PZEM004T::Cmd PZEM004T::get_command(const uint8_t *data, int n)
+{
+    if (!crc_check(data, n))
+    {
+        return ERROR;
+    }
+
+    if ((data[0]) != addr)
+    {
+        return ERROR;
+    }
+
+    return Cmd(data[1]);
+}
+
+bool PZEM004T::parse(struct PZEM004T::Status *status, const uint8_t *data, int n)
+{
+    ASSERT(data);
+
+    enum Cmd cmd = get_command(data, n);
+    if (cmd != READ_REGS)
     {
         return false;
     }
-    if ((data[idx++]) != READ_REGS)
-    {
-        return false;
-    }
+
+    int idx = 2; // skip ADDR, CMD
+
     if ((data[idx++]) != 20)
     {
         // 10 regs == 20 bytes
