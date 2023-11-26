@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <math.h>
 
 #include "panglos/debug.h"
 
@@ -230,6 +231,11 @@ bool BMP280::read(struct Data *data)
     data->pressure = cal->to_p(p_adc);
     //PO_DEBUG("%#x %#x %f %f", p_adc, t_adc, p, t);
     return n == sizeof(data) + sizeof(cmd);
+}
+
+double BMP280::sealevel(double p, double alt)
+{
+	return(p/pow(1-(alt/44330.0),5.255));
 }
 
 uint8_t BMP280::get_id()

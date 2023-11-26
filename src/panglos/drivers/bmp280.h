@@ -24,6 +24,7 @@ public:
 
     uint8_t get_id();
     bool read(struct Data *);
+    static double sealevel(double p, double alt);
 };
 
 }   //  namespace panglos
