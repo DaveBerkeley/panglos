@@ -4,6 +4,7 @@
      */
 
 #include <driver/adc.h>
+#include <hal/adc_types.h>
 
 #include "panglos/debug.h"
 
@@ -28,8 +29,8 @@ static adc2_channel_t get_chan(uint8_t chan)
 }
 
 
-ESP_ADC2::ESP_ADC2()
-:   width(ADC_WIDTH_BIT_12)
+ESP_ADC2::ESP_ADC2(adc_bits_width_t w)
+:   width(w)
 {
 }
 
