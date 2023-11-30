@@ -27,6 +27,7 @@ files = [
     'src/drivers/ds3231.cpp',
     'src/drivers/mcp6s91.cpp',
     'src/drivers/mhz19b.cpp',
+    'src/drivers/mcp3002.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
@@ -67,6 +68,7 @@ files = [
     'unit-tests/event_queue.cpp',
     'unit-tests/mhz19b.cpp',
     'unit-tests/verbose.cpp',
+    'unit-tests/mcp3002.cpp',
 ]
 
 ccflags = [

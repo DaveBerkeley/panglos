@@ -13,16 +13,18 @@
 
 namespace panglos {
 
-ESP_SPI::ESP_SPI(Mutex *m, int ck, int copi, int cipo, int cs, int max_sz)
+ESP_SPI::ESP_SPI(Mutex *m, struct SPI_DEF *sd, int max_sz)
 :   SPI(m),
     spi(0)
 {
+    ASSERT(sd);
+    PO_DEBUG("dev=%d", sd->dev);
     esp_err_t err;
 
     spi_bus_config_t buscfg = {
-        .mosi_io_num = copi,
-        .miso_io_num = cipo,
-        .sclk_io_num = ck,
+        .mosi_io_num = sd->copi,
+        .miso_io_num = sd->cipo,
+        .sclk_io_num = sd->ck,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
         .max_transfer_sz = max_sz,
@@ -32,16 +34,16 @@ ESP_SPI::ESP_SPI(Mutex *m, int ck, int copi, int cipo, int cs, int max_sz)
     spi_device_interface_config_t devcfg = {
         .mode=0,
         //.clock_speed_hz=25000000,
-        .clock_speed_hz=12000000,
-        .spics_io_num=cs,
+        .clock_speed_hz= sd->clock_hz ? sd->clock_hz : 12000000,
+        .spics_io_num=sd->cs,
         .queue_size=7, // # transactions 
         //.pre_cb=0,
     };
 
-    err = spi_bus_initialize(SPI2_HOST, & buscfg, SPI_DMA_CH_AUTO);
+    err = spi_bus_initialize(sd->dev, & buscfg, SPI_DMA_CH_AUTO);
     esp_check(err, __LINE__);
 
-    err = spi_bus_add_device(SPI2_HOST, & devcfg, & spi);
+    err = spi_bus_add_device(sd->dev, & devcfg, & spi);
     esp_check(err, __LINE__);
     ASSERT(spi);
 }
@@ -72,8 +74,21 @@ bool ESP_SPI::write(const uint8_t *data, int size)
 
 bool ESP_SPI::io(const uint8_t *data, uint8_t *rd, int size)
 {
-    ASSERT(0); // "Not implemented"
-    return false;
+    ASSERT(data);
+    ASSERT(rd);
+    ASSERT(size);
+
+    spi_transaction_t t;
+    memset(&t, 0, sizeof(t));
+    t.length = 8 * size;
+    t.tx_buffer = data;
+    t.rxlength = 8 * size;
+    t.rx_buffer = rd;
+    t.user = 0;
+    t.flags = 0; // SPI_TRANS_USE_TXDATA;
+    esp_err_t err = spi_device_polling_transmit(spi, & t);
+    esp_check(err, __LINE__);
+    return err == ESP_OK;
 }
 
 }   //  namespace panglos
