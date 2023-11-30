@@ -3,14 +3,11 @@
      *  
      */
 
+#pragma once
+
+#include "panglos/drivers/adc.h"
 
 namespace panglos {
-
-class ADC 
-{
-public:
-    virtual uint16_t read(uint8_t chan) = 0;
-};
 
 class SpiDevice;
 
@@ -23,5 +20,6 @@ public:
     virtual uint16_t read(uint8_t chan) override;
 };
 
-
 }   //  namespace panglos
+
+//  FIN
