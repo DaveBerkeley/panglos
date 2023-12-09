@@ -10,6 +10,12 @@
 
 #include "panglos/esp32/adc.h"
 
+#if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
+#define HAS_ADC2
+#else
+#endif
+
+#if defined(HAS_ADC2)
 static adc2_channel_t get_chan(uint8_t chan)
 {
     const adc2_channel_t chans[] = {
@@ -27,6 +33,13 @@ static adc2_channel_t get_chan(uint8_t chan)
     ASSERT(chan < (sizeof(chans) / sizeof(chans[0])));
     return chans[chan];
 }
+#else
+static adc2_channel_t get_chan(uint8_t chan)
+{
+    ASSERT(0);
+    return adc2_channel_t(0);
+}
+#endif
 
 
 ESP_ADC2::ESP_ADC2(adc_bits_width_t w)

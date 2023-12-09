@@ -13,11 +13,12 @@ enum CMD {
 };
 
 MCP6S9x::MCP6S9x(SpiDevice *_spi)
-:   spi(_spi)
+:   spi(_spi),
+    gain(1)
 {
 }
 
-uint8_t MCP6S9x::set_gain(uint8_t gain)
+uint8_t MCP6S9x::set_gain(uint8_t g)
 {
     ASSERT(gain);
 
@@ -37,19 +38,24 @@ uint8_t MCP6S9x::set_gain(uint8_t gain)
 
     for (int i = 0; gains[i].gain; i++)
     {
-        if (gain >= gains[i].gain)
+        if (g >= gains[i].gain)
         {
             uint8_t data[] = { 
                 WRITE + 0,
                 gains[i].code,
             };
             spi->write(data, sizeof(data));
-            return gains[i].gain;
+            return gain = gains[i].gain;
         }
     }
 
     PO_ERROR("gain=%d", gain);
     return 0;
+}
+
+uint8_t MCP6S9x::get_gain()
+{
+    return gain;
 }
 
 void MCP6S9x::set_chan(uint8_t chan)
