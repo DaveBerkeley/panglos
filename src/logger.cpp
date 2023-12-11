@@ -12,10 +12,6 @@
      *
      */
 
-    /*
-     *
-     */
-
 const char *lut(const LUT *codes, int err)
 {
     for (const LUT *code = codes; code->text; code++)
@@ -78,10 +74,6 @@ Logging::~Logging()
     while (loggers.head)
     {
         struct Logger *logger = loggers.pop(0);
-        if (!logger)
-        {
-            break;
-        }
         delete logger;
     }
     delete irq_logger;
