@@ -8,6 +8,7 @@
 #include "panglos/io.h"
 #include "panglos/socket.h"
 #include "panglos/net.h"
+#include "panglos/logger.h"
 #include "panglos/cli_net.h"
 
 namespace panglos {
@@ -35,6 +36,7 @@ public:
      */
 
 static void net_exit(CLI *, CliCommand *);
+static void net_log(CLI *, CliCommand *);
 
 class CliClient : public Client
 {
@@ -44,7 +46,9 @@ class CliClient : public Client
     FmtOut fmt_out;
     CliOutput cli_out;
     CliCommand cmd_exit;
+    CliCommand cmd_log;
     bool dead;
+    bool logging;
 
     void init_cli()
     {
@@ -54,13 +58,19 @@ class CliClient : public Client
         cmd_exit.next = commands;
         cmd_exit.ctx = this;
 
+        cmd_log.cmd = "log";
+        cmd_log.handler = net_log;
+        cmd_log.help = "enable log to output";
+        cmd_log.next = & cmd_exit;
+        cmd_log.ctx = this;
+
         cli_out.fprintf = FmtOut::xprintf;
         cli_out.ctx = & fmt_out;
         cli.output = & cli_out;
         cli.eol = "\r\n";
         cli.prompt = "> ";
         cli_init(& cli, 96, 0);
-        cli.head = & cmd_exit;
+        cli.head = & cmd_log;
     }
 
 public:
@@ -68,12 +78,14 @@ public:
     :   Client(ss),
         commands(_commands),
         fmt_out(& out, 0),
-        dead(false)
+        dead(false),
+        logging(false)
     {
         PO_DEBUG("");
         memset(& cli, 0, sizeof(cli));
         memset(& cli_out, 0, sizeof(cli_out));
         memset(& cmd_exit, 0, sizeof(cmd_exit));
+        memset(& cmd_log, 0, sizeof(cmd_log));
     }
 
     virtual void run() override
@@ -101,11 +113,28 @@ public:
                 cli_process(& cli, buff[i]);
             }
         }
+
+        if (logging)
+        {
+            logger->remove(& out);
+            logging = false;
+        }
     }
 
     void exit()
     {
         dead = true;
+    }
+
+    void log()
+    {
+        PO_DEBUG("");
+        if (logging)
+        {
+            return;
+        }
+        logger->add(& out, S_DEBUG, 0);
+        logging = true;
     }
 };
 
@@ -113,6 +142,12 @@ static void net_exit(CLI *, CliCommand *cmd)
 {
     CliClient *cc = (CliClient *) cmd->ctx;
     cc->exit();
+}
+
+static void net_log(CLI *, CliCommand *cmd)
+{
+    CliClient *cc = (CliClient *) cmd->ctx;
+    cc->log();
 }
 
     /*
