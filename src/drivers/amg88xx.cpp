@@ -9,9 +9,9 @@
 
 namespace panglos {
 
-AMG88xx::AMG88xx(I2C *_i2c)
+AMG88xx::AMG88xx(enum Addr _addr, I2C *_i2c)
 :   i2c(_i2c),
-    addr(0x68)
+    addr(_addr)
 {
     PO_DEBUG("");
 }

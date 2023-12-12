@@ -1,4 +1,6 @@
 
+#pragma once
+
 namespace panglos {
 
 class I2C;
@@ -10,6 +12,11 @@ class AMG88xx
 
 public:
 
+    enum Addr {
+        ADDR_0 = 0x68,
+        ADDR_1 = 0x69,
+    };
+
     enum Regs {
         PowerControl = 0,
         Reset = 1,
@@ -20,7 +27,7 @@ public:
         Pixel = 0x80,
     };
 
-    AMG88xx(I2C *_i2c);
+    AMG88xx(enum Addr addr, I2C *_i2c);
     bool read_frame(uint8_t *data, size_t size);
     bool probe();
     void init();
