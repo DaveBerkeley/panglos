@@ -15,6 +15,7 @@ files = [
     'src/verbose.cpp',
     'src/socket.cpp',
     'src/net.cpp',
+    'src/tx_net.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/2_wire_bitbang.cpp',

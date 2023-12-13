@@ -70,6 +70,7 @@ public:
     class Factory
     {
     public:
+        virtual ~Factory() { }
         virtual Client *create_client(SocketServer *ss) = 0;
     };
 };
