@@ -16,6 +16,7 @@ files = [
     'src/socket.cpp',
     'src/net.cpp',
     'src/tx_net.cpp',
+    'src/watchdog.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/2_wire_bitbang.cpp',
@@ -73,6 +74,7 @@ files = [
     'unit-tests/verbose.cpp',
     'unit-tests/mcp3002.cpp',
     'unit-tests/socket.cpp',
+    'unit-tests/watchdog.cpp',
 ]
 
 ccflags = [

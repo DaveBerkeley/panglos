@@ -47,7 +47,7 @@ class _Watchdog : public Watchdog
 
     virtual void poll() override
     {
-        PO_DEBUG("");
+        //PO_DEBUG("");
         Thread *thread = Thread::get_current();
         Watched *w = find(thread);
         if (!w)

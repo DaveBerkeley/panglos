@@ -137,10 +137,31 @@ static int match_handle(RTOS_Thread *thread, void *arg)
     return (handle == thread->handle) ? 1 : 0;
 }
 
+class MainThread : public Thread
+{
+    virtual void start(void (*)(void *), void *) override
+    {
+    }
+    virtual void join() override
+    {
+    }
+    virtual const char *get_name() override
+    {
+        return "main";
+    }
+};
+
 Thread *Thread::get_current()
 {
     TaskHandle_t handle = xTaskGetCurrentTaskHandle();
-    return threads.find(match_handle, handle, mutex);
+    Thread *thread = threads.find(match_handle, handle, mutex);
+    if (thread)
+    {
+        return thread;
+    }
+    // Main thread, special case 
+    static MainThread main_thread;
+    return & main_thread;
 }
 
 }   //  namespace panglos

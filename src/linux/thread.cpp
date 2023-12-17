@@ -74,9 +74,32 @@ Thread *Thread::create(const char *name, size_t stack, Priority priority)
     return new NativeThread(name);
 }
 
+class MainThread : public Thread
+{
+    virtual void start(void (*fn)(void *arg), void *arg) override
+    {
+        UNUSED(fn);
+        UNUSED(arg);
+        ASSERT(0);
+    }
+    virtual void join() override
+    {
+        ASSERT(0);
+    }
+    virtual const char *get_name() override
+    {
+        return "main";
+    }
+};
+
 Thread *Thread::get_current()
 {
-    return native_thread;
+    static MainThread main_thread;
+    if (native_thread)
+    {
+        return native_thread;
+    }
+    return & main_thread;
 }
 
 }   //  namespace panglos

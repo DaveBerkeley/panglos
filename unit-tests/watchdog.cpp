@@ -4,6 +4,7 @@
 #include "panglos/debug.h"
 
 #include "panglos/thread.h"
+#include "panglos/semaphore.h"
 #include "panglos/watchdog.h"
 
 using namespace panglos;
@@ -54,18 +55,20 @@ TEST(Watchdog, Basic)
 struct WdTask {
     Watchdog *w;
     Thread *thread;
+    Semaphore *sem;
 };
 
 static void wd_task(void *arg)
 {
     ASSERT(arg);
     struct WdTask *wd = (struct WdTask*) arg;
+    wd->sem->post();
     wd->w->poll();
 }
 
 TEST(Watchdog, Threads)
 {
-//    Watchdog::Task *task;
+    Watchdog::Task *task;
     Time::set(1000);
     Watchdog *w = Watchdog::create(100);
     EXPECT_TRUE(w);
@@ -79,16 +82,32 @@ TEST(Watchdog, Threads)
         struct WdTask *wd = & threads[i];
         wd->w = w;
         wd->thread = thread;
+        wd->sem = Semaphore::create();
         thread->start(wd_task, wd);
     }
 
+    // wait for the threads to start
+    for (int i = 0; i < num; i++)
+    {
+        struct WdTask *wd = & threads[i];
+        wd->sem->wait();
+    }
+
+    task = w->check_expired();
+    EXPECT_FALSE(task);
+
     Time::set(1200);
+
+    task = w->check_expired();
+    EXPECT_TRUE(task);
 
     for (int i = 0; i < num; i++)
     {
-        Thread *thread = threads[i].thread;
-        thread->join();
-        delete thread;
+        struct WdTask *wd = & threads[i];
+        wd->thread->join();
+        w->remove(wd->thread);
+        delete wd->thread;
+        delete wd->sem;
     }
 
     delete w;
