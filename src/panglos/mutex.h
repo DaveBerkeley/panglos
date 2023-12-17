@@ -14,6 +14,7 @@ public:
 
     typedef enum {
         TASK_LOCK,          // suspends the scheduler
+        SYSTEM,             // scheduler still runs
         CRITICAL_SECTION,   // disable/enable interrupts
         RECURSIVE,          // can be called again from the same task
     }   Type;
