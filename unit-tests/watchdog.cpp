@@ -13,13 +13,13 @@ TEST(Watchdog, Basic)
 {
     Watchdog::Task *task;
     Time::set(1000);
-    Watchdog *w = Watchdog::create(100);
+    Watchdog *w = Watchdog::create();
     EXPECT_TRUE(w);
 
     task = w->check_expired();
     EXPECT_FALSE(task);
 
-    w->poll();
+    w->poll(100);
     task = w->check_expired();
     EXPECT_FALSE(task);
 
@@ -32,11 +32,11 @@ TEST(Watchdog, Basic)
     task = w->check_expired();
     EXPECT_FALSE(task);
 
-    w->poll();
+    w->poll(100);
     task = w->check_expired();
     EXPECT_FALSE(task);
 
-    w->poll();
+    w->poll(100);
     Time::set(1220);
     task = w->check_expired();
     EXPECT_TRUE(task);
@@ -63,14 +63,14 @@ static void wd_task(void *arg)
     ASSERT(arg);
     struct WdTask *wd = (struct WdTask*) arg;
     wd->sem->post();
-    wd->w->poll();
+    wd->w->poll(100);
 }
 
 TEST(Watchdog, Threads)
 {
     Watchdog::Task *task;
     Time::set(1000);
-    Watchdog *w = Watchdog::create(100);
+    Watchdog *w = Watchdog::create();
     EXPECT_TRUE(w);
 
     const int num = 5;

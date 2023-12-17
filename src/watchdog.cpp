@@ -25,13 +25,10 @@ public:
 
     static Watched** get_next(Watched *w) { return & w->next; }
 
-    Watched(Thread *t)
-    :   Task(t),
-        next(0),
-        holdoff(0),
-        alarmed(false)
+    Watched(Thread *thread)
+    :   Task(thread),
+        next(0)
     {
-        last = Time::get();
     }
 };
 
@@ -45,10 +42,13 @@ class _Watchdog : public Watchdog
     Mutex *mutex;
     Time::tick_t period;
 
-    virtual void poll() override
+    virtual void poll(Time::tick_t holdoff, Thread *thread) override
     {
         //PO_DEBUG("");
-        Thread *thread = Thread::get_current();
+        if (!thread)
+        {
+            thread = Thread::get_current();
+        }
         Watched *w = find(thread);
         if (!w)
         {
@@ -56,16 +56,10 @@ class _Watchdog : public Watchdog
             w = new Watched(thread);
             tasks.push(w, mutex);
         }
-        else
-        {
-            w->last = Time::get();
-            if (w->holdoff)
-            {
-                // end holdoff
-                w->holdoff = 0;
-            }
-            w->alarmed = false;
-        }
+
+        w->last = Time::get();
+        w->holdoff = holdoff;
+        w->alarmed = false;
     }
 
     virtual void remove(Thread *thread=0) override
@@ -80,14 +74,8 @@ class _Watchdog : public Watchdog
         }
     }
 
-    virtual void holdoff(Time::tick_t period, Thread *thread=0) override
-    {
-        PO_DEBUG("%d %p", period, thread);
-    }
-
     struct Check
     {
-        Time::tick_t period;
         Watched *w;
     };
 
@@ -102,9 +90,7 @@ class _Watchdog : public Watchdog
             return false;
         }
 
-        Time::tick_t cmp = w->holdoff ? w->holdoff : w->last;
-
-        if (!Time::elapsed(cmp, check->period))
+        if (!Time::elapsed(w->last, w->holdoff))
         {
             return 0;
         }
@@ -118,7 +104,7 @@ class _Watchdog : public Watchdog
     virtual Task *check_expired() override
     {
         PO_DEBUG("");
-        struct Check check = { .period = period, };
+        struct Check check = { .w = 0, };
         tasks.visit(visit, & check, mutex);
         return check.w;
     }
@@ -148,10 +134,9 @@ class _Watchdog : public Watchdog
     }
 
 public:
-    _Watchdog(Time::tick_t _period)
+    _Watchdog()
     :   tasks(Watched::get_next),
-        mutex(0),
-        period(_period)
+        mutex(0)
     {
         mutex = Mutex::create();
     }
@@ -171,9 +156,9 @@ public:
      *
      */
 
-Watchdog *Watchdog::create(Time::tick_t period)
+Watchdog *Watchdog::create()
 {
-    return new _Watchdog(period);
+    return new _Watchdog;
 }
 
 }   //  namespace panglos
