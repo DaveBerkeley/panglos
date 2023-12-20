@@ -4,6 +4,7 @@
      */
 
 #include <stdint.h>
+#include <math.h>
 #include <sys/time.h>
 
 #include "panglos/debug.h"
@@ -25,24 +26,24 @@ void LedCircle::calc_angle(int _360, struct Hand *hand, uint8_t _max)
     hand->bright1 = uint8_t(_max * frac);
 }
 
-void LedCircle::set_angle(enum Colour colour, const struct Hand *hand)
+void LedCircle::set_angle(enum LedStrip::Colour colour, const struct Hand *hand)
 {
     ASSERT(hand);
     switch (colour)
     {
-        case R :
+        case LedStrip::R :
         {
             rgb[hand->idx0].r = hand->bright0;
             rgb[hand->idx1].r = hand->bright1;
             break;
         }
-        case G :
+        case LedStrip::G :
         {
             rgb[hand->idx0].g = hand->bright0;
             rgb[hand->idx1].g = hand->bright1;
             break;
         }
-        case B :
+        case LedStrip::B :
         {
             rgb[hand->idx0].b = hand->bright0;
             rgb[hand->idx1].b = hand->bright1;
@@ -67,14 +68,17 @@ bool LedCircle::set_time()
 
     struct Hand hand;
 
-    calc_angle(tm.tm_sec * 6, & hand, 0x40);
-    set_angle(B, & hand);
+    int angle = tm.tm_sec * 6;
+    calc_angle(angle, & hand, 0x40);
+    set_angle(LedStrip::B, & hand);
 
-    calc_angle(tm.tm_min * 6, & hand, 0x80);
-    set_angle(R, & hand);
+    angle = (tm.tm_min + (tm.tm_sec / 60.0)) * 6;
+    calc_angle(angle, & hand, 0x80);
+    set_angle(LedStrip::R, & hand);
 
+    angle = (tm.tm_hour + (tm.tm_min / 60.0)) * 30;
     calc_angle((tm.tm_hour * 30) % 360, & hand, 0xff);
-    set_angle(G, & hand);
+    set_angle(LedStrip::G, & hand);
     return true;
 }
 
@@ -82,7 +86,7 @@ void LedCircle::draw()
 {
     for (int i = 0; i < leds->num_leds(); i++)
     {
-        struct RGB *x = & rgb[i];
+        struct LedStrip::RGB *x = & rgb[i];
         leds->set(i, x->r, x->g, x->b);
     }
     leds->send();
@@ -92,7 +96,7 @@ void LedCircle::set_all(uint8_t r, uint8_t g, uint8_t b)
 {
     for (int i = 0; i < leds->num_leds(); i++)
     {
-        struct RGB *x = & rgb[i];
+        struct LedStrip::RGB *x = & rgb[i];
         x->r = r;
         x->g = g;
         x->b = b;
@@ -110,12 +114,68 @@ LedCircle::LedCircle(LedStrip *_leds)
     rgb(0)
 {
     ASSERT(leds);
-    rgb = new struct RGB[leds->num_leds()];
+    rgb = new struct LedStrip::RGB[leds->num_leds()];
 }
 
 LedCircle::~LedCircle()
 {
     delete[] rgb;
+}
+
+    /*
+     *
+     */
+
+enum Scale::Section Scale::zone(double value)
+{
+    if (value < lo) return LO;
+    if (value < (lo + (1 * step))) return _B;
+    if (value < (lo + (2 * step))) return BG;
+    if (value < (lo + (3 * step))) return GB;
+    if (value < (lo + (4 * step))) return GR;
+    if (value < (lo + (5 * step))) return RG;
+    return HI;
+}
+
+void Scale::set(LedStrip::RGB *rgb, uint8_t r, uint8_t g, uint8_t b)
+{
+    ASSERT(rgb);
+    rgb->r = r;
+    rgb->g = g;
+    rgb->b = b;
+}
+
+uint8_t Scale::ramp(double part)
+{
+    return 255 * part;
+}
+
+uint8_t Scale::reduce(double part)
+{
+    return 255 - ramp(part);
+}
+
+void Scale::scale(LedStrip::RGB *rgb, double value)
+{
+    const double part = fmod(value - lo, step) / step;
+    //PO_DEBUG("%f %f", value, part);
+    switch (zone(value))
+    {
+        case LO : set(rgb, 0, 0, 0); break;
+        case _B : set(rgb, 0, 0, ramp(part)); break;
+        case BG : set(rgb, 0, ramp(part), 0xff); break;
+        case GB : set(rgb, 0, 0xff, reduce(part)); break;
+        case GR : set(rgb, ramp(part), 0xff, 0); break;
+        case RG : set(rgb, 0xff, reduce(part), 0); break;
+        case HI : set(rgb, 0xff, 0xff, 0xff); break;
+    }
+}
+
+Scale::Scale(double _lo, double _hi)
+:   lo(_lo),
+    hi(_hi),
+    step((hi - lo) / 5)
+{
 }
 
 }   //  namespace panglos
