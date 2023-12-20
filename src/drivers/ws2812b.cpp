@@ -12,7 +12,7 @@
 
 namespace panglos {
 
-void LedCircle::get_angle(int _360, struct Hand *hand, uint8_t _max)
+void LedCircle::calc_angle(int _360, struct Hand *hand, uint8_t _max)
 {
     double fidx = _360 * leds->num_leds() / 360.0;
     int idx = int(fidx);
@@ -23,6 +23,33 @@ void LedCircle::get_angle(int _360, struct Hand *hand, uint8_t _max)
     hand->bright0 = uint8_t(_max * craf);
     hand->idx1 = (idx+1) % leds->num_leds();
     hand->bright1 = uint8_t(_max * frac);
+}
+
+void LedCircle::set_angle(enum Colour colour, const struct Hand *hand)
+{
+    ASSERT(hand);
+    switch (colour)
+    {
+        case R :
+        {
+            rgb[hand->idx0].r = hand->bright0;
+            rgb[hand->idx1].r = hand->bright1;
+            break;
+        }
+        case G :
+        {
+            rgb[hand->idx0].g = hand->bright0;
+            rgb[hand->idx1].g = hand->bright1;
+            break;
+        }
+        case B :
+        {
+            rgb[hand->idx0].b = hand->bright0;
+            rgb[hand->idx1].b = hand->bright1;
+            break;
+        }
+        default : ASSERT(0);
+    }
 }
 
 bool LedCircle::set_time()
@@ -40,17 +67,14 @@ bool LedCircle::set_time()
 
     struct Hand hand;
 
-    get_angle(tm.tm_sec * 6, & hand, 0x40);
-    rgb[hand.idx0].b = hand.bright0;
-    rgb[hand.idx1].b = hand.bright1;
+    calc_angle(tm.tm_sec * 6, & hand, 0x40);
+    set_angle(B, & hand);
 
-    get_angle(tm.tm_min * 6, & hand, 0x80);
-    rgb[hand.idx0].r = hand.bright0;
-    rgb[hand.idx1].r = hand.bright1;
+    calc_angle(tm.tm_min * 6, & hand, 0x80);
+    set_angle(R, & hand);
 
-    get_angle((tm.tm_hour * 30) % 360, & hand, 0xff);
-    rgb[hand.idx0].g = hand.bright0;
-    rgb[hand.idx1].g = hand.bright1;
+    calc_angle((tm.tm_hour * 30) % 360, & hand, 0xff);
+    set_angle(G, & hand);
     return true;
 }
 

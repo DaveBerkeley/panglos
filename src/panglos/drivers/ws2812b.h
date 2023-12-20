@@ -35,7 +35,10 @@ private:
 public:
     struct RGB *rgb;
 
-    void get_angle(int _360, struct Hand *hand, uint8_t _max=0xff);
+    void calc_angle(int _360, struct Hand *hand, uint8_t _max=0xff);
+
+    enum Colour { R, G, B };
+    void set_angle(enum Colour colour, const struct Hand *hand);
 
     bool set_time();
 
