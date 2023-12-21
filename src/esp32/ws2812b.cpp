@@ -17,16 +17,21 @@ namespace panglos {
 #define CK_FREQ 80e6
 #define T10NS (10e-9 * CK_FREQ)
 
-#define T1H int(T10NS * 80) // 1 bit high time
-#define T1L int(T10NS * 45) // 1 bit low time
-#define T0H int(T10NS * 40) // 0 bit high time
-#define T0L int(T10NS * 85) // 0 bit low time
+#define WS2812B_T1H int(T10NS * 80) // 1 bit high time
+#define WS2812B_T1L int(T10NS * 45) // 1 bit low time
+#define WS2812B_T0H int(T10NS * 40) // 0 bit high time
+#define WS2812B_T0L int(T10NS * 85) // 0 bit low time
+
+#define SK68XX_T1H int(T10NS * 64) // 1 bit high time
+#define SK68XX_T1L int(T10NS * 70) // 1 bit low time
+#define SK68XX_T0H int(T10NS * 30) // 0 bit high time
+#define SK68XX_T0L int(T10NS * 100) // 0 bit low time
 
     /*
      *
      */
 
-WS2812B::WS2812B(int _nleds, int _bits_per_led)
+RmtLedStrip::RmtLedStrip(int _nleds, int _bits_per_led, Type type)
 :   nleds(_nleds),
     bits_per_led(_bits_per_led),
     data(0)
@@ -34,25 +39,44 @@ WS2812B::WS2812B(int _nleds, int _bits_per_led)
     // reset pulse followed by one rmt_item32_t per bit, per led
     const int num = nleds * bits_per_led;
     data = new rmt_item32_t[num];
-    //memset(data, 0, sizeof(rmt_item32_t) * num);
 
-    on.duration0 = T1H;
-    on.level0 = 1;
-    on.duration1 = T1L;
-    on.level1 = 0;
-
-    off.duration0 = T0H;
-    off.level0 = 1;
-    off.duration1 = T0L;
-    off.level1 = 0;
+    switch (type)
+    {
+        case SK68XX :
+        {
+            on.duration0 = SK68XX_T1H;
+            on.level0 = 1;
+            on.duration1 = SK68XX_T1L;
+            on.level1 = 0;
+            off.duration0 = SK68XX_T0H;
+            off.level0 = 1;
+            off.duration1 = SK68XX_T0L;
+            off.level1 = 0;
+            break;
+        }
+        case WS2812B :
+        {
+            on.duration0 = WS2812B_T1H;
+            on.level0 = 1;
+            on.duration1 = WS2812B_T1L;
+            on.level1 = 0;
+            off.duration0 = WS2812B_T0H;
+            off.level0 = 1;
+            off.duration1 = WS2812B_T0L;
+            off.level1 = 0;
+            break;
+        }
+        default :
+            ASSERT(0);
+    }
 }
 
-WS2812B::~WS2812B()
+RmtLedStrip::~RmtLedStrip()
 {
     delete[] data;
 }
 
-bool WS2812B::init(rmt_channel_t _chan, gpio_num_t _gpio)
+bool RmtLedStrip::init(rmt_channel_t _chan, gpio_num_t _gpio)
 {
     chan = _chan;
     gpio = _gpio;
@@ -90,12 +114,12 @@ bool WS2812B::init(rmt_channel_t _chan, gpio_num_t _gpio)
     return true;
 }
 
-uint32_t WS2812B::rgb(uint8_t r, uint8_t g, uint8_t b)
+uint32_t RmtLedStrip::rgb(uint8_t r, uint8_t g, uint8_t b)
 {
     return (uint32_t(g & 0xff) << 16) + (uint32_t(r & 0xff) << 8) + uint32_t(b & 0xff);
 }
 
-void WS2812B::set(int led, uint8_t r, uint8_t g, uint8_t b)
+void RmtLedStrip::set(int led, uint8_t r, uint8_t g, uint8_t b)
 {
     ASSERT(led >= 0);
     ASSERT(led < nleds);
@@ -115,7 +139,15 @@ void WS2812B::set(int led, uint8_t r, uint8_t g, uint8_t b)
     }
 }
 
-bool WS2812B::send()
+void RmtLedStrip::set_all(uint8_t r, uint8_t g, uint8_t b)
+{
+    for (int i = 0; i < num_leds(); i++)
+    {
+        set(i, r, g, b);
+    }
+}
+
+bool RmtLedStrip::send()
 {
     esp_err_t err = rmt_wait_tx_done(chan, portMAX_DELAY);
     if (err != ESP_OK)
@@ -134,7 +166,7 @@ bool WS2812B::send()
     return true;
 }
 
-int WS2812B::num_leds()
+int RmtLedStrip::num_leds()
 {
     return nleds;
 }

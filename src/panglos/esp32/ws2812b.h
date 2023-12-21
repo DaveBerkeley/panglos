@@ -7,7 +7,7 @@
 
 namespace panglos {
 
-class WS2812B : public LedStrip
+class RmtLedStrip : public LedStrip
 {
     int nleds;
     int bits_per_led;
@@ -20,14 +20,17 @@ class WS2812B : public LedStrip
     gpio_num_t gpio;
 
 public:
-    WS2812B(int _nleds, int _bits_per_led=24);
-    ~WS2812B();
+    enum Type { WS2812B, SK68XX };
+
+    RmtLedStrip(int _nleds, int _bits_per_led=24, Type type=WS2812B);
+    ~RmtLedStrip();
 
     bool init(rmt_channel_t _chan, gpio_num_t _gpio);
 
     static uint32_t rgb(uint8_t r, uint8_t g, uint8_t b);
 
     virtual void set(int led, uint8_t r, uint8_t g, uint8_t b) override;
+    virtual void set_all(uint8_t r, uint8_t g, uint8_t b) override;
     virtual bool send() override;
     virtual int num_leds() override;
 };
