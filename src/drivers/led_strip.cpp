@@ -9,7 +9,7 @@
 
 #include "panglos/debug.h"
 
-#include "panglos/drivers/ws2812b.h"
+#include "panglos/drivers/led_strip.h"
 
 namespace panglos {
 

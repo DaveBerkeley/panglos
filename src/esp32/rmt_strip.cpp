@@ -5,7 +5,7 @@
 #include "panglos/debug.h"
 
 #include "panglos/esp32/hal.h"
-#include "panglos/esp32/ws2812b.h"
+#include "panglos/esp32/rmt_strip.h"
 
 namespace panglos {
 
