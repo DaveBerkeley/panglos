@@ -66,18 +66,19 @@ bool LedCircle::set_time()
         return false;
     }
 
+    const double fsecs = tm.tm_sec + (tv.tv_usec / 1000000.0);
+    const double fmins = tm.tm_min + (fsecs / 60.0);
+    const double fhours = fmod(tm.tm_hour + (fmins / 60.0), 12.0);
+
     struct Hand hand;
 
-    int angle = tm.tm_sec * 6;
-    calc_angle(angle, & hand, 0x40);
+    calc_angle(fsecs * 6, & hand, 0x40);
     set_angle(LedStrip::B, & hand);
 
-    angle = (tm.tm_min + (tm.tm_sec / 60.0)) * 6;
-    calc_angle(angle, & hand, 0x80);
+    calc_angle(fmins * 6, & hand, 0x80);
     set_angle(LedStrip::R, & hand);
 
-    angle = (tm.tm_hour + (tm.tm_min / 60.0)) * 30;
-    calc_angle((tm.tm_hour * 30) % 360, & hand, 0xff);
+    calc_angle(fhours * 30, & hand, 0xff);
     set_angle(LedStrip::G, & hand);
     return true;
 }
