@@ -33,7 +33,7 @@ bool MAX7219::write(enum Reg reg, uint8_t value)
 
 void MAX7219::write(const char *text)
 {
-    PO_DEBUG("%s", text);
+    ASSERT(text);
     uint8_t addr = DIGIT7;
 
     for (int i = 0; i < 8; i++)
