@@ -27,17 +27,30 @@ bool SevenSegment::probe()
     return i2c->probe(addr, 1);
 }
 
-uint8_t SevenSegment::seg(char data)
+uint8_t SevenSegment::seg(char data, bool reverse)
 {
     // https://en.wikipedia.org/wiki/Seven-segment_display
-    const uint8_t a = 0x01;
-    const uint8_t b = 0x02;
-    const uint8_t c = 0x04;
-    const uint8_t d = 0x08;
-    const uint8_t e = 0x10;
-    const uint8_t f = 0x20;
-    const uint8_t g = 0x40;
-    const uint8_t dp = 0x80;
+    uint8_t a = 0x01;
+    uint8_t b = 0x02;
+    uint8_t c = 0x04;
+    uint8_t d = 0x08;
+    uint8_t e = 0x10;
+    uint8_t f = 0x20;
+    uint8_t g = 0x40;
+    uint8_t dp = 0x80;
+
+    if (reverse)
+    {
+        a = 0x40;
+        b = 0x20;
+        c = 0x10;
+        d = 0x08;
+        e = 0x04;
+        f = 0x02;
+        g = 0x01;
+        dp = 0x80;
+    }
+
     switch (data)
     {
         case 0x01 : return a;

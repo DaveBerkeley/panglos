@@ -15,6 +15,7 @@ class Display
 public:
     virtual ~Display(){}
     virtual void write(const char *text) = 0;
+    virtual void set_brightness(uint8_t level) {}
 };
 
 class SevenSegment : public Display
@@ -30,7 +31,7 @@ public:
 
     bool probe();
 
-    static uint8_t seg(char data);
+    static uint8_t seg(char data, bool reverse=false);
 
     void init();
 
