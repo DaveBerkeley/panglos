@@ -52,7 +52,7 @@ A task mutex is currently implemented by disabling the scheduler.
 This prevents the task being scheduled out by another task.
 An interrupt mutex is for use when one of the execution threads is an interrupt.
 This is implemented using a critical section.
-A recurcise Mutex is sometimes needed when the same task can have nexted locks on a mutex.
+A recursive Mutex is sometimes needed when the same task can have nested locks on a mutex.
 You need to know which to use, which depends on the application. 
 eg. panglos::Mutex::create(Mutex::RECURSIVE) 
 
@@ -96,7 +96,7 @@ There are base classes for eg. GPIO, SPI, I2C, UART, DAC and ADC devices.
 These will have target / hardware specific implementations which make real HAL calls,
 but the application code can use the high level API.
 
-This allows you to develop higher level drivers, which get passed the IO devices. For example, the DS3231 is an I2C RTC. It has is passed an I2C device in its ctor. It implements an RTC interface. There is no RTOS or HAL code in the implementation. So the same driver can be run on any hardware. The application code doesn't care which RTC chip is used.
+This allows you to develop higher level drivers, which get passed the IO devices. For example, the DS3231 is an I2C RTC. It is passed an I2C device in its ctor. It implements an RTC interface. There is no RTOS or HAL code in the implementation. So the same driver can be run on any hardware. The application code doesn't care which RTC chip is used.
 
 ![RTC class diagram](images/mutex.png)
 
