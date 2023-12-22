@@ -40,7 +40,6 @@ class _Watchdog : public Watchdog
 {
     List<Watched*> tasks;
     Mutex *mutex;
-    Time::tick_t period;
 
     virtual void poll(Time::tick_t holdoff, Thread *thread) override
     {
