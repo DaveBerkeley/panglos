@@ -1,4 +1,6 @@
 
+.PHONY: all images
+
 APP = tdd
 
 $(APP): 
@@ -22,6 +24,9 @@ clang: export CC=clang
 clang: export CXX=clang++
 clang: $(APP)
 	scons
+
+images: docs/mutex.dot
+	dot -T png $< -o images/mutex.png
 
 
 # FIN

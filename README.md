@@ -5,21 +5,30 @@
 Panglos is a set of C++ classes 
 designed to be used as a framework to build real-time applications around.
 
+Panglos has been used as a template for a successful commercial project. 
+The techniques used in Panglos were ported to both STM32 and RISC-V targets.
+Code could be compiled and run on either target interchangably and unit and system tested on Linux.
+
 The source is available on [github](https://github.com/DaveBerkeley/panglos).
 
-Panglos is not a complete working system, but it has been used as a template
-for a successful commercial project. Ideally application code should not 
-include any hardware specific or OS specfic code. By using a C++ wrapper layer
-it is possible to unit test the bulk of an application on linux, 
-without having to test on the target.
-You can also run the unit tests on the target, for better coverage.
-
-It is written as a wrapper around [FreeRTOS][1] 
-and the STM32 HAL. I hope to port it to other platforms.
+The aim is to remove all the low level OS and HAL calls from the application code.
+Ideally application code should not 
+include any hardware specific or OS specfic code.
+Doing this allows you to write code that can be tested on your PC instead of the target system. This gives you access to excellent tools like 
+['valgrind'](https://valgrind.org/) or the thread sanitizer capabilities of __clang__. Compiling the code with multiple compilers also gives you better compile time checking. __gcc__ and __clang__ have different strengths and weakneses.
 
 The intention is to abstract the underlying processor and OS specific code away 
 and provide a clean, simple C++ interface.
 The core code is intended to be simple, elegant, easy to use, easy to test and easy to read.
+
+If the code is littered with HAL and [FreeRTOS][1] calls, it is harder to write unit tests.
+By making a simple C++ abstract layer, which can be easily stubbed or mocked,
+it becomes possible to use TDD for almost all of the application code.
+
+You can also run the unit tests on the target, for better coverage.
+
+It is written as a wrapper around [FreeRTOS][1] 
+and the STM32 and ESP32 HALs. My focus is now on the ESP32.
 
 The name @ref panglos is taken from the character Dr. Pangloss in Voltaire's satirical book ['Candide'](https://en.wikipedia.org/wiki/Candide).
 It is intended as a warning about boundless optimism.
@@ -28,45 +37,25 @@ I have seen it kill projects and companies.
 It is not __The best of all possible worlds__. It's not even close.
 
 ----
+OS Abstraction
+====
 
-The key classes are :
+There are a number of OS related classes used to absract the underlying RTOS - so far only FreeRTOS is supported on the target, but it is trivial to add others. Linux is supported for test.
 
-* hardware IO : panglos::GPIO, panglos::UART, panglos::SPI (and panglos::SpiDevice)
-* high resolution timer : panglos::Event
-* task / scheduling control : panglos::Mutex, panglos::Semaphore
-* task communication : panglos::MsgQueue, panglos::Select, panglos::Dispatch
-* miscellaneous : panglos::CLI, debug.h
+Mutex
+====
 
-----
-
-It was designed using test driven development (TDD), as far as possible.
-This is often difficult to do with embedded systems, but by implementing
-virtual base classes for primitives like panglos::Semaphore, you can test on a development
-system under linux, to a very high level.
-If the code is littered with HAL and [FreeRTOS][1] calls, it is harder to write unit tests.
-By making a simple C++ abstract layer, which can be easily stubbed or mocked,
-it becomes possible to use TDD for most of the application code.
-The unit tests are in the subdirectory 'unit-tests'.
-
-I started trying to solve the problem of driving multiple stepper motors. The stepper
-code began life as a single threaded program, using blocking waits, running on a different processor.
-I wanted to drive multiple motors, so had to allow each thread, or task, to have
-blocking waits that allowed multiple tasks to co-exist.
-I also wanted higher resolution than the tick time delays generally available on 
-an RTOS like [FreeRTOS][1].
-I used classes I'd written for a previous project, panglos::MotorIo and panglos::Stepper.
-
-----
-
-I started with the classes panglos::Mutex, panglos::Semaphore. In [FreeRTOS][1] there are 
-different functions for use in interrupts and tasks. These are hidden by the Semaphore class.
-There are two sorts of Mutex. 
+The class panglos::Mutex provides mutex support. In [FreeRTOS][1] there are 
+different mutex functions for use in interrupts and tasks. These are hidden by the Mutex class.
+There are different sorts of Mutex. 
 A task mutex is currently implemented by disabling the scheduler.
 This prevents the task being scheduled out by another task.
 An interrupt mutex is for use when one of the execution threads is an interrupt.
 This is implemented using a critical section.
+A recurcise Mutex is sometimes needed when the same task can have nexted locks on a mutex.
 You need to know which to use, which depends on the application. 
-See panglos::Mutex::create() and panglos::Mutex::create_critical_section().
+eg. panglos::Mutex::create(Mutex::RECURSIVE) 
+
 The class panglos::Lock is used as a simple way of locking / unlocking the mutex
 automatically.
 
@@ -81,13 +70,44 @@ This works even if the mutex is null (it does nothing).
 It doesn't care if it is a critical section or a task lock.
 All my mutexes work like this. See mutex.h.
 
+Thread
+====
+
+The Thread class allows the management of threads in an OS agnostic way.
+
+Queue
+====
+
+The Queue class is a convenient way to communicate between threads, or between interrupt handlers and threads.
+
+Semaphore
+====
+
+The Semephore class wraps the underlying RTOS semaphore.
+
 ----
 
-Next I implemented an Event queue. The panglos::EventQueue class
-provides a high resolution timer that is key to high resolution scheduling.
-It is implemented using an ordered list of panglos::Event objects, each one of which contains a 
-Semaphore. The list is simply waited on, in sequence. 
-Any event that becomes due is signalled and removed from the event list.
+Hardware Abstraction
+====
+
+Hardware devices should be wrapped by abstract base classes. This allows you to test the calling code without having to run on the target.
+
+There are base classes for eg. GPIO, SPI, I2C, UART, DAC and ADC devices.
+These will have target / hardware specific implementations which make real HAL calls,
+but the application code can use the high level API.
+
+This allows you to develop higher level drivers, which get passed the IO devices. For example, the DS3231 is an I2C RTC. It has is passed an I2C device in its ctor. It implements an RTC interface. There is no RTOS or HAL code in the implementation. So the same driver can be run on any hardware. The application code doesn't care which RTC chip is used.
+
+![RTC class diagram](images/mutex.png)
+
+The diagram shows how the classes interrelate. The init code in main is the only
+part of the applicaton that deals with real target issues. It creates a Mutex, a SPI interface,
+and a DS3231 RTC object. The SPI class doesn't need to have any OS/HAL dependencies. It uses the Mutex to lock the SPI resource. The DS3231 doesn't have any OS/HAL dependencies. All it needs is the SPI object. The application code just needs the RTC object.
+
+----
+
+Linked Lists
+===
 
 The single linked list code (@ref list.cpp) is from a C project I wrote a while ago. 
 It has the advantage over the std::list<> class; it does not have to use any dynamic memory allocation.
@@ -95,60 +115,66 @@ List items can be a mix of static, automatic, dynamic, it doesn't matter. Items 
 lists at the same time, as they can have multiple 'next' pointers.
 
 The trick is to provide a function for the object that returns the address of the 'next' pointer.
-You need to implement this function for each object type. You pass the function into the list_xxx()
-functions which use it to traverse the list. If you have more than one 'next' pointer, you can provide
+You need to implement this function for each object type. You pass the function into the List<> constructor. The list functions then use it to traverse the list. If you have more than one 'next' pointer, you can provide
 a different function for each pointer.
 This allows the same object to potentially be in multiple lists.
-I may write a similar double ended linked list to replace the use of std::deque<> in panglos::MsgQueue.
+
+    class Thing {
+        Thing *next;
+        Thing *other;
+        int stuff;
+    public:
+        static Thing **get_next(Thing *thing) { return & thing->next; }
+        static Thing **get_other(Thing *thing) { return & thing->other; }
+    };
+
+    List<Thing*> things(Thing::get_next);
+    List<Thing*> other_things(Thing::get_other);
+
+    ...
+
+    // Add an object to both lists
+    Thing *thing = new Thing;
+    things.append(thing, mutex);
+    other_things.push(thing, mutex);
+
+The advantage of passing the Mutex to the list functions is that it can be used to lock multiple list functions. eg. moving an item from one list to the other :
+
+    void fn(int value)
+    {
+        Lock lock(mutex);
+
+        // the lists are both locked, so you don't need to pass mutex to the list calls
+        Thing *thing = things.find(match_fn, & value, 0);
+        if (thing)
+        {
+            other_things.push(thing, 0);
+        }
+    }
 
 ----
 
-The other core classes are panglos::MsgQueue and panglos::Select, which provide a thread-safe queue
-and a multiple Semaphore select (similar to posix [select()](https://linux.die.net/man/3/select)). 
-I started by using the [FreeRTOS][1] QueueSet functions, which are horrible and I couldn't get them to work
-reliably. I then wrote panglos::Select, which is a very simple MsgQueue with a hook to the Semaphore object.
-This is simple, fast, portable (no underlying OS dependency), and easy to test.
-It demonstrates that with the right API you can make powerful functions very simply.
-See [select.cpp](https://github.com/DaveBerkeley/panglos/blob/master/select.cpp).
+Tracing / IO
+====
 
-I added a panglos::Dispatch class to allow actions to be passed from one task to another,
-or possibly from an interrupt to a task.
-Dispatch uses a panglos::Dispatch::Callback object, added to a MsgQueue, to be executed in the Dispatch task.
-This allows, for example, an interrupt to push a Callback to the dispatch task,
-where the action can be executed.
-An example would be where an SPI interrupt needs to be responded to, but we don't want
-to execute long-running operations in the interrupt context. These can be passed to the dispatch
-task for execution.
-It can be used to implement a simple event handler, which could be used at the heart of
-an application to process messages from other tasks or interrupts. 
-It uses the same simple building blocks of panglos::Semaphore, panglos::Mutex and panglos::MsgQueue.
-See dispatch.h.
+I originally wrote my own printf primitives, but later used an available 
+[printf](https://github.com/eyalroz/printf) library on GitHub.
 
-----
+Tracing / logging is really important during development and for diagnostics / monitoring.
 
-On the hardware side I needed a panglos::GPIO class. This is a simple wrapper for hardware IO functions.
-It also supports interrupt callbacks.
+        PO_DEBUG("dir=%d speed=%f", wind.direction, wind.speed);
 
-Several years ago I bought some [MCP23S17](https://www.microchip.com/wwwproducts/en/MCP23S17) 
-16-Bit SPI I/O Expander chips, intending to use them on projects using small micros with little IO.
-This meant I had to add the panglos::SPI and panglos::SpiDevice classes. Because the code uses just my 
-panglos primitives, I could unit-test the driver without needing any hardware present.
-I added a method on the panglos::MCP23S17 class to create panglos::GPIO objects - which look the same
-as the standard hardware panglos::GPIO, but work through the SPI interface.
-They also support interrupts in the same way as the hardware GPIO class.
+I've seen lots of different approaches to logging in my career. I have tried to make it as easy to use as possible. It uses a simple ___printf()___ style of formatting. It prints the time (as a tick), the thread name, the severity is 
+the same as [syslog](https://en.wikipedia.org/wiki/Syslog) severity levels.
+Then it prints the file name, line number and function name, followed by any passed parameters. eg:
 
-In the application code, it doesn't matter if you have a hardware GPIO or a serial expander GPIO.
-If you were using the HAL to talk to the IO, you would have to rewrite your code to use different IO.
-And it would be difficult to unit-test it.
+    8570648 main DEBUG src/targets/esp32_c3_supermini.cpp +188 on_weather() : dir=296 speed=5.810000
+
+There is a Logger class that allows one or more logging targets to be specified, so logging can be sent to eg. a UART and a network interface.
+
+The path / line number are formatted so that you can cut and paste the line onto the command line and run an editor, eg gvim, with the details and it will open the editor on the offending line.
 
 ----
-
-To aid debugging I added some code to produce formatted output. The base code is in sprintf.cpp. 
-It provides a simple subset of [printf()](https://linux.die.net/man/3/printf) formatting.
-It uses the panglos::Output class, which is implemented by the panglos::UART class.
-This allows powerful debugging traces to be used, see debug.h.
-I've always found that printf debugging and logging is incredibly useful during development,
-giving insight into the running of a program.
 
 work in progress ...
 
