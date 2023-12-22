@@ -86,6 +86,19 @@ Semaphore
 The Semephore class wraps the underlying RTOS semaphore.
 
 ----
+Time
+====
+
+Time keeping functions are key to most real-time systems. There are a set of utility functions for accessing underlying system data and for sleeping a thread.
+
+        Time::sleep(int secs);
+        Time::msleep(int msecs);
+
+A common source of bugs can be timers wrapping. On worked on a customer's code base once where they used 32-bit timers all over the place, with cut and pasted copies of the code. About half had a roll-over bug.
+
+To avoid this problem, always used the panglos function Time::elapsed(tick_t t, tick_t period) to check if a time has expired.
+
+----
 
 Hardware Abstraction
 ====
@@ -173,6 +186,49 @@ Then it prints the file name, line number and function name, followed by any pas
 There is a Logger class that allows one or more logging targets to be specified, so logging can be sent to eg. a UART and a network interface.
 
 The path / line number are formatted so that you can cut and paste the line onto the command line and run an editor, eg gvim, with the details and it will open the editor on the offending line.
+
+----
+JSON
+====
+
+I added a [JSON](https://www.json.org/json-en.html) parser as part of an application I was writing and ended up moving it into the panglos repo. The parser works using callbacks in a Handler class.
+
+The JSON protocol is very simple so parsers are easy to write. This one is quite efficient. It works internally using a Section, which is simply a slice of the input data. Thge only limitation is that it doesn't work with stream data. You have to load the whole JSON text into memory pefore parsing it.
+
+But I found it useful for many applications.
+
+There is a Match class that can be given a list of paths and handler functions. This makes it easy to extract selected fields from JSON data. There is an example below.
+
+        void on_weather(const char *data, int len)
+        {
+            json::Section sec(data, & data[len-1]);
+            json::Match match;
+
+            const char *dir_keys[] = { "wind", "deg", 0 };
+            const char *speed_keys[] = { "wind", "speed", 0 };
+
+            wind.direction = 0;
+            wind.speed = 0.0;
+
+            json::Match::Item direction = {
+                .keys = dir_keys,
+                .on_match = on_dir,
+                .arg = & wind,
+            };
+            json::Match::Item speed = {
+                .keys = speed_keys,
+                .on_match = on_speed,
+                .arg = & wind,
+            };
+
+            match.add_item(& direction);
+            match.add_item(& speed);
+
+            json::Parser parser(& match);
+            parser.parse(& sec);
+
+            PO_DEBUG("dir=%d speed=%f", wind.direction, wind.speed);
+        }
 
 ----
 
