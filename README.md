@@ -101,8 +101,8 @@ This allows you to develop higher level drivers, which get passed the IO devices
 ![RTC class diagram](images/mutex.png)
 
 The diagram shows how the classes interrelate. The init code in main is the only
-part of the applicaton that deals with real target issues. It creates a Mutex, a SPI interface,
-and a DS3231 RTC object. The SPI class doesn't need to have any OS/HAL dependencies. It uses the Mutex to lock the SPI resource. The DS3231 doesn't have any OS/HAL dependencies. All it needs is the SPI object. The application code just needs the RTC object.
+part of the applicaton that deals with real target issues. It creates a Mutex, a I2C interface,
+and a DS3231 RTC object. The I2C class doesn't need to have any OS/HAL dependencies. It uses the Mutex to lock the I2C resource. The DS3231 doesn't have any OS/HAL dependencies. All it needs is the I2C object. The application code just needs the RTC object.
 
 ----
 

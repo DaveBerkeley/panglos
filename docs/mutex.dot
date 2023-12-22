@@ -1,18 +1,18 @@
 digraph cpp {
 node [shape=record];
 Mutex [label="{Mutex|lock()\nunlock()}"];
-SPI [label="{SPI|write()\nio()}"];
-ESP_SPI [label="{ESP_SPI|// ESP32 HAL specific}", style=filled, fillcolor="lightgrey"];
-STM32_SPI [label="{STM_SPI|// STM32 HAL specific}", style=filled, fillcolor="azure"];
+I2C [label="{I2C|write()\nwrite_read()\nread()}"];
+ESP_I2C [label="{ESP_I2C|// ESP32 HAL specific}", style=filled, fillcolor="lightgrey"];
+STM32_I2C [label="{STM_I2C|// STM32 HAL specific}", style=filled, fillcolor="azure"];
 SysMutex [label="{SysMutex|// FreeRTOS specific}", style=filled, fillcolor="beige"];
 RTC [label="{RTC|get()\nset()}"];
 DS3231 [label="{DS3231|// implementation}"];
-{ rank=same SPI, RTC, SysMutex };
-{ rank=same STM32_SPI, ESP_SPI, DS3231 };
-    Mutex -> SPI [arrowhead = ediamond];
+{ rank=same I2C, RTC, SysMutex };
+{ rank=same STM32_I2C, ESP_I2C, DS3231 };
+    Mutex -> I2C [arrowhead = ediamond];
     SysMutex -> Mutex [arrowhead = empty];
     DS3231 -> RTC [arrowhead = empty];
-    SPI -> DS3231 [arrowhead = ediamond];
-    ESP_SPI -> SPI [arrowhead = empty];
-    STM32_SPI -> SPI [arrowhead = empty];
+    I2C -> DS3231 [arrowhead = ediamond];
+    ESP_I2C -> I2C [arrowhead = empty];
+    STM32_I2C -> I2C [arrowhead = empty];
 }
