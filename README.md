@@ -193,7 +193,7 @@ JSON
 
 I added a [JSON](https://www.json.org/json-en.html) parser as part of an application I was writing and ended up moving it into the panglos repo. The parser works using callbacks in a Handler class.
 
-The JSON protocol is very simple so parsers are easy to write. This one is quite efficient. It works internally using a Section, which is simply a slice of the input data. Thge only limitation is that it doesn't work with stream data. You have to load the whole JSON text into memory pefore parsing it.
+The JSON protocol is very simple so parsers are easy to write. This one is quite efficient. It works internally using a Section, which is simply a slice of the input data. The only limitation is that it doesn't work with stream data. You have to load the whole JSON text into memory pefore parsing it.
 
 But I found it useful for many applications.
 
