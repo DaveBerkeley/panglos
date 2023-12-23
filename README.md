@@ -117,6 +117,8 @@ The diagram shows how the classes interrelate. The init code in main is the only
 part of the applicaton that deals with real target issues. It creates a Mutex, a I2C interface,
 and a DS3231 RTC object. The I2C class doesn't need to have any OS/HAL dependencies. It uses the Mutex to lock the I2C resource. The DS3231 doesn't have any OS/HAL dependencies. All it needs is the I2C object. The application code just needs the RTC object.
 
+You can have a hardware I2C interface or a bit-banged software I2C interface. The code doesn't care. You just create whatever you need and pass it in the ctor of the DS3231 class.
+
 ----
 
 Linked Lists
