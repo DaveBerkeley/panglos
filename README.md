@@ -15,7 +15,7 @@ The aim is to remove all the low level OS and HAL calls from the application cod
 Ideally application code should not 
 include any hardware specific or OS specfic code.
 Doing this allows you to write code that can be tested on your PC instead of the target system. This gives you access to excellent tools like 
-['valgrind'](https://valgrind.org/) or the thread sanitizer capabilities of __clang__. Compiling the code with multiple compilers also gives you better compile time checking. __gcc__ and __clang__ have different strengths and weakneses.
+[valgrind](https://valgrind.org/) or the thread sanitizer capabilities of __clang__. Compiling the code with multiple compilers also gives you better compile time checking. __gcc__ and __clang__ have different strengths and weakneses.
 
 The intention is to abstract the underlying processor and OS specific code away 
 and provide a clean, simple C++ interface.
@@ -173,17 +173,32 @@ Tracing / IO
 I originally wrote my own printf primitives, but later used an available 
 [printf](https://github.com/eyalroz/printf) library on GitHub.
 
+I used this library as it provides a __void\*__ context pointer to all its calls. This allows you to use it in C++ OOP.
+It is a trick I learned early on : if you have a C API with callbacks, always provide a __void\*__ arg as well. 
+Failure to do this limits the capabilities of lots of libraries.
+
 Tracing / logging is really important during development and for diagnostics / monitoring.
 
         PO_DEBUG("dir=%d speed=%f", wind.direction, wind.speed);
 
-I've seen lots of different approaches to logging in my career. I have tried to make it as easy to use as possible. It uses a simple ___printf()___ style of formatting. It prints the time (as a tick), the thread name, the severity is 
+My tracing lib uses a simple ___printf()___ style of formatting. It prints the time (as a tick), the thread name, the severity is 
 the same as [syslog](https://en.wikipedia.org/wiki/Syslog) severity levels.
 Then it prints the file name, line number and function name, followed by any passed parameters. eg:
 
     8570648 main DEBUG src/targets/esp32_c3_supermini.cpp +188 on_weather() : dir=296 speed=5.810000
 
-There is a Logger class that allows one or more logging targets to be specified, so logging can be sent to eg. a UART and a network interface.
+I've seen lots of different approaches to logging in my career.
+Many of the ones I've seen have been terrible.
+I have tried to make mine as easy to use as possible.
+In the simplest case, you simply have an empty format string.
+
+        PO_DEBUG("");
+
+This prints the tick / thread / file / line / function and tells you that the code is being run.
+
+    817 main DEBUG src/cli_server.cpp +48 net_cli_init() :
+
+There is a Logger class that allows one or more logging targets to be specified, so logging can be sent to eg. a UART and a network interface, logged to disk etc.
 
 The path / line number are formatted so that you can cut and paste the line onto the command line and run an editor, eg gvim, with the details and it will open the editor on the offending line.
 
