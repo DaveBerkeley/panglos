@@ -27,7 +27,7 @@ ESP_I2C::ESP_I2C(int _chan, uint32_t _scl, uint32_t _sda, Mutex *mutex, bool _ve
     ESP_GPIO::mark_used(scl);
     ESP_GPIO::mark_used(sda);
 
-    if (verbose) PO_DEBUG("scl=%d sda=%d", scl, sda);
+    if (verbose) PO_DEBUG("scl=%d sda=%d", (int) scl, (int) sda);
  
     i2c_config_t config = {
         .mode = I2C_MODE_MASTER,
@@ -41,18 +41,18 @@ ESP_I2C::ESP_I2C(int _chan, uint32_t _scl, uint32_t _sda, Mutex *mutex, bool _ve
         .clk_flags = 0,
     };
 
-    esp_err_t err = i2c_param_config(chan, & config);
+    esp_err_t err = i2c_param_config((i2c_port_t) chan, & config);
     esp_check(err);
 
     const size_t buff_size = 1024;
     const int intr_alloc_flags = 0;
-    err = i2c_driver_install(chan, I2C_MODE_MASTER, buff_size, buff_size, intr_alloc_flags);
+    err = i2c_driver_install((i2c_port_t) chan, I2C_MODE_MASTER, buff_size, buff_size, intr_alloc_flags);
     esp_check(err);
 }
 
 ESP_I2C::~ESP_I2C()
 {
-    esp_err_t err = i2c_driver_delete(chan);
+    esp_err_t err = i2c_driver_delete((i2c_port_t) chan);
     esp_check(err);
     ESP_GPIO::mark_used(scl);
     ESP_GPIO::mark_used(sda);
@@ -112,7 +112,7 @@ public:
 
     bool send(int port, int timeout)
     {
-        esp_err_t err = i2c_master_cmd_begin(port, h, timeout);
+        esp_err_t err = i2c_master_cmd_begin((i2c_port_t) port, h, timeout);
         return err == ESP_OK;
     }
 

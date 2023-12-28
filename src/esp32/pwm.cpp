@@ -89,7 +89,7 @@ bool PWM_Timer::set(int idx, uint32_t value, bool flush)
     if ((idx < 0) || (idx >= npins))
         return false;
 
-    if (verbose) PO_DEBUG("this=%p idx=%d value=%#x", this, idx, value);
+    if (verbose) PO_DEBUG("this=%p idx=%d value=%#x", this, idx, (int) value);
     esp_err_t err;
 
     err = ledc_set_duty(LEDC_LOW_SPEED_MODE, chans[idx], value);
