@@ -19,7 +19,7 @@ void verbose_init()
         int32_t value = v->verbose;
         if (db.get(v->name, & value))
         {
-            PO_DEBUG("setting %s %d", v->name, value);
+            PO_DEBUG("setting %s %d", v->name, (int) value);
             v->verbose = value;
         }
     }

@@ -2,6 +2,8 @@
 #if !defined(__PANGLOS_STORAGE__)
 #define __PANGLOS_STORAGE__
 
+#include "nvs.h"
+
 namespace panglos {
 
 class Storage
@@ -44,7 +46,8 @@ public:
     class List
     {
         const char *ns;
-        uintptr_t iter;
+        //uintptr_t iter;
+        nvs_iterator_t iter;
 
     public:
         List(const char *ns);

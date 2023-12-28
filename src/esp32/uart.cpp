@@ -118,7 +118,7 @@ XUART::XUART(int id, uint32_t _rx, uint32_t _tx, uint32_t baud, bool _verbose)
     if (pin_rx != -1) ESP_GPIO::mark_used(pin_rx);
     if (pin_tx != -1) ESP_GPIO::mark_used(pin_tx);
 
-    if (verbose) PO_DEBUG("baud=%d rx=%d tx=%d", baud, pin_rx, pin_tx);
+    if (verbose) PO_DEBUG("baud=%d rx=%d tx=%d", (int) baud, (int) pin_rx, (int) pin_tx);
 
     ASSERT(!xuarts[port]);
     xuarts[port] = this;
