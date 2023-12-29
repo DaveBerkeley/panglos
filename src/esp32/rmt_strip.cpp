@@ -2,6 +2,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "esp_idf_version.h"
+
+#include "driver/gpio.h"
+
 #include "panglos/debug.h"
 
 #include "panglos/esp32/hal.h"
@@ -31,7 +35,24 @@ namespace panglos {
      *
      */
 
-RmtLedStrip::RmtLedStrip(int _nleds, int _bits_per_led, Type type)
+#if (ESP_IDF_VERSION_MAJOR == 4)
+
+class _RmtLedStrip : public RmtLedStrip
+{
+    rmt_item32_t *data;
+    rmt_item32_t on;
+    rmt_item32_t off;
+
+    rmt_channel_t chan;
+    gpio_num_t gpio;
+
+    virtual void set(int led, uint8_t r, uint8_t g, uint8_t b) override;
+    virtual void set_all(uint8_t r, uint8_t g, uint8_t b) override;
+    virtual bool send() override;
+    virtual int num_leds() override;
+};
+
+_RmtLedStrip::_RmtLedStrip(int _nleds, int _bits_per_led, Type type)
 :   nleds(_nleds),
     bits_per_led(_bits_per_led),
     data(0)
@@ -71,12 +92,12 @@ RmtLedStrip::RmtLedStrip(int _nleds, int _bits_per_led, Type type)
     }
 }
 
-RmtLedStrip::~RmtLedStrip()
+_RmtLedStrip::~_RmtLedStrip()
 {
     delete[] data;
 }
 
-bool RmtLedStrip::init(rmt_channel_t _chan, gpio_num_t _gpio)
+bool _RmtLedStrip::init(rmt_channel_t _chan, gpio_num_t _gpio)
 {
     chan = _chan;
     gpio = _gpio;
@@ -114,12 +135,12 @@ bool RmtLedStrip::init(rmt_channel_t _chan, gpio_num_t _gpio)
     return true;
 }
 
-uint32_t RmtLedStrip::rgb(uint8_t r, uint8_t g, uint8_t b)
+uint32_t _RmtLedStrip::rgb(uint8_t r, uint8_t g, uint8_t b)
 {
     return (uint32_t(g & 0xff) << 16) + (uint32_t(r & 0xff) << 8) + uint32_t(b & 0xff);
 }
 
-void RmtLedStrip::set(int led, uint8_t r, uint8_t g, uint8_t b)
+void _RmtLedStrip::set(int led, uint8_t r, uint8_t g, uint8_t b)
 {
     ASSERT(led >= 0);
     ASSERT(led < nleds);
@@ -139,7 +160,7 @@ void RmtLedStrip::set(int led, uint8_t r, uint8_t g, uint8_t b)
     }
 }
 
-void RmtLedStrip::set_all(uint8_t r, uint8_t g, uint8_t b)
+void _RmtLedStrip::set_all(uint8_t r, uint8_t g, uint8_t b)
 {
     for (int i = 0; i < num_leds(); i++)
     {
@@ -147,7 +168,7 @@ void RmtLedStrip::set_all(uint8_t r, uint8_t g, uint8_t b)
     }
 }
 
-bool RmtLedStrip::send()
+bool _RmtLedStrip::send()
 {
     esp_err_t err = rmt_wait_tx_done(chan, portMAX_DELAY);
     if (err != ESP_OK)
@@ -166,9 +187,39 @@ bool RmtLedStrip::send()
     return true;
 }
 
-int RmtLedStrip::num_leds()
+int _RmtLedStrip::num_leds()
 {
     return nleds;
+}
+
+#endif  //  ESP_IDF_VERSION_MAJOR == 4
+
+    /*
+     *
+     */
+
+#if (ESP_IDF_VERSION_MAJOR == 5)
+
+class _RmtLedStrip : public RmtLedStrip
+{
+    gpio_num_t gpio;
+
+public:
+    _RmtLedStrip(int nleds, int bits_per_led, Type type);
+
+    virtual bool init(uint32_t chan, uint32_t gpio) override;
+
+    virtual void set(int led, uint8_t r, uint8_t g, uint8_t b) override;
+    virtual void set_all(uint8_t r, uint8_t g, uint8_t b) override;
+    virtual bool send() override;
+    virtual int num_leds() override;
+};
+
+#endif
+
+RmtLedStrip *RmtLedStrip::create(int nleds, int bits_per_led, Type type)
+{
+    return new _RmtLedStrip(nleds, bits_per_led, type);
 }
 
 }   //  namespace panglos
