@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #if !defined(ARCH_LINUX)
-#include "lwip/apps/mdns.h"
+#include "mdns.h"
 #endif
 
 #include "panglos/debug.h"
@@ -36,8 +36,6 @@ void Network::start_mdns(const char *name)
 {
     PO_DEBUG("%s", name);
 
-    PO_ERROR("NOT IMPLEMENTED");
-#if 0
     esp_err_t err = mdns_init();
     if (err != ESP_OK)
     {
@@ -46,7 +44,6 @@ void Network::start_mdns(const char *name)
     }
 
     mdns_hostname_set(name);
-#endif
 }
 
 #else
