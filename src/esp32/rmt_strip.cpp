@@ -31,20 +31,36 @@ namespace panglos {
 #define SK68XX_T0H int(T10NS * 30) // 0 bit high time
 #define SK68XX_T0L int(T10NS * 100) // 0 bit low time
 
+uint32_t RmtLedStrip::rgb(uint8_t r, uint8_t g, uint8_t b)
+{
+    return (uint32_t(g & 0xff) << 16) + (uint32_t(r & 0xff) << 8) + uint32_t(b & 0xff);
+}
+
     /*
      *
      */
 
 #if (ESP_IDF_VERSION_MAJOR == 4)
 
+#include "driver/rmt.h"
+
 class _RmtLedStrip : public RmtLedStrip
 {
+    int nleds;
+    int bits_per_led;
+
     rmt_item32_t *data;
     rmt_item32_t on;
     rmt_item32_t off;
 
     rmt_channel_t chan;
     gpio_num_t gpio;
+
+public:
+    _RmtLedStrip(int _nleds, int _bits_per_led, Type type);
+    ~_RmtLedStrip();
+
+    virtual bool init(uint32_t chan, uint32_t gpio) override;
 
     virtual void set(int led, uint8_t r, uint8_t g, uint8_t b) override;
     virtual void set_all(uint8_t r, uint8_t g, uint8_t b) override;
@@ -97,10 +113,10 @@ _RmtLedStrip::~_RmtLedStrip()
     delete[] data;
 }
 
-bool _RmtLedStrip::init(rmt_channel_t _chan, gpio_num_t _gpio)
+bool _RmtLedStrip::init(uint32_t _chan, uint32_t _gpio)
 {
-    chan = _chan;
-    gpio = _gpio;
+    chan = (rmt_channel_t) _chan;
+    gpio = (gpio_num_t) _gpio;
     
     esp_err_t err;
 
@@ -133,11 +149,6 @@ bool _RmtLedStrip::init(rmt_channel_t _chan, gpio_num_t _gpio)
     }
 
     return true;
-}
-
-uint32_t _RmtLedStrip::rgb(uint8_t r, uint8_t g, uint8_t b)
-{
-    return (uint32_t(g & 0xff) << 16) + (uint32_t(r & 0xff) << 8) + uint32_t(b & 0xff);
 }
 
 void _RmtLedStrip::set(int led, uint8_t r, uint8_t g, uint8_t b)

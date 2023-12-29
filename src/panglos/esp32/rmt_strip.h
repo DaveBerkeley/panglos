@@ -7,9 +7,6 @@ namespace panglos {
 
 class RmtLedStrip : public LedStrip
 {
-    int nleds;
-    int bits_per_led;
-
 public:
     enum Type { WS2812B, SK68XX };
 
