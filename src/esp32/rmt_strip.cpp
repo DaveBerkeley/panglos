@@ -7,7 +7,7 @@
 #include "driver/gpio.h"
 
 #if (ESP_IDF_VERSION_MAJOR == 4)
-//    typedef rmt_item32_t rmt_bit_t;
+#include "driver/rmt.h"
 #elif (ESP_IDF_VERSION_MAJOR == 5)
 #include "hal/rmt_types.h"
 #endif
@@ -85,8 +85,15 @@ public:
             mask >>= 1;
         }
     }
-    
 };
+
+    /*
+     *
+     */
+
+#if (ESP_IDF_VERSION_MAJOR == 4)
+
+#include "driver/rmt.h"
 
     /*
      * Example adapted from :
@@ -106,46 +113,23 @@ public:
 #define SK68XX_T0H int(T10NS * 30) // 0 bit high time
 #define SK68XX_T0L int(T10NS * 100) // 0 bit low time
 
-    /*
-     *
-     */
-
-#if (ESP_IDF_VERSION_MAJOR == 4)
-
-#include "driver/rmt.h"
-
-class _RmtLedStrip : public RmtLedStrip
+class _RmtLedStrip : public BaseRmt
 {
-    int nleds;
-    int bits_per_led;
-
-    rmt_item32_t *data;
-    rmt_item32_t on;
-    rmt_item32_t off;
-
     rmt_channel_t chan;
     gpio_num_t gpio;
 
 public:
     _RmtLedStrip(int _nleds, int _bits_per_led, Type type);
-    ~_RmtLedStrip();
 
     virtual bool init(uint32_t chan, uint32_t gpio) override;
 
-    virtual void set(int led, uint8_t r, uint8_t g, uint8_t b) override;
     virtual bool send() override;
-    virtual int num_leds() override;
 };
 
-_RmtLedStrip::_RmtLedStrip(int _nleds, int _bits_per_led, Type type)
-:   nleds(_nleds),
-    bits_per_led(_bits_per_led),
-    data(0)
+_RmtLedStrip::_RmtLedStrip(int nleds, int bits_per_led, Type type)
+:   BaseRmt(nleds, bits_per_led, type)
 {
     // reset pulse followed by one rmt_item32_t per bit, per led
-    const int num = nleds * bits_per_led;
-    data = new rmt_item32_t[num];
-
     switch (type)
     {
         case SK68XX :
@@ -175,11 +159,6 @@ _RmtLedStrip::_RmtLedStrip(int _nleds, int _bits_per_led, Type type)
         default :
             ASSERT(0);
     }
-}
-
-_RmtLedStrip::~_RmtLedStrip()
-{
-    delete[] data;
 }
 
 bool _RmtLedStrip::init(uint32_t _chan, uint32_t _gpio)
@@ -220,26 +199,6 @@ bool _RmtLedStrip::init(uint32_t _chan, uint32_t _gpio)
     return true;
 }
 
-void _RmtLedStrip::set(int led, uint8_t r, uint8_t g, uint8_t b)
-{
-    ASSERT(led >= 0);
-    ASSERT(led < nleds);
-    const int idx = led * bits_per_led;
-
-    rmt_item32_t *out = & data[idx];
-    uint32_t mask = 1 << (bits_per_led - 1);
-
-    const uint32_t state = rgb(r, g, b);
-
-    while (mask)
-    {
-        const bool bit = state & mask;
-        memcpy(out, bit ? & on : & off, sizeof(on));
-        out += 1;
-        mask >>= 1;
-    }
-}
-
 bool _RmtLedStrip::send()
 {
     esp_err_t err = rmt_wait_tx_done(chan, portMAX_DELAY);
@@ -257,11 +216,6 @@ bool _RmtLedStrip::send()
     }
 
     return true;
-}
-
-int _RmtLedStrip::num_leds()
-{
-    return nleds;
 }
 
 #endif  //  ESP_IDF_VERSION_MAJOR == 4
