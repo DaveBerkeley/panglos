@@ -1,6 +1,7 @@
 
 #include <string.h>
 
+#include "esp_idf_version.h"
 #include "nvs.h"
 
 #include "panglos/debug.h"
@@ -193,11 +194,16 @@ Storage::List::List(const char *_ns)
 :   ns(_ns),
     iter(0)
 {
+#if (ESP_IDF_VERSION_MAJOR == 4)
+    iter = (uintptr_t) nvs_entry_find("nvs", ns, NVS_TYPE_ANY);
+#endif
+#if (ESP_IDF_VERSION_MAJOR == 5)
     esp_err_t err = nvs_entry_find("nvs", ns, NVS_TYPE_ANY, & iter);
     if (err != ESP_OK)
     {
         PO_ERROR("%s", ns);
     }
+#endif
 }
 
 Storage::List::~List()
@@ -215,8 +221,16 @@ bool Storage::List::get(char *_ns, char *key, Type *type)
         return false;
     }
 
+#if (ESP_IDF_VERSION_MAJOR == 4)
+    nvs_iterator_t *piter = (nvs_iterator_t*) & iter;
+    nvs_entry_info_t info;
+    nvs_entry_info(*piter, & info);
+#endif
+
+#if (ESP_IDF_VERSION_MAJOR == 5)
     nvs_entry_info_t info;
     nvs_entry_info(iter, & info);
+#endif
 
     ASSERT(key);
     strncpy(key, info.key, NVS_KEY_NAME_MAX_SIZE);
@@ -241,11 +255,16 @@ bool Storage::List::get(char *_ns, char *key, Type *type)
     }
 
     const bool ok = iter;
+#if (ESP_IDF_VERSION_MAJOR == 4)
+    iter = (uintptr_t) nvs_entry_next(*piter);
+#endif
+#if (ESP_IDF_VERSION_MAJOR == 5)
     esp_err_t err = nvs_entry_next(& iter);
     if (err != ESP_OK)
     {
         return error(err, __FUNCTION__, __LINE__, ns, key);
     }
+#endif
     return ok;
 }
 

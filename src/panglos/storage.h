@@ -2,7 +2,11 @@
 #if !defined(__PANGLOS_STORAGE__)
 #define __PANGLOS_STORAGE__
 
+#include "esp_idf_version.h"
+
+#if (ESP_IDF_VERSION_MAJOR == 5)
 #include "nvs.h"
+#endif
 
 namespace panglos {
 
@@ -46,8 +50,12 @@ public:
     class List
     {
         const char *ns;
-        //uintptr_t iter;
+#if (ESP_IDF_VERSION_MAJOR == 4)
+        uintptr_t iter;
+#endif
+#if (ESP_IDF_VERSION_MAJOR == 5)
         nvs_iterator_t iter;
+#endif
 
     public:
         List(const char *ns);
