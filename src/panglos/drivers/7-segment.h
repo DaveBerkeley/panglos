@@ -15,7 +15,7 @@ class Display
 public:
     virtual ~Display(){}
     virtual void write(const char *text) = 0;
-    virtual void set_brightness(uint8_t level) {}
+    virtual void set_brightness(uint8_t) {}
 };
 
 class SevenSegment : public Display

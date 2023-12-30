@@ -15,6 +15,7 @@ public:
     virtual bool init(uint32_t chan, uint32_t gpio) = 0;
 
     static uint32_t rgb(uint8_t r, uint8_t g, uint8_t b);
+    virtual void set_all(uint8_t r, uint8_t g, uint8_t b) override;
 };
 
 }   //  namespace panglos
