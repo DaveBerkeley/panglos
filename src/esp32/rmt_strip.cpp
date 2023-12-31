@@ -19,6 +19,23 @@
 
 namespace panglos {
 
+#define CK_FREQ 80e6
+#define T10NS (10e-9 * CK_FREQ)
+
+#define WS2812B_T1H int(T10NS * 80) // 1 bit high time
+#define WS2812B_T1L int(T10NS * 45) // 1 bit low time
+#define WS2812B_T0H int(T10NS * 40) // 0 bit high time
+#define WS2812B_T0L int(T10NS * 85) // 0 bit low time
+
+#define SK68XX_T1H int(T10NS * 64) // 1 bit high time
+#define SK68XX_T1L int(T10NS * 70) // 1 bit low time
+#define SK68XX_T0H int(T10NS * 30) // 0 bit high time
+#define SK68XX_T0L int(T10NS * 100) // 0 bit low time
+
+    /*
+     *
+     */
+    
 uint32_t RmtLedStrip::rgb(uint8_t r, uint8_t g, uint8_t b)
 {
     return (uint32_t(g & 0xff) << 16) + (uint32_t(r & 0xff) << 8) + uint32_t(b & 0xff);
@@ -57,6 +74,36 @@ public:
         bits_per_led(_bits_per_led)
     {
         data = new rmt_bit_t[nleds * bits_per_led];
+
+        switch (type)
+        {
+            case SK68XX :
+            {
+                on.duration0 = SK68XX_T1H;
+                on.level0 = 1;
+                on.duration1 = SK68XX_T1L;
+                on.level1 = 0;
+                off.duration0 = SK68XX_T0H;
+                off.level0 = 1;
+                off.duration1 = SK68XX_T0L;
+                off.level1 = 0;
+                break;
+            }
+            case WS2812B :
+            {
+                on.duration0 = WS2812B_T1H;
+                on.level0 = 1;
+                on.duration1 = WS2812B_T1L;
+                on.level1 = 0;
+                off.duration0 = WS2812B_T0H;
+                off.level0 = 1;
+                off.duration1 = WS2812B_T0L;
+                off.level1 = 0;
+                break;
+            }
+            default :
+                ASSERT(0);
+        }
     }
 
     ~BaseRmt()
@@ -100,19 +147,6 @@ public:
      * https://github.com/JSchaenzle/ESP32-NeoPixel-WS2812-RMT/blob/master/README.md
      */
 
-#define CK_FREQ 80e6
-#define T10NS (10e-9 * CK_FREQ)
-
-#define WS2812B_T1H int(T10NS * 80) // 1 bit high time
-#define WS2812B_T1L int(T10NS * 45) // 1 bit low time
-#define WS2812B_T0H int(T10NS * 40) // 0 bit high time
-#define WS2812B_T0L int(T10NS * 85) // 0 bit low time
-
-#define SK68XX_T1H int(T10NS * 64) // 1 bit high time
-#define SK68XX_T1L int(T10NS * 70) // 1 bit low time
-#define SK68XX_T0H int(T10NS * 30) // 0 bit high time
-#define SK68XX_T0L int(T10NS * 100) // 0 bit low time
-
 class _RmtLedStrip : public BaseRmt
 {
     rmt_channel_t chan;
@@ -122,43 +156,12 @@ public:
     _RmtLedStrip(int _nleds, int _bits_per_led, Type type);
 
     virtual bool init(uint32_t chan, uint32_t gpio) override;
-
     virtual bool send() override;
 };
 
 _RmtLedStrip::_RmtLedStrip(int nleds, int bits_per_led, Type type)
 :   BaseRmt(nleds, bits_per_led, type)
 {
-    // reset pulse followed by one rmt_item32_t per bit, per led
-    switch (type)
-    {
-        case SK68XX :
-        {
-            on.duration0 = SK68XX_T1H;
-            on.level0 = 1;
-            on.duration1 = SK68XX_T1L;
-            on.level1 = 0;
-            off.duration0 = SK68XX_T0H;
-            off.level0 = 1;
-            off.duration1 = SK68XX_T0L;
-            off.level1 = 0;
-            break;
-        }
-        case WS2812B :
-        {
-            on.duration0 = WS2812B_T1H;
-            on.level0 = 1;
-            on.duration1 = WS2812B_T1L;
-            on.level1 = 0;
-            off.duration0 = WS2812B_T0H;
-            off.level0 = 1;
-            off.duration1 = WS2812B_T0L;
-            off.level1 = 0;
-            break;
-        }
-        default :
-            ASSERT(0);
-    }
 }
 
 bool _RmtLedStrip::init(uint32_t _chan, uint32_t _gpio)
@@ -231,6 +234,7 @@ bool _RmtLedStrip::send()
 class _RmtLedStrip : public BaseRmt
 {
     rmt_channel_handle_t handle;
+    rmt_encoder_handle_t encoder_handle;
 
 public:
     _RmtLedStrip(int nleds, int bits_per_led, Type type);
@@ -243,18 +247,25 @@ public:
 
 _RmtLedStrip::_RmtLedStrip(int nleds, int bits_per_led, Type type)
 :   BaseRmt(nleds, bits_per_led, type),
-    handle(0)
+    handle(0),
+    encoder_handle(0)
 {
-    // alocate buffer
 }
 
 _RmtLedStrip::~_RmtLedStrip()
 {
-    // close rmt_
-    // free buffer
-}
+    esp_err_t err = rmt_del_channel(handle);
+    if (err != ESP_OK)
+    {
+        PO_ERROR("%s", lut(panglos::err_lut, (err)));
+    }
 
-#define RMT_LED_STRIP_RESOLUTION_HZ (1 * 1000 * 1000) // TODO !!!!!!!!!!
+    err = rmt_del_encoder(encoder_handle);
+    if (err != ESP_OK)
+    {
+        PO_ERROR("%s", lut(panglos::err_lut, (err)));
+    }
+}
 
 bool _RmtLedStrip::init(uint32_t chan, uint32_t gpio)
 {
@@ -263,29 +274,63 @@ bool _RmtLedStrip::init(uint32_t chan, uint32_t gpio)
     rmt_tx_channel_config_t config = {
         .gpio_num = (gpio_num_t) gpio,
         .clk_src = RMT_CLK_SRC_DEFAULT, // select source clock
-        .resolution_hz = RMT_LED_STRIP_RESOLUTION_HZ,
+        .resolution_hz = int(CK_FREQ),
         .mem_block_symbols = 64, // increase the block size can make the LED less flickering
         .trans_queue_depth = 4, // set the number of transactions that can be pending in the background
     };
     esp_err_t err = rmt_new_tx_channel(& config, & handle);
     if (err != ESP_OK)
     {
-        PO_ERROR("%s", lut(panglos::err_lut, (err)));
+        PO_ERROR("rmt_new_tx_channel() %s", lut(panglos::err_lut, (err)));
         return false;
     }
 
-    PO_ERROR("TODO : set on and off config");
+    err = rmt_enable(handle);
+    if (err != ESP_OK)
+    {
+        PO_ERROR("rmt_enable() %s", lut(panglos::err_lut, (err)));
+        return false;
+    }
+
+    rmt_copy_encoder_config_t copy_config;
+    err = rmt_new_copy_encoder(& copy_config, & encoder_handle);
+    if (err != ESP_OK)
+    {
+        PO_ERROR("rmt_new_copy_encoder() %s", lut(panglos::err_lut, (err)));
+        return false;
+    }
 
     return true;
 }
 
 bool _RmtLedStrip::send()
 {
-    PO_DEBUG("");
+    esp_err_t err = rmt_tx_wait_all_done(handle, 1000);
+    if (err != ESP_OK)
+    {
+        PO_ERROR("%s", lut(panglos::err_lut, (err)));
+        return false;
+    }
+
+    rmt_transmit_config_t config = {
+        .loop_count = 0, // no loop
+    };
+
+    size_t s = sizeof(rmt_bit_t) * nleds * bits_per_led;
+    err = rmt_transmit(handle, encoder_handle, data, s, & config);
+    if (err != ESP_OK)
+    {
+        PO_ERROR("rmt_transmit() %s", lut(panglos::err_lut, (err)));
+        return false;
+    }
     return true;
 }
 
 #endif
+
+    /*
+     *
+     */
 
 RmtLedStrip *RmtLedStrip::create(int nleds, int bits_per_led, Type type)
 {
