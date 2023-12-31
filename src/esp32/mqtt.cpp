@@ -4,6 +4,8 @@
 // ESP32 API
 #include "mqtt_client.h"
 
+#include "esp_idf_version.h"
+
 #include "panglos/debug.h"
 #include "panglos/verbose.h"
 
@@ -90,8 +92,13 @@ void MqttClient::app_start(const char *uri)
 
     esp_mqtt_client_config_t mqtt_cfg;
     memset(& mqtt_cfg, 0, sizeof(mqtt_cfg));
-    //mqtt_cfg.uri = uri;
+#if (ESP_IDF_VERSION_MAJOR == 4)
+    mqtt_cfg.uri = uri;
+#elif (ESP_IDF_VERSION_MAJOR == 5)
     mqtt_cfg.broker.address.uri = uri;
+#else
+#error "esp-idf Version needs porting"
+#endif
 
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(& mqtt_cfg);
 
