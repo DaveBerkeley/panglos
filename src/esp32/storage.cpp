@@ -24,11 +24,6 @@ static nvs_handle_t *make_handle(Storage::Handle **handle)
     return (nvs_handle_t*) handle;
 }
 
-static nvs_iterator_t *make_iter(Storage::List::Iter **iter)
-{
-    return (nvs_iterator_t *) iter;
-}
-
     /*
      *
      */
@@ -202,21 +197,21 @@ bool Storage::erase(const char *key)
 
 class Storage::List::Iter
 {
-    ; // dummy
+public:
+    nvs_iterator_t iter;
 };
 
 Storage::List::List(const char *_ns)
 :   ns(_ns),
     iter(0)
 {
-    ASSERT(sizeof(nvs_iterator_t) == sizeof(Iter));
-    nvs_iterator_t *piter = (nvs_iterator_t *) & iter;
-#if (ESP_IDF_VERSION_MAJOR == 4)
+    iter = new Storage::List::Iter;
 
-    *piter = nvs_entry_find("nvs", ns, NVS_TYPE_ANY);
+#if (ESP_IDF_VERSION_MAJOR == 4)
+    iter->iter = nvs_entry_find("nvs", ns, NVS_TYPE_ANY);
 #endif
 #if (ESP_IDF_VERSION_MAJOR == 5)
-    esp_err_t err = nvs_entry_find("nvs", ns, NVS_TYPE_ANY, piter);
+    esp_err_t err = nvs_entry_find("nvs", ns, NVS_TYPE_ANY, & iter->iter);
     if (err != ESP_OK)
     {
         PO_ERROR("%s", ns);
@@ -228,27 +223,21 @@ Storage::List::~List()
 {
     if (iter)
     {
-        nvs_release_iterator((nvs_iterator_t) iter);
+        nvs_release_iterator(iter->iter);
     }
+    delete iter;
 }
 
 bool Storage::List::get(char *_ns, char *key, Type *type)
 {
-    if (!iter)
+    ASSERT(iter);
+    if (!iter->iter)
     {
         return false;
     }
 
-    nvs_iterator_t *piter = make_iter(& iter);
-#if (ESP_IDF_VERSION_MAJOR == 4)
     nvs_entry_info_t info;
-    nvs_entry_info(*piter, & info);
-#endif
-
-#if (ESP_IDF_VERSION_MAJOR == 5)
-    nvs_entry_info_t info;
-    nvs_entry_info(*piter, & info);
-#endif
+    nvs_entry_info(iter->iter, & info);
 
     ASSERT(key);
     strncpy(key, info.key, NVS_KEY_NAME_MAX_SIZE);
@@ -274,10 +263,10 @@ bool Storage::List::get(char *_ns, char *key, Type *type)
 
     const bool ok = iter;
 #if (ESP_IDF_VERSION_MAJOR == 4)
-    *piter = nvs_entry_next(*piter);
+    iter->iter = nvs_entry_next(iter->iter);
 #endif
 #if (ESP_IDF_VERSION_MAJOR == 5)
-    esp_err_t err = nvs_entry_next(piter);
+    esp_err_t err = nvs_entry_next(& iter->iter);
     if (err != ESP_OK)
     {
         return error(err, __FUNCTION__, __LINE__, ns, key);
