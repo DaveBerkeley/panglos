@@ -113,11 +113,8 @@ class XFactory : public TxFactory
 
     int send(const uint8_t *data, size_t len)
     {
-        PO_DEBUG("");
-
         struct TX tx { .data = data, .len = len, };
         clients.visit(send_cb, & tx, mutex);
-
         return (int) len;
     }
 
