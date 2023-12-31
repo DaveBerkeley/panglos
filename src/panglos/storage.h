@@ -2,22 +2,16 @@
 #if !defined(__PANGLOS_STORAGE__)
 #define __PANGLOS_STORAGE__
 
-#include "esp_idf_version.h"
-
-#if (ESP_IDF_VERSION_MAJOR == 5)
-#include "nvs.h"
-#endif
-
 namespace panglos {
 
 class Storage
 {
-    typedef uintptr_t Handle;
-
     const char *ns;
-    Handle handle;
     bool verbose;
 public:
+    class Handle;
+    Handle *handle;
+
     Storage(const char *ns, bool verbose=false);
     ~Storage();
 
@@ -50,14 +44,11 @@ public:
     class List
     {
         const char *ns;
-#if (ESP_IDF_VERSION_MAJOR == 4)
-        uintptr_t iter;
-#endif
-#if (ESP_IDF_VERSION_MAJOR == 5)
-        nvs_iterator_t iter;
-#endif
 
     public:
+        class Iter;
+        Iter *iter;
+
         List(const char *ns);
         ~List();
 

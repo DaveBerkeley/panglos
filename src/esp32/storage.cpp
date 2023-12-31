@@ -19,18 +19,29 @@ static bool error(esp_err_t err, const char *fn, int line, const char *ns=0, con
     return false;
 }
 
+static nvs_handle_t *make_handle(Storage::Handle **handle)
+{
+    return (nvs_handle_t*) handle;
+}
+
+static nvs_iterator_t *make_iter(Storage::List::Iter **iter)
+{
+    return (nvs_iterator_t *) iter;
+}
+
     /*
      *
      */
 
 Storage::Storage(const char *_ns, bool _verbose)
 :   ns(_ns),
-    handle(0),
-    verbose(_verbose)
+    verbose(_verbose),
+    handle(0)
 {
+    ASSERT(sizeof(Storage::Handle *) == sizeof(nvs_handle_t));
+
     if (verbose) PO_DEBUG("ns=%s", ns);
-    nvs_handle_t nvs_handle = 0;
-    esp_err_t err = nvs_open(ns, NVS_READWRITE, & nvs_handle);
+    esp_err_t err = nvs_open(ns, NVS_READWRITE, make_handle(& handle));
 
     if (err != ESP_OK)
     {
@@ -38,14 +49,13 @@ Storage::Storage(const char *_ns, bool _verbose)
         return;
     }
 
-    handle = nvs_handle;
-    if (verbose) PO_DEBUG("handle=%#x", handle);
+    if (verbose) PO_DEBUG("handle=%p", handle);
 }
 
 Storage::~Storage()
 {
     if (verbose) PO_DEBUG("");
-    nvs_close((nvs_handle_t) handle);
+    nvs_close(*make_handle(& handle));
 }
 
     /*
@@ -55,7 +65,7 @@ Storage::~Storage()
 bool Storage::commit()
 {
     if (verbose) PO_DEBUG("");
-    esp_err_t err = nvs_commit((nvs_handle_t) handle);
+    esp_err_t err = nvs_commit(*make_handle(& handle));
     if (err != ESP_OK)
     {
         return error(err, __FUNCTION__, __LINE__, ns);
@@ -98,7 +108,7 @@ bool Storage::set(const char *key, const char *value)
     ASSERT(value);
 
     if (verbose) PO_DEBUG("key=%s value=%s", key, value);
-    esp_err_t err = nvs_set_str((nvs_handle_t) handle, key, value);
+    esp_err_t err = nvs_set_str(*make_handle(& handle), key, value);
     if (err != ESP_OK)
     {
         return error(err, __FUNCTION__, __LINE__, ns, key);
@@ -113,7 +123,7 @@ bool Storage::set(const char *key, int32_t value)
     ASSERT(value);
 
     if (verbose) PO_DEBUG("key=%s value=%#x", key, (int) value);
-    esp_err_t err = nvs_set_i32((nvs_handle_t) handle, key, value);
+    esp_err_t err = nvs_set_i32(*make_handle(& handle), key, value);
     if (err != ESP_OK)
     {
         return error(err, __FUNCTION__, __LINE__, ns, key);
@@ -129,7 +139,7 @@ bool Storage::set(const char *key, int32_t value)
 bool Storage::get(const char *key, int8_t *value)
 {
     if (verbose) PO_DEBUG("%s", key);
-    esp_err_t err = nvs_get_i8((nvs_handle_t) handle, key, value);
+    esp_err_t err = nvs_get_i8(*make_handle(& handle), key, value);
     if (err != ESP_OK)
     {
         return error(err, __FUNCTION__, __LINE__, ns, key);
@@ -141,7 +151,7 @@ bool Storage::get(const char *key, int8_t *value)
 bool Storage::get(const char *key, int16_t *value)
 {
     if (verbose) PO_DEBUG("%s", key);
-    esp_err_t err = nvs_get_i16((nvs_handle_t) handle, key, value);
+    esp_err_t err = nvs_get_i16(*make_handle(& handle), key, value);
     if (err != ESP_OK)
     {
         return error(err, __FUNCTION__, __LINE__, ns, key);
@@ -153,7 +163,7 @@ bool Storage::get(const char *key, int16_t *value)
 bool Storage::get(const char *key, int32_t *value)
 {
     if (verbose) PO_DEBUG("%s", key);
-    esp_err_t err = nvs_get_i32((nvs_handle_t) handle, key, value);
+    esp_err_t err = nvs_get_i32(*make_handle(& handle), key, value);
     if (err != ESP_OK)
     {
         return error(err, __FUNCTION__, __LINE__, ns, key);
@@ -165,7 +175,7 @@ bool Storage::get(const char *key, int32_t *value)
 bool Storage::get(const char *key, char *value, size_t *s)
 {
     if (verbose) PO_DEBUG("%s", key);
-    esp_err_t err = nvs_get_str((nvs_handle_t) handle, key, value, s);
+    esp_err_t err = nvs_get_str(*make_handle(& handle), key, value, s);
     if (err != ESP_OK)
     {
         PO_ERROR("k=%s", key);
@@ -177,7 +187,7 @@ bool Storage::get(const char *key, char *value, size_t *s)
 
 bool Storage::erase(const char *key)
 {
-    esp_err_t err = nvs_erase_key((nvs_handle_t) handle, key);
+    esp_err_t err = nvs_erase_key(*make_handle(& handle), key);
     if (err != ESP_OK)
     {
         return error(err, __FUNCTION__, __LINE__, ns, key);
@@ -190,15 +200,23 @@ bool Storage::erase(const char *key)
      *  Query Iterator
      */
 
+class Storage::List::Iter
+{
+    ; // dummy
+};
+
 Storage::List::List(const char *_ns)
 :   ns(_ns),
     iter(0)
 {
+    ASSERT(sizeof(nvs_iterator_t) == sizeof(Iter));
+    nvs_iterator_t *piter = (nvs_iterator_t *) & iter;
 #if (ESP_IDF_VERSION_MAJOR == 4)
-    iter = (uintptr_t) nvs_entry_find("nvs", ns, NVS_TYPE_ANY);
+
+    *piter = nvs_entry_find("nvs", ns, NVS_TYPE_ANY);
 #endif
 #if (ESP_IDF_VERSION_MAJOR == 5)
-    esp_err_t err = nvs_entry_find("nvs", ns, NVS_TYPE_ANY, & iter);
+    esp_err_t err = nvs_entry_find("nvs", ns, NVS_TYPE_ANY, piter);
     if (err != ESP_OK)
     {
         PO_ERROR("%s", ns);
@@ -221,15 +239,15 @@ bool Storage::List::get(char *_ns, char *key, Type *type)
         return false;
     }
 
+    nvs_iterator_t *piter = make_iter(& iter);
 #if (ESP_IDF_VERSION_MAJOR == 4)
-    nvs_iterator_t *piter = (nvs_iterator_t*) & iter;
     nvs_entry_info_t info;
     nvs_entry_info(*piter, & info);
 #endif
 
 #if (ESP_IDF_VERSION_MAJOR == 5)
     nvs_entry_info_t info;
-    nvs_entry_info(iter, & info);
+    nvs_entry_info(*piter, & info);
 #endif
 
     ASSERT(key);
@@ -256,10 +274,10 @@ bool Storage::List::get(char *_ns, char *key, Type *type)
 
     const bool ok = iter;
 #if (ESP_IDF_VERSION_MAJOR == 4)
-    iter = (uintptr_t) nvs_entry_next(*piter);
+    *piter = (uintptr_t) nvs_entry_next(*piter);
 #endif
 #if (ESP_IDF_VERSION_MAJOR == 5)
-    esp_err_t err = nvs_entry_next(& iter);
+    esp_err_t err = nvs_entry_next(piter);
     if (err != ESP_OK)
     {
         return error(err, __FUNCTION__, __LINE__, ns, key);
