@@ -39,29 +39,34 @@ bool MHZ19B::request()
     return sent == sizeof(packet);
 }
 
-bool MHZ19B::flush()
+int MHZ19B::flush()
 {
     uint8_t packet[PACKET];
     int rx = uart->rx((char *) packet, sizeof(packet));
     PO_DEBUG("rx=%d", rx);
-    return false;
+    return -1;
 }
 
-bool MHZ19B::read(struct Data *data)
+int MHZ19B::read(struct Data *data)
 {
-    uint8_t packet[PACKET];
+    uint8_t packet[PACKET] = { 0 };
 
-    int rx = uart->rx((char *) packet, sizeof(packet));
+    const int rx = uart->rx((char *) packet, sizeof(packet));
 
-//    PO_DEBUG("%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X",
-//            packet[0], packet[1], packet[2], packet[3],
-//            packet[4], packet[5], packet[6], packet[7], packet[8]);
+    if (rx == 0)
+    {
+        return 0;
+    }
 
     if (rx != sizeof(packet))
     {
-        PO_DEBUG("bad size");
+        PO_DEBUG("bad size %d", rx);
         return flush();
     }
+
+    //PO_DEBUG("%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X",
+    //        packet[0], packet[1], packet[2], packet[3],
+    //        packet[4], packet[5], packet[6], packet[7], packet[8]);
 
     if (!checksum(packet))
     {
@@ -85,7 +90,7 @@ bool MHZ19B::read(struct Data *data)
     data->co2 = uint16_t(packet[2] << 8);
     data->co2 += packet[3];
 
-    return true;
+    return rx;
 }
 
 }   //  namespace panglos
