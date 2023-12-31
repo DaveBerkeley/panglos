@@ -274,7 +274,7 @@ bool Storage::List::get(char *_ns, char *key, Type *type)
 
     const bool ok = iter;
 #if (ESP_IDF_VERSION_MAJOR == 4)
-    *piter = (uintptr_t) nvs_entry_next(*piter);
+    *piter = nvs_entry_next(*piter);
 #endif
 #if (ESP_IDF_VERSION_MAJOR == 5)
     esp_err_t err = nvs_entry_next(piter);
