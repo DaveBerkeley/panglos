@@ -1,4 +1,6 @@
 
+#include <string.h>
+
 extern "C" {
     #include <freertos/FreeRTOS.h>
     #include <freertos/task.h>
@@ -130,26 +132,72 @@ Thread *Thread::create(const char *name, size_t stack, Thread::Priority pri)
     return new RTOS_Thread(name, stack, pri);
 }
 
+    /*
+     *  ESP-IDF creates a number of other threads in the background.
+     *
+     *  We can create a dummy Thread for each of these, 
+     *  so the names can be distinguished in the log outout.
+     */
+
+class OtherThread : public Thread
+{
+public:
+    TaskHandle_t handle;
+    char name[24];
+    class OtherThread *next;
+
+    virtual void start(void (*)(void *), void *) override { }
+    virtual void join() override { }
+
+    virtual const char *get_name() override
+    {
+        return name;
+    }
+
+    static OtherThread **get_next(OtherThread *t) { return & t->next; }
+
+    static List<OtherThread *> others;
+
+    static int match(OtherThread *t, void *arg)
+    {
+        ASSERT(arg);
+        TaskHandle_t h = (TaskHandle_t) arg;
+        return t->handle == h;
+    }
+
+    static Thread *find(TaskHandle_t h)
+    {
+        return others.find(match, h, mutex);
+    }
+
+    OtherThread(TaskHandle_t h)
+    :   handle(h)
+    {
+        if (!mutex)
+        {
+            mutex = Mutex::create();
+        }
+
+        if (others.empty())
+        {
+            strncpy(name, "main", sizeof(name));
+        }
+        else
+        {
+            snprintf(name, sizeof(name), "%p", handle);
+        }
+        others.push(this, mutex);
+    }
+};
+
+List<OtherThread *> OtherThread::others(OtherThread::get_next);
+
 static int match_handle(RTOS_Thread *thread, void *arg)
 {
     ASSERT(arg);
     TaskHandle_t handle = (TaskHandle_t) arg;
     return (handle == thread->handle) ? 1 : 0;
 }
-
-class MainThread : public Thread
-{
-    virtual void start(void (*)(void *), void *) override
-    {
-    }
-    virtual void join() override
-    {
-    }
-    virtual const char *get_name() override
-    {
-        return "main";
-    }
-};
 
 Thread *Thread::get_current()
 {
@@ -159,9 +207,15 @@ Thread *Thread::get_current()
     {
         return thread;
     }
-    // Main thread, special case 
-    static MainThread main_thread;
-    return & main_thread;
+
+    thread = OtherThread::find(handle);
+
+    if (!thread)
+    {
+        thread = new OtherThread(handle);
+    }
+
+    return thread;
 }
 
 }   //  namespace panglos
