@@ -139,6 +139,33 @@ Thread *Thread::create(const char *name, size_t stack, Thread::Priority pri)
      *  so the names can be distinguished in the log outout.
      */
 
+static const char *get_task_name()
+{
+    UBaseType_t num_tasks = uxTaskGetNumberOfTasks();
+    TaskStatus_t *tasks = (TaskStatus_t*) malloc(sizeof(TaskStatus_t) * num_tasks);
+
+    const char *name = "unknown";
+
+    UBaseType_t n =  uxTaskGetSystemState(tasks, num_tasks, 0);
+    ASSERT(n == num_tasks);
+
+    TaskHandle_t handle = xTaskGetCurrentTaskHandle();
+
+    for (UBaseType_t i = 0; i < num_tasks; ++i)
+    {
+        TaskStatus_t *task = & tasks[i];
+        if (task->xHandle == handle)
+        {
+            name = task->pcTaskName;
+            break;
+        }
+    }
+
+    free(tasks);
+    return name;
+}
+
+
 class OtherThread : public Thread
 {
 public:
@@ -178,14 +205,7 @@ public:
             mutex = Mutex::create();
         }
 
-        if (others.empty())
-        {
-            strncpy(name, "main", sizeof(name));
-        }
-        else
-        {
-            snprintf(name, sizeof(name), "%p", handle);
-        }
+        snprintf(name, sizeof(name), "+%s", get_task_name());
         others.push(this, mutex);
     }
 };
@@ -208,6 +228,7 @@ Thread *Thread::get_current()
         return thread;
     }
 
+    // not a Task that we've created as a Thread
     thread = OtherThread::find(handle);
 
     if (!thread)
