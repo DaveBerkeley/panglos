@@ -110,7 +110,7 @@ int WiFi::AP::match(WiFi::AP *ap, void *arg)
 const char *
 WiFiInterface::ip_addr::tostr(char *buff, size_t s)
 {
-    return inet_ntop(v4.sin_family, & v4.sin_addr, buff, s);
+    return inet_ntop(v4.sin_family, & v4.sin_addr, buff, (socklen_t) s);
 }
 
 void WiFi::on_disconnect(WiFiInterface::Connection *con)

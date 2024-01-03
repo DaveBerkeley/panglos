@@ -16,7 +16,7 @@ class WiFiInterface
 {
 public:
 
-    typedef struct {
+    typedef struct ip_addr {
         union {
             struct sockaddr_in v4;
             struct sockaddr_in6 v6;

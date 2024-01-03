@@ -13,8 +13,6 @@
 
 namespace panglos {
 
-static Mutex *mutex;
-
 panglos::List<Network::Interface*> Network::interfaces(Network::Interface::get_next);
 panglos::List<Network::Connect*> Network::connects(Network::Connect::get_next);
 
