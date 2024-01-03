@@ -205,7 +205,7 @@ public:
             mutex = Mutex::create();
         }
 
-        snprintf(name, sizeof(name), "+%s", get_task_name());
+        snprintf(name, sizeof(name), "%s", get_task_name());
         others.push(this, mutex);
     }
 };
