@@ -29,23 +29,19 @@ void ESP_WiFi::on_disconnect(esp_event_base_t event_base, int32_t event_id, void
     {
         notify->on_disconnect();
     }
-/*
-    esp_err_t err = esp_wifi_start();
-    SHOW_ERR(err);
+}
 
-    esp_err_t err = esp_wifi_connect();
-    if (err == ESP_ERR_WIFI_NOT_STARTED)
-    {
-        return;
-    }
-    SHOW_ERR(err);
-    */
+static bool is_our_netif(const char *prefix, esp_netif_t *netif)
+{
+    //PO_DEBUG("got='%s' expect='%s'", esp_netif_get_desc(netif), prefix);
+    return strncmp(prefix, esp_netif_get_desc(netif), strlen(prefix) - 1) == 0;
 }
 
 void ESP_WiFi::on_connect(esp_event_base_t event_base, int32_t event_id, ip_event_got_ip_t *event)
 {
-    //PO_DEBUG("id=%d 6=%d 4=%d", event_id, IP_EVENT_GOT_IP6, IP_EVENT_ETH_GOT_IP);
-    if (0) // !is_our_netif(TAG, event->esp_netif))
+    ASSERT(event_id == IP_EVENT_STA_GOT_IP);
+
+    if (!is_our_netif(TAG, event->esp_netif))
     {
         PO_DEBUG("Got IPv4 from another interface \"%s\": ignored", esp_netif_get_desc(event->esp_netif));
         return;
@@ -56,6 +52,7 @@ void ESP_WiFi::on_connect(esp_event_base_t event_base, int32_t event_id, ip_even
     //        IP2STR(&event->ip_info.netmask),
     //        IP2STR(&event->ip_info.gw));
 
+    // fill out the Connection data
     con.ip.v4.sin_family = AF_INET;
     con.ip.v4.sin_port = 0;
     memcpy(& con.ip.v4.sin_addr, & event->ip_info.ip, sizeof(con.ip.v4.sin_addr));
