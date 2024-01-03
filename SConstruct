@@ -17,6 +17,7 @@ files = [
     'src/net.cpp',
     'src/tx_net.cpp',
     'src/watchdog.cpp',
+    'src/wifi.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/2_wire_bitbang.cpp',
@@ -75,6 +76,7 @@ files = [
     'unit-tests/mcp3002.cpp',
     'unit-tests/socket.cpp',
     'unit-tests/watchdog.cpp',
+    'unit-tests/wifi.cpp',
 ]
 
 ccflags = [
