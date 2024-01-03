@@ -1,5 +1,6 @@
 
 #include <stdlib.h>
+#include <string.h>
 
 #if !defined(ARCH_LINUX)
 #include "mdns.h"
@@ -12,12 +13,32 @@
 
 namespace panglos {
 
+static Mutex *mutex;
+
 panglos::List<Network::Interface*> Network::interfaces(Network::Interface::get_next);
 panglos::List<Network::Connect*> Network::connects(Network::Connect::get_next);
 
 void Network::add_interface(const char *ip)
 {
-    interfaces.push(new Interface(ip), 0);
+    interfaces.push(new Interface(strdup(ip)), 0);
+}
+
+static int match(Network::Interface* iface, void *arg)
+{
+    ASSERT(arg);
+    const char *ip = (const char *) arg;
+    return strcmp(ip, iface->ip) == 0;
+}
+
+void Network::del_interface(const char *ip)
+{
+    Network::Interface* iface = interfaces.find(match, (void*) ip, 0);
+    if (iface)
+    {
+        interfaces.remove(iface, 0);
+        free((void*) iface->ip);
+        delete iface;
+    }
 }
 
 void Network::add_connect(Network::Connect *con)

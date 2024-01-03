@@ -173,6 +173,11 @@ public:
 void cli_server(struct CliServer *cs)
 {
     Socket *socket = Socket::open_tcpip(cs->host, cs->port, Socket::SERVER);
+    if (!socket)
+    {
+        PO_ERROR("unable to open socket(%s,%s)", cs->host, cs->port);
+        return;
+    }
     Factory factory(cs->commands);
     run_socket_server(socket, & factory);
     delete socket;

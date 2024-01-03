@@ -16,14 +16,14 @@ namespace panglos {
      */
 
 WiFi::WiFi(WiFiInterface *w)
-:   wifi(w),
+:   iface(w),
     aps(WiFi::AP::get_next),
     semaphore(0),
     mutex(0),
     connected(false)
 {
     PO_DEBUG("");
-    ASSERT(wifi);
+    ASSERT(iface);
     // SYSTEM Mutex as we need the scheduler to run
     mutex = Mutex::create(Mutex::SYSTEM);
 }
@@ -52,29 +52,51 @@ void WiFi::add_ap(const char *ssid, const char *pw)
     aps.append(ap, mutex);
 }
 
+    /*
+     *  Helper class to manage Semaphore
+     */
+
+class Sem {
+    Semaphore **sem;
+public:
+    Sem(Semaphore **s)
+    :   sem(s)
+    {
+        ASSERT(sem);
+        ASSERT(!*sem);
+        *sem = Semaphore::create();
+    }
+    ~Sem()
+    {
+        delete *sem;
+        *sem = 0;
+    }
+};
+
+    /*
+     *
+     */
+
 bool WiFi::connect()
 {
     Lock lock(mutex);
 
     connected = false;
-    semaphore = Semaphore::create();
+    Sem sem(& semaphore);
 
     for (struct AP *ap = aps.head; ap; ap = ap->next)
     {
-        wifi->connect(this, ap->ssid, ap->pw);
+        iface->connect(this, ap->ssid, ap->pw);
         // wait for connect/disconnect events
         semaphore->wait();
 
         if (connected)
         {
-            break;
+            return true;
         }
     }
 
-    delete semaphore;
-    semaphore = 0;
-
-    return connected;
+    return false;
 }
 
 int WiFi::AP::match(WiFi::AP *ap, void *arg)
@@ -85,9 +107,24 @@ int WiFi::AP::match(WiFi::AP *ap, void *arg)
     return strcmp(ap->ssid, s) == 0;
 }
 
-void WiFi::on_disconnect()
+const char *
+WiFiInterface::ip_addr::tostr(char *buff, size_t s)
 {
-    PO_DEBUG("");
+    return inet_ntop(v4.sin_family, & v4.sin_addr, buff, s);
+}
+
+void WiFi::on_disconnect(WiFiInterface::Connection *con)
+{
+    if (con)
+    {
+        char buff[32];
+        con->ip.tostr(buff, sizeof(buff));
+        PO_DEBUG("%s", buff);
+    }
+    else
+    {
+        PO_DEBUG("");
+    }
     connected = false;
     if (semaphore)
     {
@@ -97,8 +134,10 @@ void WiFi::on_disconnect()
 
 void WiFi::on_connect(WiFiInterface::Connection *con)
 {
+    ASSERT(con);
     char buff[32];
-    PO_DEBUG("%s", inet_ntop(con->ip.v4.sin_family, & con->ip.v4.sin_addr, buff, sizeof(buff)));
+    con->ip.tostr(buff, sizeof(buff));
+    PO_DEBUG("%s", buff);
 
     connected = true;
     if (semaphore)
@@ -121,11 +160,10 @@ bool WiFi::disconnect()
         return true;
     }
 
-    semaphore = Semaphore::create();
-    wifi->disconnect(this);
+    Sem sem(& semaphore);
+
+    iface->disconnect(this);
     semaphore->wait();
-    delete semaphore;
-    semaphore = 0;
     return true;
 }
 

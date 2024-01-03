@@ -31,7 +31,7 @@ class TestWiFi : public WiFiInterface
         if (!ap)
         {
             PO_DEBUG("ap not found");
-            if (s) s->on_disconnect();
+            if (s) s->on_disconnect(0);
             return;
         }
         const bool match = strcmp(ap->pw, pw) == 0;
@@ -46,7 +46,7 @@ class TestWiFi : public WiFiInterface
         else
         {
             PO_DEBUG("no pw match");
-            if (s) s->on_disconnect();
+            if (s) s->on_disconnect(0);
         }
     }
 

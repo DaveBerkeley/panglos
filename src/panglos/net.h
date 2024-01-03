@@ -21,6 +21,7 @@ public:
     static panglos::List<Interface*> interfaces;
 
     static void add_interface(const char *ip);
+    static void del_interface(const char *ip);
 
     class Connect
     {

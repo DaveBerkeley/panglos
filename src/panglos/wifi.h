@@ -21,6 +21,7 @@ public:
             struct sockaddr_in v4;
             struct sockaddr_in6 v6;
         };
+        const char *tostr(char *buff, size_t s);
     }   ip_addr;
 
     typedef struct {
@@ -30,7 +31,7 @@ public:
     class Notify
     {
     public:
-        virtual void on_disconnect() = 0;
+        virtual void on_disconnect(Connection*) = 0;
         virtual void on_connect(Connection*) = 0;
     };
 
@@ -57,14 +58,15 @@ class WiFi : public WiFiInterface::Notify
         static int match(struct AP *s, void *);
     };
 
-    WiFiInterface *wifi;
+    WiFiInterface *iface;
     List<struct AP*> aps;
     Semaphore *semaphore;
     Mutex *mutex;
     bool connected;
 
+protected:
     virtual void on_connect(WiFiInterface::Connection*) override;
-    virtual void on_disconnect() override;
+    virtual void on_disconnect(WiFiInterface::Connection*) override;
 
 public:
     WiFi(WiFiInterface *wifi);

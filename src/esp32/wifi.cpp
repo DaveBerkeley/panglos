@@ -21,13 +21,36 @@ void show_err(esp_err_t err, const char *fn, int line)
 
 #define TAG "wifix: sta"
 
+static LUT event_id_lut[] = {
+    {  "IP_EVENT_STA_GOT_IP", IP_EVENT_STA_GOT_IP, },
+    { "IP_EVENT_STA_LOST_IP", IP_EVENT_STA_LOST_IP, },
+    { "IP_EVENT_AP_STAIPASSIGNED", IP_EVENT_AP_STAIPASSIGNED, },
+    { "IP_EVENT_GOT_IP6", IP_EVENT_GOT_IP6, },
+    { "IP_EVENT_ETH_GOT_IP", IP_EVENT_ETH_GOT_IP, },
+    { "IP_EVENT_ETH_LOST_IP", IP_EVENT_ETH_LOST_IP, },
+    { "IP_EVENT_PPP_GOT_IP", IP_EVENT_PPP_GOT_IP, },
+    { "IP_EVENT_PPP_LOST_IP", IP_EVENT_PPP_LOST_IP, },
+    { 0, 0 },
+};
+
+    /*
+     *
+     */
+
 void ESP_WiFi::on_disconnect(esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    PO_DEBUG("");
+    PO_DEBUG("id=%s", lut(event_id_lut, event_id));
 
     if (notify)
     {
-        notify->on_disconnect();
+        if (con.ip.v4.sin_family == 0)
+        {
+            notify->on_disconnect(0);
+        }
+        else
+        {
+            notify->on_disconnect(& con);
+        }
     }
 }
 
@@ -63,6 +86,10 @@ void ESP_WiFi::on_connect(esp_event_base_t event_base, int32_t event_id, ip_even
     }
 }
 
+    /*
+     *  Event Callback functions
+     */
+
 void ESP_WiFi::on_disconnect(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     ASSERT(arg);
@@ -77,9 +104,14 @@ void ESP_WiFi::on_connect(void *arg, esp_event_base_t event_base, int32_t event_
     iface->on_connect(event_base, event_id, (ip_event_got_ip_t *) event_data);
 }
 
+    /*
+     *
+     */
+
 void ESP_WiFi::connect(Notify *n, const char *ssid, const char *pw)
 {
     notify = n;
+    memset(& con, 0, sizeof(con));
 
     wifi_config_t config;
     memset(& config, 0, sizeof(config));
@@ -110,10 +142,9 @@ void ESP_WiFi::disconnect(Notify *n)
     SHOW_ERR(err);
 }
 
-//virtual void scan(Notify *s) override
-//{
-//    PO_DEBUG("TODO %p", s);
-//}
+    /*
+     *  Register / unregister callbacks
+     */
 
 void ESP_WiFi::register_handlers()
 {
@@ -133,6 +164,10 @@ void ESP_WiFi::unregister_handlers()
     SHOW_ERR(err);
 }
 
+    /*
+     *
+     */
+
 ESP_WiFi::ESP_WiFi()
 :   notify(0)
 {
@@ -146,11 +181,9 @@ ESP_WiFi::ESP_WiFi()
     }
     SHOW_ERR(err);
 
-    {
-        wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
-        err = esp_wifi_init(& config);
-        SHOW_ERR(err);
-    }
+    wifi_init_config_t wconfig = WIFI_INIT_CONFIG_DEFAULT();
+    err = esp_wifi_init(& wconfig);
+    SHOW_ERR(err);
 
     esp_netif_inherent_config_t config = ESP_NETIF_INHERENT_DEFAULT_WIFI_STA();
     config.if_desc = TAG;
