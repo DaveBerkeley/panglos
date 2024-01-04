@@ -2,6 +2,7 @@
 #pragma once
 
 #include "esp_event.h"
+#include "esp_netif_types.h"
 
 #include "panglos/wifi.h"
 
