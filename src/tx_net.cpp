@@ -153,7 +153,7 @@ public:
         proxy(this),
         psock(this)
     {
-        mutex = Mutex::create(Mutex::RECURSIVE);
+        mutex = Mutex::create(Mutex::SYSTEM);
     }
 
     ~XFactory()

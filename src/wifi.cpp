@@ -6,6 +6,7 @@
 
 #include "panglos/debug.h"
 #include "panglos/semaphore.h"
+#include "panglos/net.h"
 
 #include "panglos/wifi.h"
 
@@ -50,6 +51,17 @@ void WiFi::add_ap(const char *ssid, const char *pw)
     ap->ssid = strdup(ssid);
     ap->pw = strdup(pw);
     aps.append(ap, mutex);
+}
+
+void WiFi::del_aps()
+{
+    PO_DEBUG("");
+
+    while (!aps.empty())
+    {
+        struct AP *ap = aps.pop(mutex);
+        delete ap;
+    }
 }
 
     /*

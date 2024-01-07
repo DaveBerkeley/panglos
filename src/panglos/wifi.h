@@ -73,6 +73,7 @@ public:
     ~WiFi();
 
     void add_ap(const char *ssid, const char *pw);
+    void del_aps();
 
     bool connect();
     bool disconnect();
