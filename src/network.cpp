@@ -126,7 +126,7 @@ Network::~Network()
 
 void Network::add_interface(Interface *iface)
 {
-    interfaces.push(iface, mutex);
+    interfaces.append(iface, mutex);
 }
 
 Interface *Network::get_interface(const char *name)
@@ -137,6 +137,27 @@ Interface *Network::get_interface(const char *name)
         return interfaces.head;
     }
     return interfaces.find(Interface::match_name, (void*) name, mutex);
+}
+
+Interface *Network::get_interface(Network::Iterator *iter)
+{
+    Lock lock(mutex);
+
+    if (!iter->iface)
+    {
+        // first call (also last if empty)
+        iter->iface = interfaces.head;
+        return iter->iface;
+    }
+
+    if (!interfaces.has(iter->iface, 0))
+    {
+        // no longer in the list!
+        return 0;
+    }
+
+    iter->iface = *interfaces.next_fn(iter->iface);
+    return iter->iface;
 }
 
     /*

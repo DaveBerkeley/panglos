@@ -230,4 +230,30 @@ TEST(Net, Network)
     EXPECT_EQ(iface, & wifi);
 }
 
+TEST(Net, GetIface)
+{
+    TestWiFi a("wifi", 0);
+    TestWiFi b("bbb", 0);
+    TestWiFi c("ccc", 0);
+
+    Network net;
+    net.add_interface(& a);
+    net.add_interface(& b);
+    net.add_interface(& c);
+
+    Interface *iface;
+
+    Network::Iterator iter;
+
+    iface = net.get_interface(& iter);
+    EXPECT_EQ(iface, & a);
+    iface = net.get_interface(& iter);
+    EXPECT_EQ(iface, & b);
+    iface = net.get_interface(& iter);
+    EXPECT_EQ(iface, & c);
+
+    iface = net.get_interface(& iter);
+    EXPECT_FALSE(iface);
+}
+
 //  FIN

@@ -41,6 +41,7 @@ class Connection;
 class Interface
 {
     Interface *next;
+public:
     const char *name;
 protected:
     panglos::Mutex *con_mutex;
@@ -101,6 +102,14 @@ public:
 
     void add_interface(Interface *iface);
     Interface *get_interface(const char *name=0);
+
+    struct Iterator
+    {
+        Interface *iface;
+        Iterator() : iface(0) { }
+    };
+
+    Interface *get_interface(struct Iterator *);
 
     static void start_mdns(const char *name);
 };
