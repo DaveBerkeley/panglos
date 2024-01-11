@@ -44,11 +44,13 @@ public:
      */
 
 class Thread;
+class Semaphore;
 
 class Client
 {
 protected:
     Thread *thread;
+    Semaphore *sem;
     Socket *sock;
     SocketServer *ss;
     char *name;
@@ -58,8 +60,9 @@ public:
     Client(SocketServer *ss);
     virtual ~Client();
 
-    void start(Socket *s);
+    void start(Socket *s, Semaphore *sem);
     void stop();
+    void kill();
 
     virtual void run() = 0;    
     void runner();

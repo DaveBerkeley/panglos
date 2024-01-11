@@ -1,5 +1,6 @@
 
-#include "panglos/net.h"
+#pragma once 
+
 #include "panglos/socket.h"
 
 namespace panglos {

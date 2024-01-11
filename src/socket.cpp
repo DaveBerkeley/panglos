@@ -21,10 +21,10 @@
 #include "panglos/debug.h"
 
 #include "panglos/thread.h"
+#include "panglos/semaphore.h"
 #include "panglos/list.h"
-#include "panglos/time.h"
 #include "panglos/socket.h"
-#include "panglos/net.h"
+#include "panglos/network.h"
 
 namespace panglos {
 
@@ -97,7 +97,7 @@ public:
         }
 
         return fd;
-    }    
+    }
 
     _Socket(int s) : sock(s) { }
 
@@ -129,6 +129,7 @@ Socket *Socket::open_tcpip(const char *ip, const char *port, Role role)
 
 Client::Client(SocketServer *s)
 :   thread(0),
+    sem(0),
     sock(0),
     ss(s),
     name(0),
@@ -140,17 +141,26 @@ Client::Client(SocketServer *s)
 Client::~Client()
 {
     PO_DEBUG("%p", this);
-    delete sock;
-    sock = 0;
-    thread->join();
     delete thread;
     free(name);
 }
 
-void Client::start(Socket *s)
+void Client::kill()
 {
-    PO_DEBUG("");
+    ASSERT(thread != Thread::get_current());
+
+    delete sock;
+    sock = 0;
+
+    ASSERT(thread);
+    thread->join();
+}
+
+void Client::start(Socket *s, Semaphore *_sem)
+{
+    PO_DEBUG("%p", this);
     sock = s;
+    sem = _sem;
 
     const int fd = ((_Socket*) s)->sock;
     char buff[32];
@@ -164,14 +174,17 @@ void Client::start(Socket *s)
 void Client::stop()
 {
     PO_DEBUG("%p", this);
-    delete sock;
+    Socket *s = sock;
     sock = 0;
+    delete s;
 }
 
 void Client::runner()
 {
     PO_DEBUG("start %p", this);
+    ASSERT(sem);
     ss->add_client(this);
+    sem->post(); // let the server know that we have started
     run();
     PO_DEBUG("end");
     ss->del_client(this);
@@ -196,7 +209,6 @@ class _SocketServer : public SocketServer
     Client::Factory *cf;
     typedef List<Client*> Clients;
 
-    Clients pending;
     Clients clients;
     Clients ex_clients;
     Mutex *mutex;
@@ -204,13 +216,13 @@ class _SocketServer : public SocketServer
 
 public:
 
-    class Connect : public Network::Connect
+    class Connect : public Connection
     {
-        virtual void on_connect() override
+        virtual void on_connect(Interface *) override
         {
             PO_DEBUG("");
         }
-        virtual void on_disconnect() override
+        virtual void on_disconnect(Interface *) override
         {
             PO_DEBUG("");
         }
@@ -221,7 +233,6 @@ public:
     _SocketServer(int s, Client::Factory *_cf)
     :   sock(s),
         cf(_cf),
-        pending(Client::get_next),
         clients(Client::get_next),
         ex_clients(Client::get_next),
         mutex(0),
@@ -230,16 +241,15 @@ public:
         PO_DEBUG("");
         ASSERT(cf);
         mutex = Mutex::create();
-        Network::add_connect(& connect);
+        // TODO
+        //Network::add_connect(& connect);
     }
 
     ~_SocketServer()
     {
         PO_DEBUG("");
-        Network::del_connect(& connect);
-        kill();
-        tidy_clients(clients);
-        tidy_clients(ex_clients);
+        // TODO
+        //Network::del_connect(& connect);
         delete mutex;
     }
 
@@ -247,44 +257,43 @@ public:
     {
         PO_DEBUG("");
         dead = true;
-
-        // wait until all the pending Clients have been started
-        while (pending.head)
-        {
-            Time::msleep(10);
-        }
     }
 
     virtual void add_client(Client *client) override
     {
         PO_DEBUG("%p", client);
-        // Move to client list
-        pending.remove(client, mutex);
-        clients.push(client, mutex);
+        //clients.push(client, mutex);
     }
 
     virtual void del_client(Client *client) override
     {
         PO_DEBUG("%p", client);
         // Move to ex client list
-        clients.remove(client, mutex);
-        client->stop();
-        ex_clients.push(client, mutex);
+        Lock lock(mutex);
+        clients.remove(client, 0);
+        ex_clients.push(client, 0);
     }
 
-    void tidy_clients(Clients &clients)
+    void tidy_clients(Clients &client_list)
     {
-        while (clients.head)
+        PO_DEBUG("");
+        while (client_list.size(mutex))
         {
-            Client *client = clients.pop(mutex);
+            Client *client = client_list.pop(mutex);
+            PO_DEBUG("client=%p", client);
+            client->stop();
+            client->kill();
             delete client;
         }
+        PO_DEBUG("done");
     }
 
     void run()
     {
         PO_DEBUG("");
         listen(sock, 10);
+
+        Semaphore *sem = Semaphore::create();
 
         while (!dead)
         {
@@ -309,11 +318,19 @@ public:
 
             // Handle the connection
             Client *client = cf->create_client(this);
-            pending.push(client, mutex);
-            client->start(new _Socket(fd));
+            client->start(new _Socket(fd), sem);
+            // Wait for the client's thread to start
+            clients.push(client, mutex);
+            sem->wait();
             tidy_clients(ex_clients);
         }
 
+        delete sem;
+    }
+
+    void join()
+    {
+        PO_DEBUG("");
         // delete all the clients
         tidy_clients(clients);
         tidy_clients(ex_clients);
@@ -329,7 +346,7 @@ void run_socket_server(Socket *sock, Client::Factory *cf)
     _Socket *s = (_Socket*) sock;
     _SocketServer ss(s->sock, cf);
     ss.run();
-    ss.kill();
+    ss.join();
 }
 
 }   //  namespace panglos

@@ -7,7 +7,6 @@
 
 #include "panglos/io.h"
 #include "panglos/socket.h"
-#include "panglos/net.h"
 #include "panglos/logger.h"
 #include "panglos/cli_net.h"
 
