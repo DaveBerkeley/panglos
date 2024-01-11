@@ -1,8 +1,4 @@
 
-#if defined(ARCH_LINUX)
-#include <arpa/inet.h>
-#endif
-
 #include <gtest/gtest.h>
 
 #include "panglos/debug.h"
@@ -19,6 +15,10 @@
      */
 
 namespace panglos {
+
+    /*
+     *  AccessPoint is simply the ssid/pw credentials for known APs
+     */
 
 AccessPoint::AccessPoint(const char *_ssid, const char *_pw)
 :   next(0),
@@ -44,14 +44,14 @@ int AccessPoint::match_ssid(AccessPoint *ap, void *arg)
      *
      */
 
-int Interface::connect(Connection *con, void *arg)
+static int _connect(Connection *con, void *arg)
 {
     Interface *iface = (Interface*) arg;
     con->on_connect(iface);
     return 0;
 }
 
-int Interface::disconnect(Connection *con, void *arg)
+static int _disconnect(Connection *con, void *arg)
 {
     Interface *iface = (Interface*) arg;
     con->on_disconnect(iface);
@@ -64,35 +64,37 @@ int Interface::disconnect(Connection *con, void *arg)
 
 Interface::Interface(const char *_name)
 :   next(0),
-    mutex(0),
     name(strdup(_name)),
+    con_mutex(0),
     connections(Connection::get_next)
 {
+    con_mutex = Mutex::create(Mutex::SYSTEM);
 }
 
 Interface::~Interface()
 {
     free((void*) name);
+    delete con_mutex;
 }
 
 void Interface::add_connection(Connection *con)
 {
-    connections.push(con, mutex);
+    connections.push(con, con_mutex);
 }
 
 void Interface::del_connection(Connection *con)
 {
-    connections.remove(con, mutex);
+    connections.remove(con, con_mutex);
 }
 
 void Interface::on_connect()
 {
-    connections.visit(connect, this, mutex);
+    connections.visit(_connect, this, con_mutex);
 }
 
 void Interface::on_disconnect()
 {
-    connections.visit(disconnect, this, mutex);
+    connections.visit(_disconnect, this, con_mutex);
 }
 
 int Interface::match_name(Interface *iface, void *arg)
@@ -154,29 +156,29 @@ Interface::IpAddr::tostr(char *buff, size_t s)
 WiFiInterface::WiFiInterface(const char *name)
 :   Interface(name),
     access_points(AccessPoint::get_next),
-    mutex(0)
+    ap_mutex(0)
 {
-    mutex = panglos::Mutex::create(Mutex::SYSTEM);
+    ap_mutex = panglos::Mutex::create(Mutex::SYSTEM);
 }
 
 WiFiInterface::~WiFiInterface()
 {
     while (access_points.head)
     {
-        AccessPoint *ap = access_points.pop(mutex);
+        AccessPoint *ap = access_points.pop(ap_mutex);
         delete ap;
     }
-    delete mutex;
+    delete ap_mutex;
 }
 
 void WiFiInterface::add_ap(const char *ssid, const char *pw)
 {
-    access_points.append(new AccessPoint(ssid, pw), mutex);
+    access_points.append(new AccessPoint(ssid, pw), ap_mutex);
 }
 
 void WiFiInterface::del_ap(const char *ssid)
 {
-    Lock lock(mutex);
+    Lock lock(ap_mutex);
 
     AccessPoint *ap = access_points.find(AccessPoint::match_ssid, (void*) ssid, 0);
     if (ap)

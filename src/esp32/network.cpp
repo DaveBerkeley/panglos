@@ -4,6 +4,7 @@
 
 #include "esp_netif.h"
 #include "esp_wifi.h"
+#include "mdns.h"
 
 #include "panglos/debug.h"
 #include "panglos/esp32/hal.h"
@@ -32,7 +33,7 @@ void show_err(esp_err_t err, const char *fn, int line)
 #define TAG "wifix: sta"
 
 static LUT event_id_lut[] = {
-    {  "IP_EVENT_STA_GOT_IP", IP_EVENT_STA_GOT_IP, },
+    { "IP_EVENT_STA_GOT_IP", IP_EVENT_STA_GOT_IP, },
     { "IP_EVENT_STA_LOST_IP", IP_EVENT_STA_LOST_IP, },
     { "IP_EVENT_AP_STAIPASSIGNED", IP_EVENT_AP_STAIPASSIGNED, },
     { "IP_EVENT_GOT_IP6", IP_EVENT_GOT_IP6, },
@@ -47,18 +48,58 @@ static LUT event_id_lut[] = {
      *
      */
 
+class Waiter : public Connection
+{
+    Semaphore *sem;
+    Interface *iface;
+
+    virtual void on_connect(Interface *i) override
+    {
+        PO_DEBUG("");
+        iface = i;
+        sem->post();
+    }
+    virtual void on_disconnect(Interface *i) override
+    {
+        PO_DEBUG("");
+        iface = i;
+        sem->post();
+    }
+public:
+    Waiter()
+    :   sem(0)
+    {
+        sem = Semaphore::create();
+    }
+    ~Waiter()
+    {
+        delete sem;
+    }
+    bool wait()
+    {
+        PO_DEBUG("");
+        sem->wait();
+        const bool connected = iface ? iface->is_connected() : false;
+        PO_DEBUG("%s", connected ? "connected" : "not connected");
+        return connected;
+    }
+};
+
+    /*
+     *
+     */
+
 class Esp_WiFiInterface : public WiFiInterface
 {
     IpAddr ip_addr;
 
     virtual bool is_connected(IpAddr *ip) override
     {
-        PO_DEBUG("TODO");
         if (ip)
         {
             *ip = ip_addr;
         }
-        return true;
+        return ip_addr.v4.sin_family != 0;
     }
 
     void connect(const char *ssid, const char *pw)
@@ -82,17 +123,25 @@ class Esp_WiFiInterface : public WiFiInterface
         // Start the connection process in the background
         err = esp_wifi_connect();
         SHOW_ERR(err);
-    }    
+    }
+
+    static int do_connect(AccessPoint *ap, void *arg)
+    {
+        ASSERT(arg);
+        Esp_WiFiInterface *iface = (Esp_WiFiInterface*) arg;
+
+        Waiter waiter;
+        iface->add_connection(& waiter);
+        iface->connect(ap->ssid, ap->pw);
+        const bool ok = waiter.wait();
+        iface->del_connection(& waiter);
+        return ok;
+    }
 
     virtual void connect() override
     {
         PO_DEBUG("");
-
-        AccessPoint *ap = access_points.head;
-        if (ap)
-        {
-            connect(ap->ssid, ap->pw);
-        }
+        access_points.visit(do_connect, this, ap_mutex);
     }
 
     virtual void disconnect() override
@@ -135,28 +184,12 @@ public:
         
     }
 
-    static int xconnect(Connection *con, void *arg)
-    {
-        PO_DEBUG("");
-        ASSERT(arg);
-        Esp_WiFiInterface *wifi = (Esp_WiFiInterface*) arg;
-        con->on_connect(wifi);
-        return 0;
-    }
 
-    static int xdisconnect(Connection *con, void *arg)
+    void _on_disconnect(esp_event_base_t event_base, int32_t event_id, void *event_data)
     {
-        PO_DEBUG("");
-        ASSERT(arg);
-        Esp_WiFiInterface *wifi = (Esp_WiFiInterface*) arg;
-        con->on_disconnect(wifi);
-        return 0;
-    }
-
-    void on_disconnect(esp_event_base_t event_base, int32_t event_id, void *event_data)
-    {
+        // ESP-IDF sys_evt thread callback
         PO_DEBUG("id=%s", lut(event_id_lut, event_id));
-        connections.visit(xdisconnect, this, mutex);
+        on_disconnect();
         ip_addr.v4.sin_family = 0;
     }
 
@@ -166,8 +199,9 @@ public:
         return strncmp(prefix, esp_netif_get_desc(netif), strlen(prefix) - 1) == 0;
     }
 
-    void on_connect(esp_event_base_t event_base, int32_t event_id, ip_event_got_ip_t *event)
+    void _on_connect(esp_event_base_t event_base, int32_t event_id, ip_event_got_ip_t *event)
     {
+        // ESP-IDF sys_evt thread callback
         ASSERT(event_id == IP_EVENT_STA_GOT_IP);
 
         if (!is_our_netif(TAG, event->esp_netif))
@@ -186,38 +220,38 @@ public:
         ip_addr.v4.sin_port = 0;
         memcpy(& ip_addr.v4.sin_addr, & event->ip_info.ip, sizeof(ip_addr.v4.sin_addr));
  
-        connections.visit(xconnect, this, mutex);
+        on_connect();
     }
 
-    static void on_disconnect(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+    static void _on_disconnect(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
     {
         ASSERT(arg);
         Esp_WiFiInterface *iface = (Esp_WiFiInterface*) arg;
-        iface->on_disconnect(event_base, event_id, event_data);
+        iface->_on_disconnect(event_base, event_id, event_data);
     }
 
-    static void on_connect(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+    static void _on_connect(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
     {
         ASSERT(arg);
         Esp_WiFiInterface *iface = (Esp_WiFiInterface*) arg;
-        iface->on_connect(event_base, event_id, (ip_event_got_ip_t *) event_data);
+        iface->_on_connect(event_base, event_id, (ip_event_got_ip_t *) event_data);
     }
 
     void register_handlers()
     {
         esp_err_t err;
-        err = esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, & on_disconnect, this);
+        err = esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, & _on_disconnect, this);
         SHOW_ERR(err);
-        err = esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, & on_connect, this);
+        err = esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, & _on_connect, this);
         SHOW_ERR(err);
     }
 
     void unregister_handlers()
     {
         esp_err_t err;
-        err = esp_event_handler_unregister(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, & on_disconnect);
+        err = esp_event_handler_unregister(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, & _on_disconnect);
         SHOW_ERR(err);
-        err = esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, & on_connect);
+        err = esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, & _on_connect);
         SHOW_ERR(err);
     }
 
@@ -226,6 +260,24 @@ public:
 WiFiInterface *WiFiInterface::create()
 {
     return new Esp_WiFiInterface;
+}
+
+    /*
+     *  MDNS service
+     */
+
+void Network::start_mdns(const char *name)
+{
+    PO_DEBUG("%s", name);
+
+    esp_err_t err = mdns_init();
+    if (err != ESP_OK)
+    {
+        PO_ERROR("");
+        return;
+    }
+
+    mdns_hostname_set(name);
 }
 
 }   //  namespace panglos

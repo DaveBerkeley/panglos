@@ -4,6 +4,7 @@
 #if defined(ARCH_LINUX)
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #else
 #include "lwip/sockets.h"
 #endif
@@ -40,13 +41,10 @@ class Connection;
 class Interface
 {
     Interface *next;
-    panglos::Mutex *mutex;
     const char *name;
 protected:
+    panglos::Mutex *con_mutex;
     List<Connection*> connections;
-
-    static int connect(Connection *con, void *arg);
-    static int disconnect(Connection *con, void *arg);
 
 public:
     typedef struct IpAddr {
@@ -61,7 +59,7 @@ public:
     Interface(const char *_name);
     virtual ~Interface();
 
-    virtual bool is_connected(IpAddr *ipaddr) = 0;
+    virtual bool is_connected(IpAddr *ipaddr=0) = 0;
 
     void add_connection(Connection *con);
     void del_connection(Connection *con);
@@ -103,6 +101,8 @@ public:
 
     void add_interface(Interface *iface);
     Interface *get_interface(const char *name=0);
+
+    static void start_mdns(const char *name);
 };
 
     /*
@@ -113,7 +113,7 @@ class WiFiInterface : public Interface
 {
 protected:
     List<AccessPoint*> access_points;
-    panglos::Mutex *mutex;
+    panglos::Mutex *ap_mutex;
 
 public:
     WiFiInterface(const char *name);
