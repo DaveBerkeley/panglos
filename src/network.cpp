@@ -1,4 +1,8 @@
 
+#if defined(ARCH_LINUX)
+#include <arpa/inet.h>
+#endif
+
 #include <gtest/gtest.h>
 
 #include "panglos/debug.h"
