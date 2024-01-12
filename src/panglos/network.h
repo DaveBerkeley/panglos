@@ -37,6 +37,7 @@ public:
      */
 
 class Connection;
+class WiFiInterface;
 
 class Interface
 {
@@ -66,12 +67,16 @@ public:
     virtual ~Interface();
 
     virtual bool is_connected(State *state=0) = 0;
+    virtual WiFiInterface *get_wifi() { return 0; }
 
     void add_connection(Connection *con);
     void del_connection(Connection *con);
 
     void on_connect();
     void on_disconnect();
+
+    virtual void connect() = 0;
+    virtual void disconnect() = 0;
 
     static Interface **get_next(Interface *iface) { return & iface->next; }
 
@@ -92,6 +97,27 @@ public:
     virtual void on_disconnect(Interface *) = 0;
 
     static Connection **get_next(Connection *con) { return & con->next; }
+};
+
+    /*
+     *  Helper class to wait for a connection
+     */
+
+class Semaphore;
+
+class ConnectionWaiter : public Connection
+{
+    Semaphore *sem;
+    Interface *iface;
+
+    virtual void on_connect(Interface *i) override;
+    virtual void on_disconnect(Interface *i) override;
+
+public:
+    ConnectionWaiter();
+    ~ConnectionWaiter();
+
+    bool wait();
 };
 
     /*
@@ -137,8 +163,13 @@ public:
     void add_ap(const char *ssid, const char *pw);
     void del_ap(const char *ssid);
 
-    virtual void connect() = 0;
-    virtual void disconnect() = 0;
+    struct ApIter {
+        AccessPoint *ap;
+        ApIter() : ap(0) { }
+    };
+
+    AccessPoint *get_ap(struct ApIter *iter);
+    const char *get_ssid();
 
     static WiFiInterface *create();
 };

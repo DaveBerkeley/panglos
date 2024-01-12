@@ -48,50 +48,10 @@ static LUT event_id_lut[] = {
      *
      */
 
-class Waiter : public Connection
-{
-    Semaphore *sem;
-    Interface *iface;
-
-    virtual void on_connect(Interface *i) override
-    {
-        PO_DEBUG("");
-        iface = i;
-        sem->post();
-    }
-    virtual void on_disconnect(Interface *i) override
-    {
-        PO_DEBUG("");
-        iface = i;
-        sem->post();
-    }
-public:
-    Waiter()
-    :   sem(0)
-    {
-        sem = Semaphore::create();
-    }
-    ~Waiter()
-    {
-        delete sem;
-    }
-    bool wait()
-    {
-        PO_DEBUG("");
-        sem->wait();
-        const bool connected = iface ? iface->is_connected() : false;
-        PO_DEBUG("%s", connected ? "connected" : "not connected");
-        return connected;
-    }
-};
-
-    /*
-     *
-     */
-
 class Esp_WiFiInterface : public WiFiInterface
 {
     State state;
+    const char *ssid;
 
     virtual bool is_connected(State *s) override
     {
@@ -102,8 +62,15 @@ class Esp_WiFiInterface : public WiFiInterface
         return state.ip.v4.sin_family != 0;
     }
 
-    void connect(const char *ssid, const char *pw)
+    virtual WiFiInterface *get_wifi() override
     {
+        return this;
+    }
+ 
+    void connect(const char *_ssid, const char *pw)
+    {
+        ssid = _ssid;
+
         wifi_config_t config;
         memset(& config, 0, sizeof(config));
 
@@ -130,7 +97,7 @@ class Esp_WiFiInterface : public WiFiInterface
         ASSERT(arg);
         Esp_WiFiInterface *iface = (Esp_WiFiInterface*) arg;
 
-        Waiter waiter;
+        ConnectionWaiter waiter;
         iface->add_connection(& waiter);
         iface->connect(ap->ssid, ap->pw);
         const bool ok = waiter.wait();
@@ -147,11 +114,26 @@ class Esp_WiFiInterface : public WiFiInterface
     virtual void disconnect() override
     {
         PO_DEBUG("");
+        // check it is connected?
+        esp_err_t err = esp_wifi_stop();
+        SHOW_ERR(err);
+    }
+
+    void show_ip()
+    {
+        char ip[32];
+        char mask[32];
+        char gw[32];
+        state.ip.tostr(ip, sizeof(ip));
+        state.mask.tostr(mask, sizeof(mask));
+        state.gw.tostr(gw, sizeof(gw));
+        PO_DEBUG("ip=%s mask=%s gw=%s", ip, mask, gw);
     }
 
 public:
     Esp_WiFiInterface()
-    :   WiFiInterface("wifi")
+    :   WiFiInterface("wifi"),
+        ssid(0)
     {
         PO_DEBUG("");
         esp_err_t err;
@@ -181,9 +163,7 @@ public:
 
         err = esp_wifi_set_mode(WIFI_MODE_STA);
         SHOW_ERR(err);
-        
     }
-
 
     void _on_disconnect(esp_event_base_t event_base, int32_t event_id, void *event_data)
     {
@@ -191,6 +171,7 @@ public:
         PO_DEBUG("id=%s", lut(event_id_lut, event_id));
         on_disconnect();
         state.ip.v4.sin_family = 0;
+        ssid = 0;
     }
 
     static bool is_our_netif(const char *prefix, esp_netif_t *netif)
@@ -217,17 +198,13 @@ public:
             PO_DEBUG("Got IPv4 from another interface \"%s\": ignored", esp_netif_get_desc(event->esp_netif));
             return;
         }
-        PO_DEBUG("got %s", esp_netif_get_desc(event->esp_netif));
-        PO_DEBUG("ip=" IPSTR " mask=" IPSTR " gw=" IPSTR, 
-                IP2STR(& event->ip_info.ip),
-                IP2STR(& event->ip_info.netmask),
-                IP2STR(& event->ip_info.gw));
 
         // fill out the Connection data
         get_ip(& state.ip, & event->ip_info.ip);
         get_ip(& state.gw, & event->ip_info.gw);
         get_ip(& state.mask, & event->ip_info.netmask);
- 
+
+        show_ip();
         on_connect();
     }
 

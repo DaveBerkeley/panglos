@@ -209,6 +209,62 @@ void WiFiInterface::del_ap(const char *ssid)
     }
 }
 
+AccessPoint *WiFiInterface::get_ap(WiFiInterface::ApIter *iter)
+{
+    Lock lock(ap_mutex);
+
+    if (iter->ap == 0)
+    {
+        // First pass
+        iter->ap = access_points.head;
+        return iter->ap;
+    }
+    if (access_points.has(iter->ap, 0))
+    {
+        iter->ap = *access_points.next_fn(iter->ap);
+    }
+
+    return iter->ap;
+}
+
+    /*
+     *
+     */
+
+void ConnectionWaiter::on_connect(Interface *i)
+{
+    PO_DEBUG("");
+    iface = i;
+    sem->post();
+}
+
+void ConnectionWaiter::on_disconnect(Interface *i)
+{
+    PO_DEBUG("");
+    iface = i;
+    sem->post();
+}
+
+ConnectionWaiter::ConnectionWaiter()
+:   sem(0)
+{
+    sem = Semaphore::create();
+}
+
+ConnectionWaiter::~ConnectionWaiter()
+{
+    delete sem;
+}
+
+bool ConnectionWaiter::wait()
+{
+    PO_DEBUG("");
+    sem->wait();
+    const bool connected = iface ? iface->is_connected() : false;
+    PO_DEBUG("%s", connected ? "connected" : "not connected");
+    return connected;
+}
+
 }   //  namespace panglos
 
 //  FIN
