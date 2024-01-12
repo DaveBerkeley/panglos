@@ -91,15 +91,15 @@ public:
 
 class Esp_WiFiInterface : public WiFiInterface
 {
-    IpAddr ip_addr;
+    State state;
 
-    virtual bool is_connected(IpAddr *ip) override
+    virtual bool is_connected(State *s) override
     {
-        if (ip)
+        if (s)
         {
-            *ip = ip_addr;
+            *s = state;
         }
-        return ip_addr.v4.sin_family != 0;
+        return state.ip.v4.sin_family != 0;
     }
 
     void connect(const char *ssid, const char *pw)
@@ -190,7 +190,7 @@ public:
         // ESP-IDF sys_evt thread callback
         PO_DEBUG("id=%s", lut(event_id_lut, event_id));
         on_disconnect();
-        ip_addr.v4.sin_family = 0;
+        state.ip.v4.sin_family = 0;
     }
 
     static bool is_our_netif(const char *prefix, esp_netif_t *netif)
@@ -198,6 +198,14 @@ public:
         //PO_DEBUG("got='%s' expect='%s'", esp_netif_get_desc(netif), prefix);
         return strncmp(prefix, esp_netif_get_desc(netif), strlen(prefix) - 1) == 0;
     }
+
+    static void get_ip(IpAddr *ipaddr, esp_ip4_addr_t *esp_ip)
+    {
+        // convert ESP-IDF data into posix format
+        ipaddr->v4.sin_family = AF_INET;
+        ipaddr->v4.sin_port = 0;
+        memcpy(& ipaddr->v4.sin_addr, esp_ip, sizeof(ipaddr->v4.sin_addr));
+    } 
 
     void _on_connect(esp_event_base_t event_base, int32_t event_id, ip_event_got_ip_t *event)
     {
@@ -211,14 +219,14 @@ public:
         }
         PO_DEBUG("got %s", esp_netif_get_desc(event->esp_netif));
         PO_DEBUG("ip=" IPSTR " mask=" IPSTR " gw=" IPSTR, 
-                IP2STR(&event->ip_info.ip),
-                IP2STR(&event->ip_info.netmask),
-                IP2STR(&event->ip_info.gw));
+                IP2STR(& event->ip_info.ip),
+                IP2STR(& event->ip_info.netmask),
+                IP2STR(& event->ip_info.gw));
 
         // fill out the Connection data
-        ip_addr.v4.sin_family = AF_INET;
-        ip_addr.v4.sin_port = 0;
-        memcpy(& ip_addr.v4.sin_addr, & event->ip_info.ip, sizeof(ip_addr.v4.sin_addr));
+        get_ip(& state.ip, & event->ip_info.ip);
+        get_ip(& state.gw, & event->ip_info.gw);
+        get_ip(& state.mask, & event->ip_info.netmask);
  
         on_connect();
     }

@@ -14,7 +14,7 @@
 namespace panglos {
 
     /*
-     *
+     *  AccessPoint simply holds the ssid/pw credentials for a known AP
      */
 
 class AccessPoint
@@ -33,7 +33,7 @@ public:
 };
 
     /*
-     *
+     *  An interface is a device that can have an ip address
      */
 
 class Connection;
@@ -41,7 +41,6 @@ class Connection;
 class Interface
 {
     Interface *next;
-public:
     const char *name;
 protected:
     panglos::Mutex *con_mutex;
@@ -56,11 +55,17 @@ public:
         const char *tostr(char *buff, size_t s);
     }   IpAddr;
 
+    typedef struct State {
+        IpAddr  ip;
+        IpAddr  gw;
+        IpAddr  mask;
+    }   State; 
+
 public:
-    Interface(const char *_name);
+    Interface(const char *name);
     virtual ~Interface();
 
-    virtual bool is_connected(IpAddr *ipaddr=0) = 0;
+    virtual bool is_connected(State *state=0) = 0;
 
     void add_connection(Connection *con);
     void del_connection(Connection *con);
@@ -71,10 +76,11 @@ public:
     static Interface **get_next(Interface *iface) { return & iface->next; }
 
     static int match_name(Interface *iface, void *arg);
+    const char *get_name() { return name; }
 };
 
     /*
-     *
+     *  Connection is an observer of an Interface
      */
 
 class Connection

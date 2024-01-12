@@ -47,7 +47,7 @@ class TestWiFi : public WiFiInterface
 public:
     bool connected;
 
-    virtual bool is_connected(IpAddr *) override
+    virtual bool is_connected(State *) override
     {
         PO_DEBUG("");
         return connected;
