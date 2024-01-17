@@ -15,6 +15,7 @@ public:
 
     virtual void set_period(Period p) = 0;
     virtual void set_handler(void (*fn)(Timer *, void *), void *arg) = 0;
+    virtual Period get() = 0;
 
     static Timer *create();
 };

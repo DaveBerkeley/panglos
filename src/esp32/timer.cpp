@@ -35,6 +35,7 @@ public:
     virtual void stop()  override;
     virtual void set_period(Period p) override;
     virtual void set_handler(void (*fn)(Timer *, void *), void *arg) override;
+    virtual Period get() override;
 
     static void event_cb(void *arg);
 };
@@ -122,6 +123,17 @@ void ESP_Timer::event_cb(void *arg)
     {
         timer->handler(timer, timer->arg);
     }
+}
+
+    /*
+     *
+     */
+
+Timer::Period ESP_Timer::get()
+{
+    PO_ERROR("TODO");
+    ASSERT(0);
+    return 0;
 }
 
     /*
