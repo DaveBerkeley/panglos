@@ -10,6 +10,7 @@
 namespace panglos {
 
 class Thread;
+class Semaphore;
 
 class BatchTask
 {
@@ -19,6 +20,16 @@ public:
     {
     public:
         virtual void run() = 0;
+    };
+
+    class WaitJob : public Job
+    {
+        Semaphore *semaphore;
+        virtual void run() override;
+    public:
+        WaitJob();
+        ~WaitJob();
+        void wait();
     };
 
 private:
@@ -36,6 +47,10 @@ public:
 
     static BatchTask *start();
 };
+
+    /*
+     *
+     */
 
 }   //  namespace panglos
 

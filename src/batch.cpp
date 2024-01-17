@@ -4,6 +4,7 @@
 #include "panglos/debug.h"
 #include "panglos/object.h"
 #include "panglos/thread.h"
+#include "panglos/semaphore.h"
 
 #include "panglos/batch.h"
 
@@ -60,7 +61,7 @@ void BatchTask::run()
             break;
         }
 
-        PO_DEBUG("running event %p", event.job);
+        //PO_DEBUG("running event %p", event.job);
         event.job->run();
     }
 }
@@ -100,6 +101,31 @@ BatchTask *BatchTask::start()
     Objects::objects->add("batch_task", task);
     thread->start(BatchTask::run, task);
     return task;
+}
+
+    /*
+     *
+     */
+
+BatchTask::WaitJob::WaitJob()
+:   semaphore(0)
+{
+    semaphore = Semaphore::create();
+}
+
+BatchTask::WaitJob::~WaitJob()
+{
+    delete semaphore;
+}
+
+void BatchTask::WaitJob::run()
+{
+    semaphore->post();
+}
+
+void BatchTask::WaitJob:: wait()
+{
+    semaphore->wait();
 }
 
 }   //namespace [panglos

@@ -70,4 +70,26 @@ TEST(Batch, Run)
     delete Objects::objects;
 }
 
+    /*
+     *
+     */
+
+TEST(Batch, Wait)
+{
+    Objects::objects = Objects::create();
+
+    BatchTask* task = BatchTask::start();
+    EXPECT_TRUE(task);
+
+    {
+        BatchTask::WaitJob waiter;
+        task->execute(& waiter);
+        waiter.wait();
+    }
+
+    // waits for all tasks to complete
+    delete task;
+    delete Objects::objects;
+}
+
 //  FIN
