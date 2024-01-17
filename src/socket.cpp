@@ -222,6 +222,10 @@ public:
         {
             PO_DEBUG("");
         }
+        virtual void on_connect_fail(Interface *) override
+        {
+            PO_DEBUG("");
+        }
         virtual void on_disconnect(Interface *) override
         {
             PO_DEBUG("");

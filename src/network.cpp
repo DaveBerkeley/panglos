@@ -238,11 +238,16 @@ void ConnectionWaiter::on_connect(Interface *i)
     sem->post();
 }
 
-void ConnectionWaiter::on_disconnect(Interface *i)
+void ConnectionWaiter::on_connect_fail(Interface *i)
 {
     PO_DEBUG("");
     iface = i;
     sem->post();
+}
+
+void ConnectionWaiter::on_disconnect(Interface *)
+{
+    PO_DEBUG("");
 }
 
 ConnectionWaiter::ConnectionWaiter()

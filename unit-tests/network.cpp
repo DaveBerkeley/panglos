@@ -8,6 +8,7 @@
 #include "panglos/list.h"
 #include "panglos/batch.h"
 #include "panglos/object.h"
+#include "panglos/event_queue.h"
 
 #include "panglos/network.h"
 
@@ -42,6 +43,7 @@ public:
 class TestWiFi : public WiFiInterface
 {
     BatchTask *batch;
+    const char *ap;
     ConnectJob connect_job;
     DisconnectJob disconnect_job;
 public:
@@ -65,12 +67,14 @@ public:
         batch->execute(& disconnect_job);
     }
 
-    TestWiFi(const char *name, BatchTask *b)
+    TestWiFi(const char *name, BatchTask *b, const char *_ap)
     :   WiFiInterface(name),
         batch(b),
+        ap(_ap),
         connect_job(this),
         disconnect_job(this)
     {
+        PO_DEBUG("%s", ap);
     }
 };
 
@@ -106,6 +110,10 @@ public:
         PO_DEBUG("");
         iface = _iface;
     }
+    virtual void on_connect_fail(Interface *) override
+    {
+        PO_DEBUG("");
+    }
     virtual void on_disconnect(Interface *) override
     {
         PO_DEBUG("");
@@ -124,7 +132,7 @@ public:
 
 TEST(Net, WiFiAp)
 {
-    TestWiFi wifi("wifi", 0);
+    TestWiFi wifi("wifi", 0, 0);
 
     wifi.add_ap("hello", "world");
     wifi.add_ap("one", "more");
@@ -136,33 +144,9 @@ TEST(Net, WiFiAp)
      *
      */
 
-class WaitJob : public BatchTask::Job
-{
-    Semaphore *semaphore;
-public:
-    WaitJob()
-    :   semaphore(0)
-    {
-        semaphore = Semaphore::create();
-    }
-    ~WaitJob()
-    {
-        delete semaphore;
-    }
-    virtual void run() override
-    {
-        semaphore->post();
-    }
-
-    void wait()
-    {
-        semaphore->wait();
-    }
-};
-
 static void wait_job(BatchTask *batch)
 {
-    WaitJob job;
+    BatchTask::WaitJob job;
     batch->execute(& job);
     job.wait();
 }
@@ -175,7 +159,7 @@ TEST(Net, Connect)
 {
     Objects::objects = Objects::create();
     BatchTask *batch = BatchTask::start();
-    TestWiFi wifi("wifi", batch);
+    TestWiFi wifi("wifi", batch, 0);
 
     // simulate multiple connections
     const int num = 4;
@@ -212,7 +196,7 @@ TEST(Net, Connect)
 
 TEST(Net, Network)
 {
-    TestWiFi wifi("wifi", 0);
+    TestWiFi wifi("wifi", 0, 0);
 
     Network net;
     net.add_interface(& wifi);
@@ -232,9 +216,9 @@ TEST(Net, Network)
 
 TEST(Net, GetIface)
 {
-    TestWiFi a("wifi", 0);
-    TestWiFi b("bbb", 0);
-    TestWiFi c("ccc", 0);
+    TestWiFi a("wifi", 0, 0);
+    TestWiFi b("bbb", 0, 0);
+    TestWiFi c("ccc", 0, 0);
 
     Network net;
     net.add_interface(& a);
@@ -254,6 +238,119 @@ TEST(Net, GetIface)
 
     iface = net.get_interface(& iter);
     EXPECT_FALSE(iface);
+}
+
+    /*
+     *
+     */
+
+class NetManager : public Connection
+{
+    Network *net;
+    EvQueue *queue;
+    BatchTask *batch;
+
+    class Job : public BatchTask::Job
+    {
+        NetManager *nm;
+
+        virtual void run() override
+        {
+            PO_DEBUG("");
+            nm->try_connect();
+        }
+    public:
+        Job(NetManager *m) : nm(m) { }
+    };
+
+    Job job;
+
+    // Use the EvQueue to schedule the connection attempt
+    class Event : public EvQueue::Event
+    {
+        NetManager *nm;
+
+        virtual void run(EvQueue *) override
+        {
+            PO_DEBUG("");
+            nm->batch->execute(& nm->job);
+        }
+
+    public:
+        Event(NetManager *n) : nm(n) { }
+    };
+
+    Event event;
+
+    virtual void on_connect(Interface *) override
+    {
+        PO_DEBUG("TODO");
+    }
+
+    virtual void on_connect_fail(Interface *) override
+    {
+        // can get multiple connect_fail events from a single connect attempt
+        // ie one per registered AP 
+        PO_DEBUG("TODO");
+    }
+
+    virtual void on_disconnect(Interface *) override
+    {
+        PO_DEBUG("TODO");
+        // TODO : schedule reconnect attempts
+        event.when = 10;
+        queue->add(& event);
+    }
+
+    void try_connect()
+    {
+        PO_DEBUG("TODO");
+        //net->connect();
+    }
+
+public:
+    NetManager(Network *n, EvQueue *q, BatchTask *b)
+    :   net(n),
+        queue(q),
+        batch(b),
+        job(this),
+        event(this)
+    {
+        ASSERT(net);
+        ASSERT(queue);
+    }
+};
+
+TEST(Net, Manager)
+{
+    Objects::objects = Objects::create();
+    BatchTask *batch = BatchTask::start();
+    Network net;
+    EvQueue eq;
+    NetManager man(& net, & eq, batch);
+    TestWiFi wifi("wifi", batch, "middle");
+
+    wifi.add_ap("hello", "world");
+    wifi.add_ap("middle", "middle");
+    wifi.add_ap("last", "one");
+
+    wifi.add_connection(& man);
+    net.add_interface(& wifi);
+
+    wifi.connect();
+    // cause asynchronous disconnect
+    // build mechanism to schedule a reconnect batch job
+    wifi.disconnect();
+
+    for (Time::tick_t i = 0; i < 100; i++)
+    {
+        eq.run(i);
+        // Wait for batch jobs to be processed
+        wait_job(batch);
+    }
+ 
+    delete batch;
+    delete Objects::objects;
 }
 
 //  FIN

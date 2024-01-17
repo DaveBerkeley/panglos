@@ -85,6 +85,34 @@ public:
 };
 
     /*
+     *
+     */
+
+class WiFiInterface : public Interface
+{
+protected:
+    List<AccessPoint*> access_points;
+    panglos::Mutex *ap_mutex;
+
+public:
+    WiFiInterface(const char *name);
+    ~WiFiInterface();
+
+    void add_ap(const char *ssid, const char *pw);
+    void del_ap(const char *ssid);
+
+    struct ApIter {
+        AccessPoint *ap;
+        ApIter() : ap(0) { }
+    };
+
+    AccessPoint *get_ap(struct ApIter *iter);
+    const char *get_ssid();
+
+    static WiFiInterface *create();
+};
+
+    /*
      *  Connection is an observer of an Interface
      */
 
@@ -94,7 +122,8 @@ class Connection
 public:
 
     virtual void on_connect(Interface *) = 0;
-    virtual void on_disconnect(Interface *) = 0;
+    virtual void on_connect_fail(Interface *iface) = 0;
+    virtual void on_disconnect(Interface *iface) = 0;
 
     static Connection **get_next(Connection *con) { return & con->next; }
 };
@@ -111,6 +140,7 @@ class ConnectionWaiter : public Connection
     Interface *iface;
 
     virtual void on_connect(Interface *i) override;
+    virtual void on_connect_fail(Interface *i) override;
     virtual void on_disconnect(Interface *i) override;
 
 public:
@@ -144,34 +174,6 @@ public:
     Interface *get_interface(struct Iterator *);
 
     static void start_mdns(const char *name);
-};
-
-    /*
-     *
-     */
-
-class WiFiInterface : public Interface
-{
-protected:
-    List<AccessPoint*> access_points;
-    panglos::Mutex *ap_mutex;
-
-public:
-    WiFiInterface(const char *name);
-    ~WiFiInterface();
-
-    void add_ap(const char *ssid, const char *pw);
-    void del_ap(const char *ssid);
-
-    struct ApIter {
-        AccessPoint *ap;
-        ApIter() : ap(0) { }
-    };
-
-    AccessPoint *get_ap(struct ApIter *iter);
-    const char *get_ssid();
-
-    static WiFiInterface *create();
 };
 
 }   //  namespace panglos
