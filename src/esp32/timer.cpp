@@ -8,6 +8,7 @@
 #include "panglos/hal.h"
 
 #include "panglos/drivers/timer.h"
+#include "panglos/esp32/timer.h"
 
     /*
      *
@@ -143,6 +144,131 @@ Timer::Period ESP_Timer::get()
 Timer *Timer::create()
 {
     return new ESP_Timer;
+}
+
+    /*
+     *  High Res Timer using hardware, not the esp-idf thread based timer
+     */
+
+#include "driver/timer.h"
+
+#define CHECK(err) esp_check(err);
+
+class HR_Timer : public panglos::Timer
+{
+    timer_group_t group;
+    timer_idx_t num;
+
+    virtual void start(bool periodic) override
+    {
+        esp_err_t err;
+
+        // TODO : other config,  etc.
+        err = timer_set_auto_reload(group, num, periodic ? TIMER_AUTORELOAD_EN : TIMER_AUTORELOAD_DIS);
+        err = timer_start(group, num);
+        CHECK(err);
+    }
+
+    virtual void stop() override
+    {
+        esp_err_t err;
+        err = timer_pause(group, num);
+        CHECK(err);
+    }
+
+    virtual void set_period(Period p) override
+    {
+        esp_err_t err;
+        err = timer_set_alarm_value(group, num, p);
+        CHECK(err);
+        err = timer_set_alarm(group, num, TIMER_ALARM_EN);
+        CHECK(err);
+    }
+
+    struct IrqArg
+    {
+        HR_Timer *timer;
+        void (*fn)(Timer *, void *);
+        void *arg;
+    };
+
+    IrqArg irq;
+
+    static bool irq_handler(void *arg)
+    {
+        ASSERT(arg);
+        struct IrqArg *ia = (struct IrqArg*) arg;
+        ASSERT(ia->fn);
+        ia->fn(ia->timer, ia->arg);
+        return false;
+    }
+ 
+    virtual void set_handler(void (*fn)(Timer *, void *), void *arg) override
+    {
+        esp_err_t err;
+ 
+        if (irq.fn)
+        {
+            err = timer_isr_callback_remove(group, num);
+            CHECK(err);
+        }
+
+        irq.fn = fn;
+        irq.arg = arg;
+
+        if (fn)
+        {
+            int intr_alloc_flags = 0;
+            err = timer_isr_callback_add(group, num, irq_handler, & irq, intr_alloc_flags);
+            CHECK(err);
+        }
+    }
+
+    virtual Period get() override
+    {
+        uint64_t val = 0;
+        esp_err_t err = timer_get_counter_value(group, num, & val);
+        CHECK(err);
+        return val;
+    }
+
+public:
+
+    HR_Timer(uint32_t _group, uint32_t _num=0)
+    {
+        ASSERT(_group < TIMER_GROUP_MAX);
+        group = (timer_group_t) _group;
+        num = (timer_idx_t) _num;
+        irq.timer = this;
+        irq.fn = 0;
+        irq.arg = 0;
+
+        timer_config_t config = {
+            .alarm_en=TIMER_ALARM_DIS,
+            .counter_en=TIMER_PAUSE,
+            .intr_type=TIMER_INTR_LEVEL,
+            .counter_dir=TIMER_COUNT_UP,
+            .auto_reload=TIMER_AUTORELOAD_DIS,
+            .divider=2,
+        };
+        esp_err_t err;
+        err = timer_init(group, num, & config);
+        CHECK(err);
+    }
+
+    virtual ~HR_Timer()
+    {
+        // remove / disable irqs
+        set_handler(0, 0);
+        esp_err_t err;
+        err = timer_deinit(group, num);
+        CHECK(err);
+    }
+};
+
+Timer *create_hr_timer(uint32_t group, uint32_t num)
+{
+    return new HR_Timer(group, num);
 }
 
 }   //  namespace panglos
