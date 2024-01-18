@@ -1,7 +1,8 @@
 
 #if defined(ESP32)
 
-#include <esp_timer.h>
+#include "esp_idf_version.h"
+#include "esp_timer.h"
 
 #include "panglos/debug.h"
 
@@ -150,44 +151,12 @@ Timer *Timer::create()
      *  High Res Timer using hardware, not the esp-idf thread based timer
      */
 
-#include "driver/timer.h"
-
-#define CHECK(err) esp_check(err);
-
-class HR_Timer : public panglos::Timer
+class HR_Base : public panglos::Timer
 {
-    timer_group_t group;
-    timer_idx_t num;
-
-    virtual void start(bool periodic) override
-    {
-        esp_err_t err;
-
-        // TODO : other config,  etc.
-        err = timer_set_auto_reload(group, num, periodic ? TIMER_AUTORELOAD_EN : TIMER_AUTORELOAD_DIS);
-        err = timer_start(group, num);
-        CHECK(err);
-    }
-
-    virtual void stop() override
-    {
-        esp_err_t err;
-        err = timer_pause(group, num);
-        CHECK(err);
-    }
-
-    virtual void set_period(Period p) override
-    {
-        esp_err_t err;
-        err = timer_set_alarm_value(group, num, p);
-        CHECK(err);
-        err = timer_set_alarm(group, num, TIMER_ALARM_EN);
-        CHECK(err);
-    }
-
+protected:
     struct IrqArg
     {
-        HR_Timer *timer;
+        HR_Base *timer;
         void (*fn)(Timer *, void *);
         void *arg;
     };
@@ -202,7 +171,47 @@ class HR_Timer : public panglos::Timer
         ia->fn(ia->timer, ia->arg);
         return false;
     }
- 
+};
+
+#if (ESP_IDF_VERSION_MAJOR == 4)
+
+    /*
+     *  ESP-IDF Version 4 timer API
+     */
+
+#include "driver/timer.h"
+
+class HR_Timer : public HR_Base
+{
+    timer_group_t group;
+    timer_idx_t num;
+
+    virtual void start(bool periodic) override
+    {
+        esp_err_t err;
+
+        err = timer_set_auto_reload(group, num, periodic ? TIMER_AUTORELOAD_EN : TIMER_AUTORELOAD_DIS);
+        esp_check(err);
+        err = timer_start(group, num);
+        esp_check(err);
+    }
+
+    virtual void stop() override
+    {
+        esp_err_t err;
+        err = timer_pause(group, num);
+        esp_check(err);
+    }
+
+    virtual void set_period(Period p) override
+    {
+        esp_err_t err;
+        err = timer_set_alarm_value(group, num, p);
+        esp_check(err);
+        err = timer_set_alarm(group, num, TIMER_ALARM_EN);
+        esp_check(err);
+    }
+
     virtual void set_handler(void (*fn)(Timer *, void *), void *arg) override
     {
         esp_err_t err;
@@ -210,7 +219,7 @@ class HR_Timer : public panglos::Timer
         if (irq.fn)
         {
             err = timer_isr_callback_remove(group, num);
-            CHECK(err);
+            esp_check(err);
         }
 
         irq.fn = fn;
@@ -220,7 +229,7 @@ class HR_Timer : public panglos::Timer
         {
             int intr_alloc_flags = 0;
             err = timer_isr_callback_add(group, num, irq_handler, & irq, intr_alloc_flags);
-            CHECK(err);
+            esp_check(err);
         }
     }
 
@@ -228,7 +237,7 @@ class HR_Timer : public panglos::Timer
     {
         uint64_t val = 0;
         esp_err_t err = timer_get_counter_value(group, num, & val);
-        CHECK(err);
+        esp_check(err);
         return val;
     }
 
@@ -253,7 +262,7 @@ public:
         };
         esp_err_t err;
         err = timer_init(group, num, & config);
-        CHECK(err);
+        esp_check(err);
     }
 
     virtual ~HR_Timer()
@@ -262,9 +271,126 @@ public:
         set_handler(0, 0);
         esp_err_t err;
         err = timer_deinit(group, num);
-        CHECK(err);
+        esp_check(err);
     }
 };
+
+#endif // (ESP_IDF_VERSION_MAJOR == 4)
+
+    /*
+     *  ESP-IDF Version 5 API
+     */
+
+#if (ESP_IDF_VERSION_MAJOR == 5)
+
+#include "driver/gptimer.h"
+
+class HR_Timer : public HR_Base
+{
+    gptimer_handle_t handle;
+    gptimer_event_callbacks_t callbacks[2];
+    gptimer_alarm_config_t alarm_config;
+    bool running;
+
+    virtual void start(bool periodic) override
+    {
+        alarm_config.flags.auto_reload_on_alarm = periodic;
+        esp_err_t err;
+        err = gptimer_set_alarm_action(handle, & alarm_config);
+        esp_check(err);
+        err = gptimer_enable(handle);
+        esp_check(err);
+        running = true;
+    }
+
+    virtual void stop() override
+    {
+        esp_err_t err;
+        err = gptimer_disable(handle);
+        esp_check(err);
+        running = false;
+    }
+
+    virtual void set_period(Period p) override
+    {
+        alarm_config.alarm_count = p;
+        alarm_config.reload_count = 0;
+
+        if (running & alarm_config.flags.auto_reload_on_alarm)
+        {
+            esp_err_t err;
+            err = gptimer_set_alarm_action(handle, & alarm_config);
+            esp_check(err);
+        }
+    }
+
+    static bool alarm_cb(gptimer_handle_t, const gptimer_alarm_event_data_t *, void *user_ctx)
+    {
+        return HR_Base::irq_handler(user_ctx);
+    }
+
+    virtual void set_handler(void (*fn)(Timer *, void *), void *arg) override
+    {
+        esp_err_t err;
+
+        if (irq.fn)
+        {
+            // Unregister
+            err = gptimer_register_event_callbacks(handle, 0, 0);
+            esp_check(err);
+        }
+
+        irq.fn = fn;
+        irq.arg = arg;
+
+        if (fn)
+        {
+            err = gptimer_register_event_callbacks(handle, callbacks, this);
+            esp_check(err);
+        }
+    }
+
+    virtual Period get() override
+    {
+        uint64_t value = 0;
+        esp_err_t err = gptimer_get_captured_count(handle, & value);
+        esp_check(err);
+        return value;
+    }
+
+public:
+    HR_Timer(uint32_t group=0, uint32_t num=0)
+    :   running(false)
+    {
+        irq.fn = 0;
+        irq.arg = 0;
+        irq.timer = this;
+        callbacks[0].on_alarm = alarm_cb;
+        callbacks[1].on_alarm = 0;
+
+        gptimer_config_t config = {
+            .clk_src=GPTIMER_CLK_SRC_DEFAULT,
+            .direction=GPTIMER_COUNT_UP,
+            .resolution_hz=80000000,
+            .intr_priority=0,
+            .flags={ .intr_shared=0 },
+        };
+        esp_err_t err;
+        
+        err = gptimer_new_timer(& config, & handle);
+        esp_check(err);
+    }
+
+    ~HR_Timer()
+    {
+        set_handler(0, 0);
+        esp_err_t err;
+        err = gptimer_del_timer(handle);
+        esp_check(err);
+    }    
+};
+
+#endif // (ESP_IDF_VERSION_MAJOR == 5)
 
 Timer *create_hr_timer(uint32_t group, uint32_t num)
 {
