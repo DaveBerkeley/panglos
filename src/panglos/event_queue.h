@@ -12,7 +12,9 @@ template <class T>
 class _EvQueue
 {
     Mutex *mutex;
+
 public:
+
     class Event {
     public:
         Event *next;
@@ -33,11 +35,11 @@ public:
 
     List<Event*> events;
 
-    _EvQueue()
+    _EvQueue(panglos::Mutex *m=0)
     :   mutex(0),
         events(Event::next_fn)
     {
-        mutex = panglos::Mutex::create();
+        mutex = m ? m : panglos::Mutex::create();
     }
 
     ~_EvQueue()
@@ -45,17 +47,17 @@ public:
         delete mutex;
     }
 
-    void add(_EvQueue::Event *ev)
+    void add(Event *ev)
     {
         events.add_sorted(ev, Event::cmp, mutex);
     }
 
-    bool del(_EvQueue::Event *ev)
+    bool del(Event *ev)
     {
         return events.remove(ev, mutex);
     }
 
-    void reschedule(_EvQueue::Event *ev, T t)
+    void reschedule(Event *ev, T t)
     {
         del(ev);
         ev->when = t;
@@ -65,7 +67,7 @@ public:
     Event *pop(T t)
     {
         panglos::Lock lock(mutex);
-        _EvQueue::Event *ev = events.head;
+        Event *ev = events.head;
 
         if (!ev)
         {
@@ -88,7 +90,7 @@ public:
 
         while (true)
         {
-            _EvQueue::Event *ev = pop(t);
+            Event *ev = pop(t);
             if (!ev)
             {
                 return found;
@@ -100,6 +102,7 @@ public:
 };
 
 typedef _EvQueue<Time::tick_t> EvQueue;
+typedef _EvQueue<uint64_t> EvQueue64;
 
 }   //  namespace panglos
 
