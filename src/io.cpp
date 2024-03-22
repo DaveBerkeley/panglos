@@ -13,7 +13,8 @@
 
 extern "C" {
 
-void putchar_(char c)
+// used by printf library
+void __attribute__((weak)) putchar_(char c)
 {
     IGNORE(c);
     ASSERT(0);
