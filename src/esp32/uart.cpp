@@ -39,12 +39,12 @@ static const LUT uart_event_lut[] = {
     { 0, 0 },
 };
 
-static int get_port(int p)
+static uart_port_t get_port(int p)
 {
     // Check the port range for vailidity
     ASSERT(p < UART_NUM_MAX);
     ASSERT(p >= 0);
-    return p;
+    return (uart_port_t) p;
 }
 
     /*
@@ -79,7 +79,7 @@ XUART *XUART::xuarts[UART_NUM_MAX];
      *
      */
 
-static void cb(int port, uart_select_notif_t notif, int* wake)
+static void cb(uart_port_t port, uart_select_notif_t notif, int* wake)
 {
     // WARNING : called in UART interrupt
     XUART *uart = XUART::xuarts[port];

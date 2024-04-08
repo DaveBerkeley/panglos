@@ -173,7 +173,7 @@ protected:
     }
 };
 
-#if (ESP_IDF_VERSION_MAJOR == 4)
+#if (ESP_IDF_VERSION_MAJOR == 4) || ((ESP_IDF_VERSION_MAJOR == 5) && (ESP_IDF_VERSION_MINOR < 1))
 
     /*
      *  ESP-IDF Version 4 timer API
@@ -275,13 +275,11 @@ public:
     }
 };
 
-#endif // (ESP_IDF_VERSION_MAJOR == 4)
+#else
 
     /*
      *  ESP-IDF Version 5 API
      */
-
-#if (ESP_IDF_VERSION_MAJOR == 5)
 
 #include "driver/gptimer.h"
 
@@ -390,7 +388,7 @@ public:
     }    
 };
 
-#endif // (ESP_IDF_VERSION_MAJOR == 5)
+#endif // (ESP_IDF_VERSION_MAJOR == 4/5)
 
 Timer *create_hr_timer(uint32_t group, uint32_t num)
 {
