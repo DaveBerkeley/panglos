@@ -100,6 +100,7 @@ public:
         R_GPIOB     = 0x13,
         R_OLATA     = 0x14, // 
         R_OLATB     = 0x15,
+        R_NONE      = 0xFF,
     };
  
     virtual bool read(Register reg, uint8_t *rd) = 0;
