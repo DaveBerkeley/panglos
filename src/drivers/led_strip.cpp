@@ -105,6 +105,16 @@ void LedCircle::set_all(uint8_t r, uint8_t g, uint8_t b)
     }
 }
 
+void LedCircle::set(int idx, uint8_t r, uint8_t g, uint8_t b)
+{
+    ASSERT(idx < leds->num_leds());
+    struct LedStrip::RGB *x = & rgb[idx];
+    x->r = r;
+    x->g = g;
+    x->b = b;
+    x->w = 0;
+}
+
 void LedCircle::clear()
 {
     set_all(0, 0, 0);

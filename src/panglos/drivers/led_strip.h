@@ -45,11 +45,13 @@ public:
     void calc_angle(int _360, struct Hand *hand, uint8_t _max=0xff);
 
     void set_angle(enum LedStrip::Colour colour, const struct Hand *hand);
+    int num_leds() { return leds->num_leds(); }
 
     bool set_time();
 
     void draw();
     void set_all(uint8_t r, uint8_t g, uint8_t b);
+    void set(int led, uint8_t r, uint8_t g, uint8_t b);
     void clear();
 
     LedCircle(LedStrip *_leds);
