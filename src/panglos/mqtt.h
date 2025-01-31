@@ -57,6 +57,7 @@ public:
     virtual void on_error(MqttEvent *event);
 
     int publish(const char *topic, const char *data, int len, int qos=0, int retain=0);
+    void visit(int (*fn)(MqttSub *sub, void *arg), void *arg);
 
     void app_start(const char *uri);
 };

@@ -144,6 +144,11 @@ MqttSub *MqttClient::find(const char *topic, int len)
     return subs.find(subs_match, (void*) & match, 0);
 }
 
+void MqttClient::visit(int (*fn)(MqttSub *, void *), void *arg)
+{
+    subs.visit(fn, arg, 0);
+}
+
     /*
      *  Event Handlers
      */
