@@ -126,7 +126,7 @@ uint8_t SevenSegment::seg(char data, bool reverse)
         case 'I' : return b+c;
         case 'j' :
         case 'J' : return uint8_t(b+c+d);
-        case 'k' : return uint8_t(a+f+g+e+c);
+        case 'k' : return uint8_t(f+b+g+e+c);
         case 'K' : return uint8_t(f+b+g+e+c);
         case 'l' :
         case 'L' : return uint8_t(f+e+d);
