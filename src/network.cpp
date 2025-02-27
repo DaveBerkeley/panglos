@@ -1,5 +1,6 @@
 
-#include <gtest/gtest.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "panglos/debug.h"
 
@@ -248,6 +249,8 @@ void ConnectionWaiter::on_connect_fail(Interface *i)
 void ConnectionWaiter::on_disconnect(Interface *)
 {
     PO_DEBUG("");
+    iface = 0;
+    sem->post();
 }
 
 ConnectionWaiter::ConnectionWaiter()
