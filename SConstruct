@@ -19,6 +19,7 @@ files = [
     'src/batch.cpp',
     'src/network.cpp',
     'src/date.cpp',
+    'src/fmt.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/2_wire_bitbang.cpp',
@@ -79,6 +80,7 @@ files = [
     'unit-tests/batch.cpp',
     'unit-tests/network.cpp',
     'unit-tests/date.cpp',
+    'unit-tests/fmt.cpp',
 ]
 
 ccflags = [
