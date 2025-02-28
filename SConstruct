@@ -18,6 +18,7 @@ files = [
     'src/watchdog.cpp',
     'src/batch.cpp',
     'src/network.cpp',
+    'src/date.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/2_wire_bitbang.cpp',
@@ -77,6 +78,7 @@ files = [
     'unit-tests/watchdog.cpp',
     'unit-tests/batch.cpp',
     'unit-tests/network.cpp',
+    'unit-tests/date.cpp',
 ]
 
 ccflags = [
