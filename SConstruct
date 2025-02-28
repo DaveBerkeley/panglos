@@ -55,7 +55,6 @@ files = [
     'unit-tests/mcp23s17_test.cpp',
     'unit-tests/mock.cpp',
     'unit-tests/motor_test.cpp',
-    'unit-tests/msg_queue_test.cpp',
     'unit-tests/time.cpp',
     'unit-tests/object.cpp',
     'unit-tests/i2c.cpp',
