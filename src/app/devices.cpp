@@ -219,7 +219,7 @@ bool i2c_bitbang_init(Device *dev, void *arg)
     return true;
 }
 
-bool port_init(Device *dev, void *arg)
+bool port_init(Device *dev, void *)
 {
     const char *s = dev->find_has("i2c");
     ASSERT(s);

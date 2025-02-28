@@ -36,6 +36,8 @@ files = [
     'src/drivers/mhz19b.cpp',
     'src/drivers/mcp3002.cpp',
 
+    'src/app/event.cpp',
+
     # for test environment
     'src/linux/arch.cpp',
     'src/linux/thread.cpp',
@@ -81,6 +83,7 @@ files = [
     'unit-tests/network.cpp',
     'unit-tests/date.cpp',
     'unit-tests/fmt.cpp',
+    'unit-tests/event.cpp',
 ]
 
 ccflags = [
