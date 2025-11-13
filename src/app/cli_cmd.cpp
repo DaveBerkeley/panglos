@@ -41,6 +41,23 @@ static void cli_error(CLI *cli, const char *text)
     cli_print(cli, "%s%s", text, cli->eol);
 }
 
+static bool isin(const char *str, const char **table)
+{
+    for (; *table; table++)
+    {
+        if (!strcmp(str, *table)) return true;
+    }
+    return false;
+}
+
+static void cli_print_table(CLI *cli, const char **table, const char *sep="")
+{
+    for (int i = 0; *table; table++, i++)
+    {
+        cli_print(cli, "%s%s", (i == 0) ? "" : sep, *table);
+    }
+}
+
 static bool get_args(CLI *cli, int idx, int *args, int n)
 {
     ASSERT(args);
@@ -79,10 +96,8 @@ static void cmd_reset(CLI *cli, CliCommand *cmd)
      *
      */
 
-static void cmd_pwm(CLI *cli, CliCommand *cmd)
+static void cmd_pwm(CLI *cli, CliCommand *)
 {
-    IGNORE(cmd);
-
     PWM *pwm = (PWM*) Objects::objects->get("pwm");
     ASSERT(pwm);
 
@@ -202,7 +217,6 @@ static void cmd_thread(CLI *cli, CliCommand *)
 
     free(tasks);
 }
-
 
 #endif  //  ARCH_LINUX
 
@@ -342,18 +356,18 @@ static void cmd_gpio(CLI *cli, CliCommand *cmd)
 #if !defined(GTEST)
 
 static LUT st_lut[] = { 
-    {   "NONE",     Storage::VAL_NONE, },
-    {   "INT8",     Storage::VAL_INT8, }, 
-    {   "INT16",    Storage::VAL_INT16,  },
-    {   "INT32",    Storage::VAL_INT32,  },
-    {   "STR",      Storage::VAL_STR,  },
+    {   "NONE",     Storage::VAL_NONE,  },
+    {   "INT8",     Storage::VAL_INT8,  }, 
+    {   "INT16",    Storage::VAL_INT16, },
+    {   "INT32",    Storage::VAL_INT32, },
+    {   "STR",      Storage::VAL_STR,   },
+    {   "BLOB",     Storage::VAL_BLOB,  },
     {   "OTHER",    Storage::VAL_OTHER, },
     { 0, 0 },
 };
 
-static void cmd_storage_list(CLI *cli, CliCommand *cmd)
+static void cmd_storage_list(CLI *cli, CliCommand *)
 {
-    IGNORE(cmd);
     int idx = 0;
     char *s = (char*) cli_get_arg(cli, idx++);
 
@@ -369,9 +383,8 @@ static void cmd_storage_list(CLI *cli, CliCommand *cmd)
     }
 }
 
-static void cmd_storage_set(CLI *cli, CliCommand *cmd)
+static void cmd_storage_set(CLI *cli, CliCommand *)
 {
-    IGNORE(cmd);
     int idx = 0;
     const char *ns  = cli_get_arg(cli, idx++);
     const char *key = cli_get_arg(cli, idx++);
@@ -497,6 +510,180 @@ static void cmd_storage_get(CLI *cli, CliCommand *cmd)
     }
 }
 
+static void dump(CLI *cli, const void *data, size_t size, int columns=16)
+{
+    const char *d = (char*) data;
+    int addr = 0;
+    while (size)
+    {
+        cli_print(cli, "%04d:", addr);
+        addr += columns;
+        for (int i = 0; i < columns; i++)
+        {
+            if (!size) break;
+            uint8_t c = *d++;
+            cli_print(cli, " %x%x", c >> 4, c & 0x0f);
+            size -= 1;
+        }
+        cli_print(cli, "%s", cli->eol);
+    }
+}
+
+static void blob_get(CLI *cli, const char *ns, const char *key)
+{
+    const bool verbose = true;
+    Storage db(ns, verbose);
+
+    size_t size = 0;
+
+    if (!db.get_blob(key, 0, & size))
+    {
+        cli_print(cli, "error reading '%s':'%s'%s", ns, key, cli->eol);
+        return;
+    }
+    if (!size)
+    {
+        cli_print(cli, "error size==0%s", cli->eol);
+        return;
+    }
+
+    void *data = malloc(size);
+    ASSERT(data);
+    if (!db.get_blob(key, data, & size))
+    {
+        free(data);
+        cli_print(cli, "error getting '%s':'%s'%s", ns, key, cli->eol);
+        return;
+    }
+
+    dump(cli, data, size);
+    free(data);
+}
+
+    /*
+     *
+     */
+
+class Capture
+{
+    CLI *cli;
+    char last;
+    size_t chunk;
+    size_t size;
+public:
+    char *ns;
+    char *key;
+    char *data;
+    size_t idx;
+
+    Capture(CLI *_cli, const char *_ns, const char *_key, size_t init_size=128)
+    :   cli(_cli), 
+        last(0),
+        chunk(init_size),
+        size(init_size),
+        ns(strdup(_ns)),
+        key(strdup(_key)),
+        data(0),
+        idx(0)
+    {
+        data = (char*) malloc(size);
+        ASSERT(data);
+    }
+
+    ~Capture()
+    {
+        free(data);
+        free(ns);
+        free(key);
+    }
+
+    bool process(char c)
+    {
+        // save c in data
+        data[idx++] = c;
+        if (idx == size)
+        {
+            // we've run out of space, so realloc
+            size += chunk;
+            data = (char*) realloc(data, size);
+            ASSERT(data); 
+        }
+        data[idx] = '\0';
+
+        const bool done = (c == '\n') && (last == '\n');
+        last = c;
+        if (done) PO_DEBUG("");
+        return !done;
+    }
+};
+
+static void captured(CLI *cli, char c)
+{
+    Capture *cap = (Capture *) cli->capture_ctx;
+    ASSERT(cap);
+    if (cap->process(c))
+    {
+        return;
+    }
+    // on captured ...
+
+    Storage db(cap->ns);
+
+    if (!db.set_blob(cap->key, cap->data, cap->idx))
+    {
+        cli_print(cli, "error writing blob '%s':'%s' size=%d%s", 
+                cap->ns,
+                cap->key, 
+                cap->idx,
+                cli->eol);
+    }
+    else
+    {
+        cli_print(cli, "set blob '%s':'%s' size=%d%s", 
+                cap->ns,
+                cap->key, 
+                cap->idx,
+                cli->eol);
+    }
+
+    // end capture
+    cli_capture(cli, 0, 0);
+    delete cap;
+}
+
+static void blob_set(CLI *cli, const char *ns, const char *key)
+{
+    const bool verbose = true;
+    Storage db(ns, verbose);
+    cli_capture(cli, captured, new Capture(cli, ns, key));
+}
+
+static void cmd_storage_blob(CLI *cli, CliCommand *)
+{
+    int idx = 0;
+    const char *cmd  = cli_get_arg(cli, idx++);
+    const char *ns  = cli_get_arg(cli, idx++);
+    const char *key = cli_get_arg(cli, idx++);
+
+    const char *cmds[] = { "set", "get", 0 };
+
+    if ((!(ns && key && cmd)) || !isin(cmd, cmds))
+    {
+        cli_print(cli, "expects: ");
+        cli_print_table(cli, cmds, "|");
+        cli_print(cli, " ns key%s", cli->eol);
+        return;
+    }
+
+    if (!strcmp(cmd, "get"))
+    {
+        blob_get(cli, ns, key);
+        return;
+    }
+
+    blob_set(cli, ns, key);
+}
+
 static void cmd_storage_del(CLI *cli, CliCommand *cmd)
 {
     IGNORE(cmd);
@@ -526,8 +713,9 @@ static void cmd_storage_del(CLI *cli, CliCommand *cmd)
 
 static CliCommand st_list = { "list", cmd_storage_list, "[namespace]", 0, 0, 0 };
 static CliCommand st_set  = { "set",  cmd_storage_set,  "<namespace> <key> <value>", 0, 0, & st_list, };
-static CliCommand st_get  = { "get",  cmd_storage_get,  "<namespace> <key>",  0, 0, & st_set, };
-static CliCommand st_del  = { "del",  cmd_storage_del,  "<namespace> <key>",  0, 0, & st_get, };
+static CliCommand st_get  = { "get",  cmd_storage_get,  "<namespace> <key>", 0, 0, & st_set, };
+static CliCommand st_blob = { "blob", cmd_storage_blob, "set|get <namespace> <key>", 0, 0, & st_get, };
+static CliCommand st_del  = { "del",  cmd_storage_del,  "<namespace> <key>", 0, 0, & st_blob, };
 
 #endif  //  GTEST
 
@@ -986,7 +1174,7 @@ static CliCommand cli_commands[] = {
     { "gpio",   cmd_gpio,   "gpio", 0, 0, 0 },
     { "verbose", cmd_verbose, "verbose", 0, 0, 0 },
     { "banner", cmd_banner,   "banner", 0, 0, 0 },
-    { "db",     cli_nowt,     "list|del|get|set", & st_del, 0, 0 },
+    { "db",     cli_nowt,     "list|del|get|set|blob", & st_del, 0, 0 },
 #if 0 // defined(ESP_PLATFORM)
     { "wifi", cmd_wifi,   "wifi", 0, 0, 0 },
     { "timer", cmd_timer,   "timer", 0, 0, 0 },

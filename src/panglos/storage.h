@@ -22,6 +22,7 @@ public:
         VAL_INT16, 
         VAL_INT32, 
         VAL_STR, 
+        VAL_BLOB,
         VAL_OTHER,
     } Type;
 
@@ -36,6 +37,9 @@ public:
     bool set(const char *key, int16_t value);
     bool set(const char *key, int32_t value);
     bool set(const char *key, const char *value);
+
+    bool set_blob(const char *key, void *data, size_t size);
+    bool get_blob(const char *key, void *data, size_t *size);
 
     bool erase(const char *key);
 

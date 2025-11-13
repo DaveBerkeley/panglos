@@ -13,7 +13,10 @@ namespace panglos {
 
 static bool error(esp_err_t err, const char *fn, int line, const char *ns=0, const char *extra=0)
 {
-    PO_ERROR("err=%s err=%d fn=%s +%d %s.%s", lut(err_lut, err), err, fn, line, 
+    PO_ERROR("err=%s err=%d fn=%s +%d %s.%s", 
+            //lut(err_lut, err), 
+            esp_err_to_name(err),
+            err, fn, line, 
             ns ? ns : "",
             extra ? extra : "");
     return false;
@@ -22,6 +25,22 @@ static bool error(esp_err_t err, const char *fn, int line, const char *ns=0, con
 static nvs_handle_t *make_handle(Storage::Handle **handle)
 {
     return (nvs_handle_t*) handle;
+}
+
+static Storage::Type totype(nvs_type_t ty)
+{
+    switch (ty) 
+    {
+        case NVS_TYPE_BLOB : return Storage::VAL_BLOB;
+        case NVS_TYPE_STR  : return Storage::VAL_STR;
+        case NVS_TYPE_U8   : 
+        case NVS_TYPE_I8   : return Storage::VAL_INT8;
+        case NVS_TYPE_U16  :
+        case NVS_TYPE_I16  : return Storage::VAL_INT16;
+        case NVS_TYPE_U32  :
+        case NVS_TYPE_I32  : return Storage::VAL_INT32;
+        default            : return Storage::VAL_OTHER;
+    }
 }
 
     /*
@@ -74,9 +93,20 @@ bool Storage::commit()
 
 Storage::Type Storage::get_type(const char *key)
 {
+#if 0
+    // see https://github.com/espressif/esp-idf/issues/12155
+
+    nvs_type_t ty = NVS_TYPE_ANY;
+    esp_err_t err = nvs_find_key(*make_handle(& handle), key, & ty);
+    if (err != ESP_OK)
+    {
+        error(err, __FUNCTION__, __LINE__, ns, key);
+        return VAL_NONE;
+    }
+    return totype(ty);
+#else
     // There doesn't seem to be a direct call to determine the type
     // so iterate through the namespace looking for the key
-
     List db(ns);
 
     char k[NVS_KEY_NAME_MAX_SIZE];
@@ -91,6 +121,7 @@ Storage::Type Storage::get_type(const char *key)
     }
 
     return VAL_NONE;
+#endif
 }
 
     /*
@@ -180,6 +211,28 @@ bool Storage::get(const char *key, char *value, size_t *s)
     return true;
 }
 
+bool Storage::set_blob(const char *key, void *data, size_t size)
+{
+    esp_err_t err = nvs_set_blob(*make_handle(& handle), key, data, size);
+    if (err != ESP_OK)
+    {
+        PO_ERROR("k=%s", key);
+        return error(err, __FUNCTION__, __LINE__, ns, key);
+    }
+    return true;
+}
+
+bool Storage::get_blob(const char *key, void *data, size_t *size)
+{
+    esp_err_t err = nvs_get_blob(*make_handle(& handle), key, data, size);
+    if (err != ESP_OK)
+    {
+        PO_ERROR("k=%s", key);
+        return error(err, __FUNCTION__, __LINE__, ns, key);
+    }
+    return true;
+}
+
 bool Storage::erase(const char *key)
 {
     esp_err_t err = nvs_erase_key(*make_handle(& handle), key);
@@ -248,17 +301,7 @@ bool Storage::List::get(char *_ns, char *key, Type *type)
     if (type)
     {
         //PO_DEBUG("%s %s %d", info.namespace_name, info.key, info.type);
-        switch (info.type)
-        {
-            case NVS_TYPE_STR : *type = VAL_STR;    break;
-            case NVS_TYPE_U32 :
-            case NVS_TYPE_I32 : *type = VAL_INT32;  break;
-            case NVS_TYPE_U16 :
-            case NVS_TYPE_I16 : *type = VAL_INT16;  break;
-            case NVS_TYPE_U8  :
-            case NVS_TYPE_I8  : *type = VAL_INT8;   break;
-            default           : *type = VAL_OTHER;  break;
-        }
+        *type = totype(info.type);
     }
 
     const bool ok = iter;
@@ -269,7 +312,8 @@ bool Storage::List::get(char *_ns, char *key, Type *type)
     esp_err_t err = nvs_entry_next(& iter->iter);
     if (err != ESP_OK)
     {
-        return error(err, __FUNCTION__, __LINE__, ns, key);
+        return false; // end of list
+        //return error(err, __FUNCTION__, __LINE__, ns, key);
     }
 #endif
     return ok;
