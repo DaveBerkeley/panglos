@@ -2,8 +2,6 @@
 #include "panglos/debug.h"
 #include "panglos/stm32/uart_f1.h"
 
-//#include "uart.h"
-
 class _UART;
 
 static _UART *uarts[3];
