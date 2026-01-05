@@ -7,10 +7,10 @@
 
 #include "../panglos/debug.h"
 
-#include "../panglos/gpio.h"
+#include "../panglos/drivers/gpio.h"
 #include "../panglos/mutex.h"
 #include "../panglos/list.h"
-#include "../panglos/uart.h"
+#include "../panglos/drivers/uart.h"
 
 namespace panglos {
 

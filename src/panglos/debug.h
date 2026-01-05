@@ -5,6 +5,9 @@
 #include <stdint.h>
 
 #define IGNORE(x) ((void) (x))
+#ifdef UNUSED
+#undef UNUSED
+#endif
 #define UNUSED(x) ((void) (x))
 
 typedef enum {

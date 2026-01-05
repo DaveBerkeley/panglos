@@ -2,7 +2,7 @@
 #include "../panglos/stm32/stm32fxxx_hal.h"
 
 #include "../panglos/debug.h"
-#include "../panglos/gpio.h"
+#include "../panglos/drivers/gpio.h"
 #include "../panglos/stm32/gpio_arm.h"
 
     /*
