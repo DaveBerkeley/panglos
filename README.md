@@ -145,6 +145,8 @@ So, an example project that I've been working on, using the STM32F103, has initi
     #include "panglos/stm32/gpio_f1.h"
     #include "panglos/stm32/uart_f1.h"
 
+    using namespace panglos;
+
         /*
          *  IO configuration
          */
@@ -210,7 +212,7 @@ The creation uses the low level #include "stm32f1xx.h" header.
 It doesn't even need the STM32 HAL.
 
 The GPIO initialisation is data driven and all defined in a single table.
-The UART can be passed to the logging system or the CLI and it just works.
+The UART can be passed to the logging system and/or the CLI and it just works.
 
 ----
 
@@ -269,6 +271,8 @@ eg. moving an item from one list to the other :
             other_things.push(thing, 0);
         }
     }
+
+This also removes the need to have a recursive Mutex for this case.
 
 The Mutex pointer can, of course, be null.
 If you don't have any threading or interrupts to worry about, you probably don't need locking.
