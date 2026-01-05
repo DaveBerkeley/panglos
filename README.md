@@ -27,8 +27,13 @@ it becomes possible to use TDD for almost all of the application code.
 
 You can also run the unit tests on the target, for better coverage.
 
-It is written as a wrapper around [FreeRTOS][1] 
-and the STM32 and ESP32 HALs. My focus is now on the ESP32.
+It is written partly as a wrapper around [FreeRTOS][1] 
+and the STM32 and ESP32 HALs. 
+However, it can be used without an OS.
+It makes a very effective bare metal framework.
+You can use low level GPIO, UART etc. drivers.
+It works well with my [CLI](https://github.com/DaveBerkeley/cli) library.
+If you don't need a scheduler, you may not need an OS.
 
 The name @ref panglos is taken from the character Dr. Pangloss in Voltaire's satirical book ['Candide'](https://en.wikipedia.org/wiki/Candide).
 It is intended as a warning about boundless optimism.
@@ -40,7 +45,8 @@ It is not __The best of all possible worlds__. It's not even close.
 OS Abstraction
 ====
 
-There are a number of OS related classes used to absract the underlying RTOS - so far only FreeRTOS is supported on the target, but it is trivial to add others. Linux is supported for test.
+There are a number of OS related classes used to absract the underlying RTOS - so far only FreeRTOS is supported on the target, 
+but it is trivial to add others. Linux is supported for test.
 
 Mutex
 ====
@@ -120,6 +126,93 @@ and a DS3231 RTC object. The I2C class doesn't need to have any OS/HAL dependenc
 You can have a hardware I2C interface or a bit-banged software I2C interface. The code doesn't care. You just create whatever you need and pass it in the ctor of the DS3231 class.
 
 ----
+Low level Drivers
+====
+
+There are a number of device classes that wrap hardware devices.
+When I started developing Panglos I thought I needed to abstract the device creation as well as the devices themselves.
+I now realise this is not the best way.
+When you are creating the main.cpp code you are probably targetting a specific microcontroller.
+It is okay, indeed best, to have target specific creation and initialisation.
+Abstracting the differences between different processors turned out to be difficult and unproductive.
+So the approach I now take is to have target specific device creation that creates Panglos abstract objects.
+You can abstract the whole app code, which also means that you can unit test it very easily.
+
+So, an example project that I've been working on, using the STM32F103, has initialisation that looks like this :
+
+    #include "panglos/debug.h"
+    #include "panglos/logger.h"
+    #include "panglos/stm32/gpio_f1.h"
+    #include "panglos/stm32/uart_f1.h"
+
+        /*
+         *  IO configuration
+         */
+
+    #define DEBUG_UART (USART1)
+    #define COMMS_UART (USART2)
+
+    GPIO *led;
+
+    typedef STM32F1_GPIO::IO IODEF;
+
+    typedef struct {
+        GPIO_TypeDef *port;
+        uint32_t pin;
+        IODEF io;
+        GPIO **gpio;
+    } IoDef;
+
+    static const IODEF ALT_IN  = IODEF(STM32F1_GPIO::INPUT  | STM32F1_GPIO::ALT);
+    static const IODEF ALT_OUT = IODEF(STM32F1_GPIO::OUTPUT | STM32F1_GPIO::ALT);
+
+    static const IoDef gpios[] = {
+        {   GPIOC, 13, STM32F1_GPIO::OUTPUT, & led, }, // LED
+        {   GPIOA, 9,  ALT_OUT, }, // UART Tx
+        {   GPIOA, 10, ALT_IN,  }, // UART Rx
+        {   GPIOA, 2,  ALT_OUT, }, // Comms Tx
+        {   GPIOA, 3,  ALT_IN,  }, // Comms Rx
+        {   GPIOA, 0,  ALT_IN,  }, // TIM2 counter/timer input
+        {   GPIOA, 6,  ALT_OUT, }, // TIM3 phase output
+        {   GPIOB, 6,  ALT_OUT, }, // TIM4 triac output
+        {   0 },
+    };
+
+    void init_gpio(const IoDef *gpios)
+    {
+        for (const IoDef *def = gpios; def->port; def++)
+        {
+            STM32F1_GPIO::IO io = def->io;
+            if (!def->gpio) io = IODEF(io | STM32F1_GPIO::INIT_ONLY);
+            GPIO *gpio = STM32F1_GPIO::create(def->port, def->pin, io);
+            if (def->gpio) *def->gpio = gpio;
+        }
+    }
+
+    ...
+
+    int main(void)
+    {
+        // initialise all the GPIO pins
+        init_gpio(gpios);
+
+        // create the main UART
+        UART *uart = STM32F1_UART::create(DEBUG_UART, 32);
+        // create a logger
+        logger = new Logging(S_DEBUG, 0);
+        logger->add(uart, S_DEBUG, 0);
+
+        ...
+    }
+
+The panglos::UART and panglos::GPIO devices are abstract. The creation of them is not.
+The creation uses the low level #include "stm32f1xx.h" header. 
+It doesn't even need the STM32 HAL.
+
+The GPIO initialisation is data driven and all defined in a single table.
+The UART can be passed to the logging system or the CLI and it just works.
+
+----
 
 Linked Lists
 ===
@@ -130,9 +223,18 @@ List items can be a mix of static, automatic, dynamic, it doesn't matter. Items 
 lists at the same time, as they can have multiple 'next' pointers.
 
 The trick is to provide a function for the object that returns the address of the 'next' pointer.
-You need to implement this function for each object type. You pass the function into the List<> constructor. The list functions then use it to traverse the list. If you have more than one 'next' pointer, you can provide
-a different function for each pointer.
+You need to implement this function for each object type. 
+You pass the function into the List<> constructor. The list functions then use it to traverse the list. 
+If you have more than one 'next' pointer, you can provide a different function for each pointer.
 This allows the same object to potentially be in multiple lists.
+
+I tried for years to come up with a good abstraction of linked lists.
+The standard Linux API is horrible (and non portable).
+I've seen many efforts to write clean libraries at places I have worked.
+None of them was any good.
+All had problems and defects.
+One was so bad that it drove me to write my own.
+When I realised that the key abstraction is the address of the next pointer I was able to write a clean implementation.
 
     class Thing {
         Thing *next;
@@ -153,7 +255,8 @@ This allows the same object to potentially be in multiple lists.
     things.append(thing, mutex);
     other_things.push(thing, mutex);
 
-The advantage of passing the Mutex to the list functions is that it can be used to lock multiple list functions. eg. moving an item from one list to the other :
+The advantage of passing the Mutex to the list functions is that it can be used to lock multiple list functions. 
+eg. moving an item from one list to the other :
 
     void fn(int value)
     {
@@ -166,6 +269,10 @@ The advantage of passing the Mutex to the list functions is that it can be used 
             other_things.push(thing, 0);
         }
     }
+
+The Mutex pointer can, of course, be null.
+If you don't have any threading or interrupts to worry about, you probably don't need locking.
+But the code is the same regardless.
 
 ----
 
