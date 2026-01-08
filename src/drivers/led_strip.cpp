@@ -140,7 +140,7 @@ LedCircle::~LedCircle()
 enum Scale::Section Scale::zone(double value)
 {
     if (value < lo) return LO;
-    if (value < (lo + (1 * step))) return _B;
+    if (value < (lo + (1 * step))) return _BB;
     if (value < (lo + (2 * step))) return BG;
     if (value < (lo + (3 * step))) return GB;
     if (value < (lo + (4 * step))) return GR;
@@ -173,7 +173,7 @@ void Scale::scale(LedStrip::RGB *rgb, double value)
     switch (zone(value))
     {
         case LO : set(rgb, 0, 0, 0); break;
-        case _B : set(rgb, 0, 0, ramp(part)); break;
+        case _BB: set(rgb, 0, 0, ramp(part)); break;
         case BG : set(rgb, 0, ramp(part), 0xff); break;
         case GB : set(rgb, 0, 0xff, reduce(part)); break;
         case GR : set(rgb, ramp(part), 0xff, 0); break;

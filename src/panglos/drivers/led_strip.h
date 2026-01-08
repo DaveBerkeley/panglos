@@ -68,7 +68,7 @@ class Scale
     const double hi;
     const double step;
 
-    enum Section { LO, _B, BG, GB, GR, RG, HI };
+    enum Section { LO, _BB, BG, GB, GR, RG, HI };
 
     enum Section zone(double value);
 
