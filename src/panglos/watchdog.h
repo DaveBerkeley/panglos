@@ -25,7 +25,7 @@ public:
 
     virtual Task *check_expired() = 0;
 
-    static Watchdog *create();
+    static Watchdog *create(Mutex *mutex=0);
 };
 
 }   //  namespace panglos

@@ -40,6 +40,7 @@ class _Watchdog : public Watchdog
 {
     List<Watched*> tasks;
     Mutex *mutex;
+    Mutex *mutex_tidy;
 
     virtual void poll(Time::tick_t holdoff, Thread *thread) override
     {
@@ -133,11 +134,15 @@ class _Watchdog : public Watchdog
     }
 
 public:
-    _Watchdog()
+    _Watchdog(Mutex *m)
     :   tasks(Watched::get_next),
-        mutex(0)
+        mutex(m),
+        mutex_tidy(0)
     {
-        mutex = Mutex::create();
+        if (!mutex)
+        {
+            mutex_tidy = mutex = Mutex::create();
+        }
     }
 
     ~_Watchdog()
@@ -147,7 +152,7 @@ public:
             Watched *w = tasks.pop(mutex);
             delete w;
         }
-        delete mutex;
+        delete mutex_tidy;
     }
 };
 
@@ -155,9 +160,9 @@ public:
      *
      */
 
-Watchdog *Watchdog::create()
+Watchdog *Watchdog::create(Mutex *mutex)
 {
-    return new _Watchdog;
+    return new _Watchdog(mutex);
 }
 
 }   //  namespace panglos
