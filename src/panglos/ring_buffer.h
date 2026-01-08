@@ -12,8 +12,8 @@ template<typename T, typename Idx=uint32_t>
 class RingBuffer
 {
     T *data;
-    volatile Idx rd;
-    volatile Idx wr;
+    Idx rd;
+    Idx wr;
     const Idx _size;
     const Idx _mask;
 
