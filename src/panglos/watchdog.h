@@ -6,6 +6,7 @@
 namespace panglos {
 
 class Thread;
+class Mutex;
 
 class Watchdog
 {
