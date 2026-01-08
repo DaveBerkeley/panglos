@@ -81,7 +81,7 @@ class _Watchdog : public Watchdog
 
     static int visit(Watched *w, void *arg)
     {
-        PO_DEBUG("");
+        //PO_DEBUG("");
         ASSERT(arg);
         struct Check *check = (struct Check *) arg;
 
@@ -103,7 +103,7 @@ class _Watchdog : public Watchdog
 
     virtual Task *check_expired() override
     {
-        PO_DEBUG("");
+        //PO_DEBUG("");
         struct Check check = { .w = 0, };
         tasks.visit(visit, & check, mutex);
         return check.w;
