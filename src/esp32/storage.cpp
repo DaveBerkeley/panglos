@@ -93,7 +93,7 @@ bool Storage::commit()
 
 Storage::Type Storage::get_type(const char *key)
 {
-#if 0
+#if 1
     // see https://github.com/espressif/esp-idf/issues/12155
 
     nvs_type_t ty = NVS_TYPE_ANY;

@@ -454,7 +454,7 @@ static void cmd_storage_get(CLI *cli, CliCommand *cmd)
         return;
     }
 
-    Storage db(ns, true);
+    Storage db(ns, false);
 
     Storage::Type type = db.get_type(key);
     bool ok = false;
