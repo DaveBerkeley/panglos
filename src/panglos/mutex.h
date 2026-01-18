@@ -21,7 +21,7 @@ public:
 
     Type get_type();
 
-    static Mutex *create(Type type=TASK_LOCK);
+    static Mutex *create(Type type=SYSTEM);
 };
 
     /*
