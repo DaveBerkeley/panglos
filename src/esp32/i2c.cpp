@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 
 #include "panglos/debug.h"
 
@@ -17,8 +17,33 @@ namespace panglos {
 
 #define esp_check(err) ASSERT_ERROR((err) == ESP_OK, "err=%s", lut(err_lut, (err)));
 
+class ESP_I2C::I2cDevice
+{
+public:
+    I2cDevice *next;
+    i2c_master_dev_handle_t handle;
+    uint8_t addr;
+
+    I2cDevice(uint8_t a) : next(0), handle(0), addr(a) { }    
+
+    static I2cDevice **get_next(I2cDevice *d) { return & d->next; }
+
+    static int match(I2cDevice *d, void *arg)
+    {
+        ASSERT(arg);
+        uint32_t addr = (uint32_t) arg;
+        return d->addr = addr;
+    }
+};
+
+    /*
+     *
+     */
+
 ESP_I2C::ESP_I2C(int _chan, uint32_t _scl, uint32_t _sda, Mutex *mutex, bool _verbose)
 :   I2C(mutex),
+    handle(0),
+    devices(ESP_I2C::I2cDevice::get_next),
     chan(_chan),
     scl(_scl),
     sda(_sda),
@@ -29,98 +54,61 @@ ESP_I2C::ESP_I2C(int _chan, uint32_t _scl, uint32_t _sda, Mutex *mutex, bool _ve
 
     if (verbose) PO_DEBUG("scl=%d sda=%d", (int) scl, (int) sda);
  
-    i2c_config_t config = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = (int) sda,
-        .scl_io_num = (int) scl,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master = {
-            .clk_speed = 100000,
-        },
-        .clk_flags = 0,
+    i2c_master_bus_config_t i2c_mst_config = {
+        .i2c_port = -1,
+        .sda_io_num = (gpio_num_t) sda,
+        .scl_io_num = (gpio_num_t) scl,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
     };
+    i2c_mst_config.flags.enable_internal_pullup = true;
 
-    esp_err_t err = i2c_param_config((i2c_port_t) chan, & config);
-    esp_check(err);
-
-    const size_t buff_size = 1024;
-    const int intr_alloc_flags = 0;
-    err = i2c_driver_install((i2c_port_t) chan, I2C_MODE_MASTER, buff_size, buff_size, intr_alloc_flags);
+    esp_err_t err = i2c_new_master_bus(& i2c_mst_config, (i2c_master_bus_handle_t*) & handle);
     esp_check(err);
 }
 
 ESP_I2C::~ESP_I2C()
 {
-    esp_err_t err = i2c_driver_delete((i2c_port_t) chan);
+    esp_err_t err = i2c_del_master_bus((i2c_master_bus_handle_t) handle);
     esp_check(err);
-    ESP_GPIO::mark_used(scl);
-    ESP_GPIO::mark_used(sda);
+    ESP_GPIO::mark_unused(scl);
+    ESP_GPIO::mark_unused(sda);
+
+    while (!devices.empty())
+    {
+        I2cDevice *dev = devices.pop(mutex);
+        ASSERT(dev);
+        err = i2c_master_bus_rm_device((i2c_master_dev_handle_t) dev->handle);
+        esp_check(err);
+        delete dev;
+    }
 }
 
-    /*
-     *
-     */
-
-#define WR(addr) ((addr) << 1)
-#define RD(addr) (1 | ((addr) << 1))
-
-    /*
-     *
-     */
-
-class Transaction
+ESP_I2C::I2cDevice *ESP_I2C::get_device(uint8_t addr)
 {
-    i2c_cmd_handle_t h;
-public:
-    Transaction()
-    :   h(0)
-    {
-        h = i2c_cmd_link_create();
-    }
+    uint32_t a = addr;
+    I2cDevice *dev = devices.find(I2cDevice::match, (void*) a, mutex);
 
-    void start()
+    if (!dev)
     {
-        esp_err_t err = i2c_master_start(h);
+        PO_DEBUG("create device addr=%#x", addr);
+        dev = new I2cDevice(addr);
+        devices.push(dev, mutex);
+
+        i2c_device_config_t dev_cfg = {
+            .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+            .device_address = addr,
+            .scl_speed_hz = 100000,
+        };
+        esp_err_t err = i2c_master_bus_add_device(
+                (i2c_master_bus_handle_t) handle, 
+                & dev_cfg, 
+                (i2c_master_dev_handle_t*) & dev->handle);
         esp_check(err);
     }
 
-    void write(const uint8_t *data, int len)
-    {
-        esp_err_t err = i2c_master_write(h, data, len, true);
-        esp_check(err);
-    }
-
-    void write(uint8_t data)
-    {
-        esp_err_t err = i2c_master_write_byte(h, data, true);
-        esp_check(err);
-    }
-
-    void read(uint8_t *data, int len, bool last)
-    {
-        i2c_ack_type_t ack = last ? I2C_MASTER_LAST_NACK : I2C_MASTER_NACK;
-        esp_err_t err = i2c_master_read(h, data, len, ack);
-        esp_check(err);
-    }
-
-    void stop()
-    {
-        esp_err_t err = i2c_master_stop(h);
-        esp_check(err);
-    }
-
-    bool send(int port, int timeout)
-    {
-        esp_err_t err = i2c_master_cmd_begin((i2c_port_t) port, h, timeout);
-        return err == ESP_OK;
-    }
-
-    ~Transaction()
-    {
-        i2c_cmd_link_delete(h);
-    }
-};
+    return dev;
+}
 
     /*
      *
@@ -128,61 +116,41 @@ public:
 
 bool ESP_I2C::probe(uint8_t addr, uint32_t timeout)
 {
-    Transaction io;
-
-    io.start();
-    io.write(RD(addr));
-    io.stop();
-    bool ok = io.send(chan, timeout);
-
-    if (verbose) PO_DEBUG("addr=%#x ack=%d", addr, ok);
-
-    return ok;
+    // timeout in ticks, ESPIDF API needs ms
+    esp_err_t err = i2c_master_probe((i2c_master_bus_handle_t) handle, addr, timeout * 10);
+    if (verbose) PO_DEBUG("addr=%#x err=%s", addr, lut(err_lut, (err)));
+    return err == ESP_OK;
 }
 
 int ESP_I2C::write(uint8_t addr, const uint8_t* wr, uint32_t len)
 {
     if (verbose) PO_DEBUG("addr=%#x", addr);
-
-    Transaction io;
-
-    io.start();
-    io.write(WR(addr));
-    io.write(wr, len);
-    io.stop();
-    bool ok = io.send(chan, 10);
-    return ok ? len : 0;
+    I2cDevice *dev = get_device(addr);
+    ASSERT(dev);
+    esp_err_t err = i2c_master_transmit((i2c_master_dev_handle_t) dev->handle, wr, len, -1);
+    return (err == ESP_OK) ? len : 0;
 }
 
 int ESP_I2C::write_read(uint8_t addr, const uint8_t* wr, uint32_t wr_len, uint8_t* rd, uint32_t rd_len)
 {
     if (verbose) PO_DEBUG("addr=%#x", addr);
-
-    Transaction io;
-
-    io.start();
-    io.write(WR(addr));
-    io.write(wr, wr_len);
-    io.start();
-    io.write(RD(addr));
-    io.read(rd, rd_len, true);
-    io.stop();
-    bool ok = io.send(chan, 10);
-    return ok ? rd_len : 0;
+    I2cDevice *dev = get_device(addr);
+    ASSERT(dev);
+    esp_err_t err = i2c_master_transmit_receive(
+            (i2c_master_dev_handle_t) dev->handle, 
+            wr, wr_len, 
+            rd, rd_len,
+            -1);
+    return (err == ESP_OK) ? rd_len : 0;
 }
 
 int ESP_I2C::read(uint8_t addr, uint8_t* rd, uint32_t len)
 {
     if (verbose) PO_DEBUG("addr=%#x", addr);
-
-    Transaction io;
-
-    io.start();
-    io.write(RD(addr));
-    io.read(rd, len, true);
-    io.stop();
-    bool ok = io.send(chan, 10);
-    return ok ? len : 0;
+    I2cDevice *dev = get_device(addr);
+    ASSERT(dev);
+    esp_err_t err = i2c_master_receive((i2c_master_dev_handle_t) dev->handle, rd, len, -1);
+    return (err == ESP_OK) ? len : 0;
 }
 
 }   //  namespace panglos

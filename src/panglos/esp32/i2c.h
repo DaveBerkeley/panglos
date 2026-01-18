@@ -1,10 +1,15 @@
 
 #include "panglos/drivers/i2c.h"
+#include "panglos/list.h"
 
 namespace panglos {
 
 class ESP_I2C : public I2C
 {
+    void *handle;
+    class I2cDevice;
+    List<I2cDevice *> devices;
+
     int chan;
     uint32_t scl;
     uint32_t sda;
@@ -18,6 +23,8 @@ class ESP_I2C : public I2C
 public:
     ESP_I2C(int chan, uint32_t scl, uint32_t sda, Mutex *mutex, bool verbose=false);
     virtual ~ESP_I2C();
+
+    I2cDevice* get_device(uint8_t addr);
 };
 
 }   //  namespace panglos
