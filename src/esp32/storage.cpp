@@ -272,18 +272,26 @@ Storage::List::List(const char *_ns)
 #endif
 }
 
+static void del_iter(Storage::List::Iter **piter)
+{
+    Storage::List::Iter *iter = *piter;
+    if (!iter) return;
+    nvs_release_iterator(iter->iter);
+    delete iter;
+    *piter = 0;
+}
+
 Storage::List::~List()
 {
-    if (iter)
-    {
-        nvs_release_iterator(iter->iter);
-    }
-    delete iter;
+    del_iter(& iter);
 }
 
 bool Storage::List::get(char *_ns, char *key, Type *type)
 {
-    ASSERT(iter);
+    if (!iter)
+    {
+        return false;
+    }
     if (!iter->iter)
     {
         return false;
@@ -312,8 +320,7 @@ bool Storage::List::get(char *_ns, char *key, Type *type)
     esp_err_t err = nvs_entry_next(& iter->iter);
     if (err != ESP_OK)
     {
-        return false; // end of list
-        //return error(err, __FUNCTION__, __LINE__, ns, key);
+        del_iter(& iter);
     }
 #endif
     return ok;
