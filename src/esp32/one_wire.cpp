@@ -73,7 +73,7 @@ class DS18B20_Sensor : public TemperatureSensor
     OneWireDevice *onewire;
     ds18b20_device_handle_t handle;
     float temperature;
-    Time::tick_t requested;
+    Time::tick_t last_requested;
 
     bool start_next_conversion()
     {
@@ -81,22 +81,22 @@ class DS18B20_Sensor : public TemperatureSensor
         if (err != ESP_OK) return false;
         err = ds18b20_send_command(onewire, DS18B20_CMD_CONVERT_TEMP);
 
-        requested = Time::get();
+        last_requested = Time::get();
 
         return err == ESP_OK;
     }
 
     virtual bool get_temp(double *t) override
     {
-        bool okay = true;
+        bool okay = last_requested != 0;
 
         // conversion takes up to 750ms
-        if (Time::elapsed(requested, 80))
+        if (Time::elapsed(last_requested, 80))
         {
             esp_err_t err = ds18b20_get_temperature(handle, & temperature);
             if (err != ESP_OK) return false;
 
-            okay = start_next_conversion();
+            okay &= start_next_conversion();
         }
 
         if (t) *t = temperature;
@@ -108,7 +108,7 @@ public:
     :   onewire(ow),
         handle(h),
         temperature(85.0),
-        requested(0)
+        last_requested(0)
     {
         PO_DEBUG("");
         esp_err_t err = ds18b20_set_resolution(handle, DS18B20_RESOLUTION_12B);
@@ -133,11 +133,14 @@ public:
 
     panglos::List<OneWireDevice*> devices;
 
-    _OneWire(int pin)
+    _OneWire()
     :   devices(OneWireDevice::get_next)
     {
         PO_DEBUG("");
+    }
 
+    bool init(int pin)
+    {
         onewire_bus_config_t bus_config = {
             .bus_gpio_num = pin,
             .flags = {
@@ -150,24 +153,36 @@ public:
 
         // create the bus
         esp_err_t err = onewire_new_bus_rmt(& bus_config, & rmt_config, & bus);
-        ASSERT(err == ESP_OK);
+        if (err != ESP_OK)
+        {
+            PO_ERROR("onewire_new_bus_rmt");
+            return false;
+        }
 
         onewire_device_iter_handle_t iter = 0;
         onewire_device_t device;
 
         err = onewire_new_device_iter(bus, & iter);
-        ASSERT(err == ESP_OK);
+        if (err != ESP_OK)
+        {
+            PO_ERROR("Error creating bus iterator");
+            return false;
+        }
+
+        bool okay = true;
         while (true)
         {
             err = onewire_device_iter_get_next(iter, & device);
-            if (err != ESP_OK) break;
+            if (err != ESP_OK)
+                break;
             PO_DEBUG("found device %016llX", device.address);
             OneWireDevice *dev = new OneWireDevice(bus, device);
             devices.push(dev, 0);
         }
 
         err = onewire_del_device_iter(iter);
-        ASSERT(err == ESP_OK);
+        okay &= err == ESP_OK;
+        return okay;
     }
 
     ~_OneWire()
@@ -205,7 +220,12 @@ public:
 
 OneWire *OneWire::create(int pin)
 {
-    return new _OneWire(pin);
+    _OneWire *dev = new _OneWire();
+    if (dev->init(pin))
+        return dev;
+
+    delete dev;
+    return 0;
 }
 
 bool init_onewire(Device *dev, void *arg)
@@ -216,8 +236,12 @@ bool init_onewire(Device *dev, void *arg)
     struct DefOneWire *def = (struct DefOneWire*) arg;
 
     OneWire *onewire = OneWire::create(def->pin);
-    dev->add(Objects::objects, onewire);
-    return true;
+    if (onewire)
+    {
+        dev->add(Objects::objects, onewire);
+    }
+
+    return onewire;
 }
 
 }   //  panglos
