@@ -36,6 +36,15 @@ TEST(Fmt, Test)
         {   -100e3, "-100k", false }, // Won't fit in 4 chars!
         {   0.000999, "999u", true },
         {   0.0009999, "999u", true },
+        {   0.5, "500m", true },
+        {   1.5, "1.50", true },
+        {   11.5, "11.5", true },
+        {   112.5, "112", true },
+        {   -11.5, "-11", true },
+        {   -1.5, "-1.5", true },
+        {   123, "123", true },
+        {   123.5, "123", true },
+        {   0.0115, "11m5", true },
     };
 
     for (auto & item : items)
