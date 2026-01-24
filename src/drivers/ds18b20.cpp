@@ -122,8 +122,7 @@ private:
     {
         if (!ready())
         {
-            if (t) *t = temperature;
-            return true;
+            return false;
         }
 
         if (!read(& temperature))
@@ -132,13 +131,6 @@ private:
             return false;
         }
 
-        // TODO request the next conversion (this should be in the app code) 
-        if (!start_conversion())
-        {
-            PO_ERROR("error request temperature conversion");
-            return false;
-        }
-        
         if (t) *t = temperature;
         return true;
     }
