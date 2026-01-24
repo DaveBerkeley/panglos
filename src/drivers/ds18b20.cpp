@@ -9,8 +9,7 @@
 
 #include "panglos/drivers/one_wire.h"
 #include "panglos/drivers/temperature.h"
-
-#include "ds18b20.h"
+#include "panglos/drivers/ds18b20.h"
 
 namespace panglos {
 
@@ -130,6 +129,10 @@ private:
             PO_ERROR("error reading temperature");
             return false;
         }
+
+        // 85.0 is the max and a false reading?
+        if (temperature >= 85.0)
+            return false;
 
         if (t) *t = temperature;
         return true;
