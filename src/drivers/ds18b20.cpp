@@ -101,6 +101,15 @@ private:
         uint8_t rx[9];
         onewire->read(rx, sizeof(rx));
 
+        // check the crc
+        const uint8_t crc = onewire->crc8(rx, sizeof(rx));
+        if (crc != 0)
+        {
+            // CRC error!
+            PO_DEBUG("crc error %x", crc);
+            return false;
+        }
+
         const uint16_t ut = rx[0] + (rx[1] << 8);
         const int16_t t = ut;
         double mul = 0;

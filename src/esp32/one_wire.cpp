@@ -5,6 +5,7 @@
 
 #include "onewire_bus.h"
 #include "onewire_device.h"
+#include "onewire_crc.h"
 
 #include "panglos/debug.h"
 #include "panglos/time.h"
@@ -36,6 +37,11 @@ class OneWireRmt : public _OneWire
     {
         esp_err_t err = onewire_bus_read_bytes(bus, buff, s);
         return err == ESP_OK;
+    }
+
+    virtual uint8_t crc8(const uint8_t *data, uint8_t len) override
+    {
+        return onewire_crc8(0, (uint8_t *) data, len);
     }
 
 public:

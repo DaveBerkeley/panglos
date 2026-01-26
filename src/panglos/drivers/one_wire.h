@@ -17,6 +17,7 @@ public:
     virtual bool read(uint8_t *buff, size_t s) = 0;
 
     virtual bool find(uint64_t *addr, const uint8_t type) = 0;
+    virtual uint8_t crc8(const uint8_t *data, uint8_t len) = 0;
 
     static OneWire *create(int pin);
     static OneWire *create_bitbang(int pin);

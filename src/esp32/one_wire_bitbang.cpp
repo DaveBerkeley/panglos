@@ -34,6 +34,11 @@ class OneWireBitBang : public _OneWire
         return onewire_read_bytes(pin, buff, s);
     }
 
+    virtual uint8_t crc8(const uint8_t *data, uint8_t len) override
+    {
+        return onewire_crc8(data, len);
+    }
+
 public:
     OneWireBitBang()
     {
