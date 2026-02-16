@@ -91,10 +91,15 @@ bool Storage::commit()
      *
      */
 
+#if ESP_IDF_VERSION > ESP_IDF_VERSION_VAL(5, 1, 0)
+    // see https://github.com/espressif/esp-idf/issues/12155
+#define NEW_nvs_find_key
+#else
+#endif
+
 Storage::Type Storage::get_type(const char *key)
 {
-#if 1
-    // see https://github.com/espressif/esp-idf/issues/12155
+#if defined(NEW_nvs_find_key)
 
     nvs_type_t ty = NVS_TYPE_ANY;
     esp_err_t err = nvs_find_key(*make_handle(& handle), key, & ty);
