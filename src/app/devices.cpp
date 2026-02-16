@@ -18,14 +18,22 @@
 #if defined(ESP32)
 #include "panglos/hal.h"
 #include "panglos/esp32/gpio.h"
-#include "panglos/esp32/i2c.h"
 #include "panglos/esp32/uart.h"
+#if defined(PO_I2C)
+#include "panglos/esp32/i2c.h"
+#endif
 #endif
 
+#if defined(PO_KEYBOARD)
 #include "panglos/drivers/keyboard.h"
 #include "panglos/drivers/mcp23s17.h"
+#endif
+
+#if defined(PO_I2C)
 #include "panglos/drivers/i2c.h"
 #include "panglos/drivers/i2c_bitbang.h"
+#endif
+
 #include "panglos/drivers/motor.h"
 #include "panglos/drivers/pwm.h"
 #include "panglos/drivers/7-segment.h"
@@ -102,6 +110,7 @@ bool pwm_timer_init(Device *dev, void *arg)
     return true;
 }
 
+#if defined(PO_I2C)
 bool i2c_init(Device *dev, void *arg)
 {
     ASSERT(arg);
@@ -115,6 +124,7 @@ bool i2c_init(Device *dev, void *arg)
 
     return true;
 }
+#endif
 
     /*
      *
@@ -188,7 +198,7 @@ bool seven_seg_init(Device *dev, void *arg)
      *
      */
 
-static void wait(void *arg)
+void wait(void *arg)
 {
     IGNORE(arg);
     // Wait function for bitbanged I2C interface
@@ -197,6 +207,7 @@ static void wait(void *arg)
     }
 }
 
+#if defined(PO_I2C)
 bool i2c_bitbang_init(Device *dev, void *arg)
 {
     PO_DEBUG("");
@@ -219,6 +230,7 @@ bool i2c_bitbang_init(Device *dev, void *arg)
     return true;
 }
 
+#if defined(PO_KEYBOARD)
 bool port_init(Device *dev, void *)
 {
     const char *s = dev->find_has("i2c");
@@ -238,6 +250,10 @@ bool port_init(Device *dev, void *)
     dev->add(Objects::objects, port);
     return true;
 }
+#endif  //  PO_KEYBOARD
+#endif  //  PO_I2C
+
+#if defined(PO_KEYBOARD)
 
 bool keyboard_init(Device *dev, void *arg)
 {
@@ -270,6 +286,7 @@ bool keyboard_init(Device *dev, void *arg)
 
     return true;
 }
+#endif
 
 }   //  namespace panglos
 

@@ -3,8 +3,6 @@
 #include <math.h>
 #include <arpa/inet.h> // for htonl()
 
-//#include "gtest/gtest.h"
-
 #include "cli/src/cli.h"
 
 #include "panglos/debug.h"
@@ -19,12 +17,20 @@
 #include "panglos/storage.h"
 #include "panglos/verbose.h"
 
-#include "panglos/drivers/gpio.h"
-#include "panglos/drivers/pwm.h"
 #include "panglos/drivers/uart.h"
+#include "panglos/drivers/gpio.h"
+#if defined(PO_PWM)
+#include "panglos/drivers/pwm.h"
+#endif
+#if defined(PO_RTC)
 #include "panglos/drivers/rtc.h"
+#endif
+#if defined(PO_I2C)
 #include "panglos/drivers/i2c.h"
+#endif
+#if defined(PO_SPI)
 #include "panglos/drivers/spi.h"
+#endif
 
 #include "panglos/app/cli.h"
 #include "panglos/app/event.h"
@@ -36,7 +42,7 @@ namespace panglos {
      *  CLI
      */
 
-static void cli_error(CLI *cli, const char *text)
+void cli_error(CLI *cli, const char *text)
 {
     cli_print(cli, "%s%s", text, cli->eol);
 }
@@ -58,7 +64,7 @@ static void cli_print_table(CLI *cli, const char **table, const char *sep="")
     }
 }
 
-static bool get_args(CLI *cli, int idx, int *args, int n)
+bool get_args(CLI *cli, int idx, int *args, int n)
 {
     ASSERT(args);
 
@@ -96,6 +102,8 @@ static void cmd_reset(CLI *cli, CliCommand *cmd)
      *
      */
 
+#if defined(PO_PWM)
+
 static void cmd_pwm(CLI *cli, CliCommand *)
 {
     PWM *pwm = (PWM*) Objects::objects->get("pwm");
@@ -116,6 +124,8 @@ static void cmd_pwm(CLI *cli, CliCommand *)
         cli_print(cli, "error setting chan=%d value=%d%s", args[0], args[1], cli->eol);
     }
 }
+
+#endif // PO_PWM
 
     /*
      *
@@ -723,6 +733,8 @@ static CliCommand st_del  = { "del",  cmd_storage_del,  "<namespace> <key>", 0, 
      *
      */
 
+#if defined(PO_RTC)
+
 static void cmd_rtc_get(CLI *cli, CliCommand *cmd)
 {
     IGNORE(cmd);
@@ -782,6 +794,8 @@ static void cmd_rtc_set(CLI *cli, CliCommand *cmd)
 
 static CliCommand rtc_set  = { "set",  cmd_rtc_set,  "y m d h m s", 0, 0, 0, };
 static CliCommand rtc_get  = { "get",  cmd_rtc_get,  "",  0, 0, & rtc_set, };
+
+#endif // (PO_RTC)
 
     /*
      *
@@ -864,6 +878,8 @@ static void cmd_devices(CLI *cli, CliCommand *cmd)
      *
      */
 
+#if defined(PO_I2C)
+
 static void cmd_i2c(CLI *cli, CliCommand *)
 {
     I2C *i2c = (I2C*) Objects::objects->get("i2c");
@@ -912,9 +928,13 @@ static void cmd_i2c(CLI *cli, CliCommand *)
     }
 }
 
+#endif // (PO_I2C)
+
     /*
      *
      */
+
+#if defined(PO_SPI)
 
 static void cmd_spi(CLI *cli, CliCommand *)
 {
@@ -952,6 +972,9 @@ static void cmd_spi(CLI *cli, CliCommand *)
         return;
     }
 }
+
+#endif // PO_SPI)
+
 
     /*
      *
@@ -1189,11 +1212,13 @@ void add_cli_commands(CLI *cli)
         cli_insert(cli, & cli->head, & cli_commands[i]);
     }
 
+#if defined(PO_PWM)
     if (Objects::objects->get("pwm"))
     {
         static CliCommand cmd = { "pwm", cmd_pwm, "<chan> <value>", 0, 0, 0 };
         cli_insert(cli, & cli->head, & cmd);
     }
+#endif
 
     if(Objects::objects->get("uart"))
     {
@@ -1201,23 +1226,29 @@ void add_cli_commands(CLI *cli)
         cli_insert(cli, & cli->head, & cmd);
     }
 
+#if defined(PO_RTC)
     if(Objects::objects->get("rtc"))
     {
         static CliCommand cmd = { "rtc", 0, "", & rtc_get, 0, 0 };
         cli_insert(cli, & cli->head, & cmd);
     }
+#endif
 
+#if defined(PO_I2C)
     if(Objects::objects->get("i2c"))
     {
         static CliCommand cmd = { "i2c", cmd_i2c, "i2c", 0, 0, 0 };
         cli_insert(cli, & cli->head, & cmd);
     }
+#endif
 
+#if defined(PO_SPI)
     if(Objects::objects->get("spi_dev"))
     {
         static CliCommand cmd = { "spi", cmd_spi, "spi", 0, 0, 0 };
         cli_insert(cli, & cli->head, & cmd);
     }
+#endif
 
     {
         static CliCommand cmd = { "devices", cmd_devices, "list devices", 0, 0, 0 };
