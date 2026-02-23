@@ -192,7 +192,7 @@ void MqttClient::on_data(MqttEvent *mevent)
         PO_ERROR("no handler for topic '%.*s'", event->topic_len, event->topic);
         return;
     }
-    if (mqtt.verbose) PO_DEBUG("%*s", event->topic_len, event->topic);
+    if (mqtt.verbose) PO_DEBUG("%.*s", event->topic_len, event->topic);
     ASSERT(item->handler);
     item->handler(item->arg, event->data, event->data_len);
 }
@@ -225,6 +225,7 @@ void MqttClient::on_error(MqttEvent *mevent)
 
 int MqttClient::publish(const char *topic, const char *data, int len, int qos, int retain)
 {
+    if (mqtt.verbose) PO_DEBUG("%s", topic);
     esp_mqtt_client_handle_t h = (esp_mqtt_client_handle_t) handle;
     return esp_mqtt_client_publish(h, topic, data, len, qos, retain);
 }
