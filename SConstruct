@@ -20,6 +20,7 @@ files = [
     'src/network.cpp',
     'src/date.cpp',
     'src/fmt.cpp',
+    'src/json_fmt.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/2_wire_bitbang.cpp',
@@ -84,6 +85,7 @@ files = [
     'unit-tests/date.cpp',
     'unit-tests/fmt.cpp',
     'unit-tests/event.cpp',
+    'unit-tests/json_fmt.cpp',
 ]
 
 ccflags = [
