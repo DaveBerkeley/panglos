@@ -74,6 +74,7 @@ public:
     CharOut(char *_data, int n);
 
     void reset();
+    int get_idx() { return idx; }
 };
 
     /*
