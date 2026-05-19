@@ -34,33 +34,59 @@ namespace panglos {
 
 class _Socket : public Socket
 {
-public:
-    int sock;
-
-    virtual int send(const uint8_t *data, size_t len) override
+    static struct addrinfo *get_addr(const char *host, const char *port)
     {
-        return (int) ::send(sock, data, len, 0);
+        struct addrinfo *addr = 0;
+        int err = getaddrinfo(host, port, 0, & addr);
+        if (err != 0)
+        {
+            PO_ERROR("err=%d %s", errno, strerror(errno));
+            return 0;
+        }
+
+        ASSERT(addr);
+        return addr;
     }
 
-    virtual int recv(uint8_t *data, size_t len) override
+    static int bind(int fd, const char *host, const char *port)
     {
-        return (int) ::recv(sock, data, len, 0);
+        struct addrinfo *addr = get_addr(host, port);
+        if (!addr)
+            return -1;
+        int err = ::bind(fd, addr->ai_addr, addr->ai_addrlen);
+        freeaddrinfo(addr);
+        if (err != 0)
+        {
+            PO_ERROR("err=%d %s", errno, strerror(errno));
+            return -1;
+        }
+        return err;
+    }
+
+    static int connect(int fd, const char *host, const char *port)
+    {
+        struct addrinfo *addr = get_addr(host, port);
+        if (!addr)
+            return -1;
+        int err = ::connect(fd, addr->ai_addr, addr->ai_addrlen);
+        freeaddrinfo(addr);
+        if (err != 0)
+        {
+            PO_ERROR("err=%d %s", errno, strerror(errno));
+            return -1;
+        }
+        return err;
     }
 
     static int open(const char *host, const char *port, Role role, bool udp)
     {
         PO_DEBUG("%s:%s", host, port);
 
-        struct addrinfo *addr = 0;
-        int err = getaddrinfo(host, port, 0, & addr);
-        if (err != 0)
-        {
-            PO_ERROR("err=%d %s", errno, strerror(errno));
+        struct addrinfo *addr = get_addr(host, port);
+        if (!addr)
             return -1;
-        }
 
-        ASSERT(addr);
-
+        int err;
         int fd = socket(AF_INET, udp ? SOCK_DGRAM : SOCK_STREAM, 0);
         if (fd < 0)
         {
@@ -99,6 +125,34 @@ public:
         return fd;
     }
 
+public:
+    int sock;
+
+    virtual int send(const uint8_t *data, size_t len) override
+    {
+        return (int) ::send(sock, data, len, 0);
+    }
+
+    virtual int recv(uint8_t *data, size_t len) override
+    {
+        return (int) ::recv(sock, data, len, 0);
+    }
+
+    virtual int bind(const char *host, const char *port) override
+    {
+        return bind(sock, host, port);
+    }
+
+    virtual int connect(const char *host, const char *port) override
+    {
+        return connect(sock, host, port);
+    }
+
+    virtual int get_fd() override 
+    {
+        return sock;
+    }
+    
     _Socket(int s) : sock(s) { }
 
     ~_Socket()

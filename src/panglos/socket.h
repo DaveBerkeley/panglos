@@ -14,6 +14,10 @@ public:
     virtual int send(const uint8_t *data, size_t len) = 0;
     virtual int recv(uint8_t *data, size_t len) = 0;
 
+    virtual int bind   (const char * /*ip*/, const char * /*port*/) { return 0; };
+    virtual int connect(const char * /*ip*/, const char * /*port*/) { return 0; };
+    virtual int get_fd() { return -1; }
+
     // TODO : called by network manager on wifi up/down events
     virtual void on_net_disconnect() { }
     virtual void on_net_connect() { }
