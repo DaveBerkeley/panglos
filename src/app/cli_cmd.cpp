@@ -179,7 +179,7 @@ static void cmd_help(CLI *cli, CliCommand *cmd)
     print_help_nest(cli, cli->head, 0);
 }
 
-#if 0 // !defined(ARCH_LINUX)
+#if defined(FREERTOS)
 
     /*
      *  This should be in FreeRTOS specific panglos code
@@ -197,7 +197,7 @@ static LUT lut_task_state[] = {
     {   0, 0 }
 };
 
-static void cmd_thread(CLI *cli, CliCommand *)
+static void cmd_task(CLI *cli, CliCommand *)
 {
     const UBaseType_t num_tasks = uxTaskGetNumberOfTasks();
     TaskStatus_t *tasks = (TaskStatus_t*) malloc(sizeof(TaskStatus_t) * num_tasks);
@@ -205,23 +205,26 @@ static void cmd_thread(CLI *cli, CliCommand *)
     const UBaseType_t n = uxTaskGetSystemState(tasks, num_tasks, 0);
     ASSERT(n == num_tasks);
 
-    const int cols[] = { 3, 20, 10, 10 };
-    cli_print(cli, "%*s %-*s %-*s %-*s%s", 
+    const int cols[] = { 3, 20, 10, 10, 2 };
+    cli_print(cli, "%*s %-*s %-*s %-*s %-*s %s", 
             cols[0], "#", 
             cols[1], "Task", 
             cols[2], "State", 
             cols[3], "Stack_HWM", 
+            cols[4], "Core",
             cli->eol);
  
     for (UBaseType_t i = 0; i < num_tasks; ++i)
     {
         TaskStatus_t *task = & tasks[i];
+        int core = xTaskGetCoreID(task->xHandle);
 
-        cli_print(cli, "%*d %-*s %-*s %-*ld%s", 
+        cli_print(cli, "%*d %-*s %-*s %-*ld %-*d %s", 
             cols[0], (int) task->xTaskNumber, 
             cols[1], task->pcTaskName, 
             cols[2], lut(lut_task_state, task->eCurrentState),
             cols[3], (long) tasks[i].usStackHighWaterMark, 
+            cols[4], (core == tskNO_AFFINITY) ? -1 : core, 
             cli->eol);
     }
 
@@ -1191,10 +1194,10 @@ static void cmd_timer(CLI *cli, CliCommand *)
 static CliCommand cli_commands[] = {
     { "reset",  cmd_reset,  "ASSERT(0)", 0, 0, 0 },
     { "help",   cmd_help,   "help <cmd>", 0, 0, 0 },
-#if 0 // !defined(ARCH_LINUX)
-    { "threads", cmd_thread, "view threads", 0, 0, 0 },
+#if defined(FREERTOS)
+    { "task", cmd_task, "view tasks", 0, 0, 0 },
 #endif
-    { "gpio",   cmd_gpio,   "gpio", 0, 0, 0 },
+    { "gpio",   cmd_gpio,   "gpio [show|toggle|flash] <gpio> [0|1|?]", 0, 0, 0 },
     { "verbose", cmd_verbose, "verbose", 0, 0, 0 },
     { "banner", cmd_banner,   "banner", 0, 0, 0 },
     { "db",     cli_nowt,     "list|del|get|set|blob", & st_del, 0, 0 },
