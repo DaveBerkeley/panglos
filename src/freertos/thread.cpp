@@ -73,7 +73,7 @@ public:
         delete dead;
     }
 
-    virtual void start(void (*fn)(void *arg), void *arg) override;
+    virtual void start(void (*fn)(void *arg), void *arg, int core) override;
     virtual void join() override;
 
     void run()
@@ -90,7 +90,23 @@ public:
     {
         return name;
     }
+
+    virtual int get_core() override
+    {
+        TaskStatus_t status;
+        vTaskGetInfo(0, & status, pdFALSE, eInvalid);
+        return xTaskGetCoreID(status.xHandle);
+    }
 };
+
+    /*
+     *
+     */
+
+void Thread::visit(int (*fn)(Thread*, void*), void *arg)
+{
+    threads.visit((int (*)(RTOS_Thread*, void*)) fn, arg, mutex);
+}
 
     /*
      *
@@ -112,12 +128,13 @@ static RTOS_Thread **get_next(RTOS_Thread* item)
     return & item->next;
 }
 
-void RTOS_Thread::start(void (*_fn)(void *arg), void *_arg)
+void RTOS_Thread::start(void (*_fn)(void *arg), void *_arg, int core)
 {
     PO_DEBUG("%p", this);
     arg = _arg;
     fn = _fn;
-    BaseType_t err = xTaskCreate(thread_run, name, stack, this, pri, & handle);
+    BaseType_t err = xTaskCreatePinnedToCore(thread_run, name, stack, this, pri, & handle, 
+            (core == -1) ? tskNO_AFFINITY : core);
     ASSERT(err == pdPASS);
 }
 
@@ -173,7 +190,7 @@ public:
     char name[24];
     class OtherThread *next;
 
-    virtual void start(void (*)(void *), void *) override { }
+    virtual void start(void (*)(void *), void *, int) override { }
     virtual void join() override { }
 
     virtual const char *get_name() override

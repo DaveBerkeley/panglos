@@ -17,12 +17,14 @@ public:
 
     static Thread *create(const char *name, size_t stack=0, Priority priority=Medium);
 
-    virtual void start(void (*fn)(void *arg), void *arg) = 0;
+    virtual void start(void (*fn)(void *arg), void *arg, int core=-1) = 0;
     virtual void join() = 0;
 
     virtual const char *get_name() = 0;
+    virtual int get_core() { return -1; }
 
     static Thread *get_current();
+    static void visit(int (*fn)(Thread*, void*), void*);
 };
 
 class ThreadPool

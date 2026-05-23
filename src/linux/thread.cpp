@@ -45,7 +45,7 @@ public:
         return 0;
     }
 
-    virtual void start(void (*_fn)(void *arg), void *_arg) override
+    virtual void start(void (*_fn)(void *arg), void *_arg, int) override
     {
         fn = _fn;
         arg = _arg;
@@ -76,7 +76,7 @@ Thread *Thread::create(const char *name, size_t stack, Priority priority)
 
 class MainThread : public Thread
 {
-    virtual void start(void (*fn)(void *arg), void *arg) override
+    virtual void start(void (*fn)(void *arg), void *arg, int) override
     {
         UNUSED(fn);
         UNUSED(arg);
