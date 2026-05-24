@@ -360,7 +360,7 @@ public:
             const int fd = accept(sock, & addr, & size);
             if (fd < 0)
             {
-                PO_ERROR("err=%s", strerror(errno));
+                PO_ERROR("err=%d '%s' sock=%d", errno, strerror(errno), sock);
                 switch (errno)
                 {
                     case EBADF : 
