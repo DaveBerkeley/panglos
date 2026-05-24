@@ -205,26 +205,30 @@ static void cmd_task(CLI *cli, CliCommand *)
     const UBaseType_t n = uxTaskGetSystemState(tasks, num_tasks, 0);
     ASSERT(n == num_tasks);
 
-    const int cols[] = { 3, 20, 10, 10, 2 };
-    cli_print(cli, "%*s %-*s %-*s %-*s %-*s %s", 
+    const int cols[] = { 3, 20, 10, 10, 5, 5 };
+    cli_print(cli, "%*s %-*s %-*s %-*s %-*s %-*s %s", 
             cols[0], "#", 
             cols[1], "Task", 
             cols[2], "State", 
             cols[3], "Stack_HWM", 
             cols[4], "Core",
+            cols[5], "Pri.",
             cli->eol);
  
     for (UBaseType_t i = 0; i < num_tasks; ++i)
     {
         TaskStatus_t *task = & tasks[i];
         int core = xTaskGetCoreID(task->xHandle);
+        char _core[16];
+        snprintf(_core, sizeof(_core), "%d", core);
 
-        cli_print(cli, "%*d %-*s %-*s %-*ld %-*d %s", 
+        cli_print(cli, "%-*d %-*s %-*s %-*ld %-*s %-*ld %s", 
             cols[0], (int) task->xTaskNumber, 
             cols[1], task->pcTaskName, 
             cols[2], lut(lut_task_state, task->eCurrentState),
             cols[3], (long) tasks[i].usStackHighWaterMark, 
-            cols[4], (core == tskNO_AFFINITY) ? -1 : core, 
+            cols[4], (core == tskNO_AFFINITY) ? "*" : _core, 
+            cols[5], (long) tasks[i].uxCurrentPriority, 
             cli->eol);
     }
 
@@ -232,6 +236,49 @@ static void cmd_task(CLI *cli, CliCommand *)
 }
 
 #endif  //  ARCH_LINUX
+
+    /*
+     *
+     */
+
+#if defined(ESP32)
+
+//  ESP32 specific memory diags
+
+#include "multi_heap.h"
+#include "esp_heap_caps.h"
+
+static void cmd_mem(CLI *cli, CliCommand *)
+{
+    struct Info
+    {
+        const char *label;
+        int caps;
+    };
+
+    const struct Info info[] = {
+        {   "INTERNAL", MALLOC_CAP_INTERNAL },
+        {   "DMA", MALLOC_CAP_DMA },
+        {   "SPI", MALLOC_CAP_SPIRAM },
+        {   "RTC", MALLOC_CAP_RTCRAM },
+        {   0, 0 },
+    };
+
+    cli_print(cli, "%-10s %-10s %s%s", "Mem Type", "Total", "Avail", cli->eol);
+
+    for (const struct Info *i = info; i->label; i++)
+    {
+        multi_heap_info_t multi;
+        char col1[16], col2[16];
+
+        heap_caps_get_info(& multi, i->caps);
+        snprintf(col1, sizeof(col1), "%d", multi.total_free_bytes);
+        snprintf(col2, sizeof(col2), "%d", multi.total_allocated_bytes);
+        cli_print(cli, "%-10s %-10s %s%s", i->label, col1, col2, cli->eol);
+    }
+}
+
+#endif
 
     /*
      *
@@ -1196,6 +1243,9 @@ static CliCommand cli_commands[] = {
     { "help",   cmd_help,   "help <cmd>", 0, 0, 0 },
 #if defined(FREERTOS)
     { "task", cmd_task, "view tasks", 0, 0, 0 },
+#endif
+#if defined(ESP32)
+    { "mem", cmd_mem, "memory diags", 0, 0, 0 },
 #endif
     { "gpio",   cmd_gpio,   "gpio [show|toggle|flash] <gpio> [0|1|?]", 0, 0, 0 },
     { "verbose", cmd_verbose, "verbose", 0, 0, 0 },
