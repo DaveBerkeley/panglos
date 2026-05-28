@@ -128,6 +128,16 @@ static RTOS_Thread **get_next(RTOS_Thread* item)
     return & item->next;
 }
 
+// TODO : make more widely available ?
+static LUT freertos_err[] =
+{
+    {   "FAIL", pdFAIL },
+    {   "COULD_NOT_ALLOCATE_REQUIRED_MEMORY", errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY },
+    {   "QUEUE_BLOCKED", errQUEUE_BLOCKED },
+    {   "QUEUE_YIELD", errQUEUE_YIELD },
+    {   0,  0   },
+};
+
 void RTOS_Thread::start(void (*_fn)(void *arg), void *_arg, int core)
 {
     PO_DEBUG("%p", this);
@@ -135,7 +145,11 @@ void RTOS_Thread::start(void (*_fn)(void *arg), void *_arg, int core)
     fn = _fn;
     BaseType_t err = xTaskCreatePinnedToCore(thread_run, name, stack, this, pri, & handle, 
             (core == -1) ? tskNO_AFFINITY : core);
-    ASSERT(err == pdPASS);
+    if (err != pdPASS)
+    {
+        PO_ERROR("name=%s stack=%d err=%d '%s'", name, stack, err, lut(freertos_err, err));
+        ASSERT(0);
+    }
 }
 
 void RTOS_Thread::join()
