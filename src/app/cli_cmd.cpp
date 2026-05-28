@@ -248,33 +248,45 @@ static void cmd_task(CLI *cli, CliCommand *)
 #include "multi_heap.h"
 #include "esp_heap_caps.h"
 
-static void cmd_mem(CLI *cli, CliCommand *)
+static void cmd_heap(CLI *cli, CliCommand *)
 {
-    struct Info
-    {
+    multi_heap_info_t internal, spiram;
+    heap_caps_get_info(& internal, MALLOC_CAP_INTERNAL);
+    heap_caps_get_info(& spiram, MALLOC_CAP_SPIRAM);
+    multi_heap_info_t* zero = 0;
+
+    struct item {
         const char *label;
-        int caps;
+        size_t *size;
     };
 
-    const struct Info info[] = {
-        {   "INTERNAL", MALLOC_CAP_INTERNAL },
-        {   "DMA", MALLOC_CAP_DMA },
-        {   "SPI", MALLOC_CAP_SPIRAM },
-        {   "RTC", MALLOC_CAP_RTCRAM },
-        {   0, 0 },
+    const struct item items[] = {
+        {   "total_allocated_bytes", & zero->total_allocated_bytes,   },
+        {   "total_free_bytes",      & zero->total_free_bytes,  },
+        {   "largest_free_block",    & zero->largest_free_block,   },
+        {   "minimum_free_bytes",    & zero->minimum_free_bytes,   },
+        {   "total_blocks",          & zero->total_blocks,   },
+        {   "allocated_blocks",      & zero->allocated_blocks,   },
+        {   "free_blocks",           & zero->free_blocks,   },
+        { 0, 0 },
     };
 
-    cli_print(cli, "%-10s %-10s %s%s", "Mem Type", "Total", "Avail", cli->eol);
-
-    for (const struct Info *i = info; i->label; i++)
+    // find length of longest field string
+    size_t length = 0;
+    for (const struct item *i = items; i->label; i++)
     {
-        multi_heap_info_t multi;
-        char col1[16], col2[16];
+        const size_t s = strlen(i->label);
+        length = (length > s) ? length : s;
+    }
 
-        heap_caps_get_info(& multi, i->caps);
-        snprintf(col1, sizeof(col1), "%d", multi.total_free_bytes);
-        snprintf(col2, sizeof(col2), "%d", multi.total_allocated_bytes);
-        cli_print(cli, "%-10s %-10s %s%s", i->label, col1, col2, cli->eol);
+    cli_print(cli, "%-*s %-8s %-8s%s", (int) length, "Value", "Internal", "SPI_RAM", cli->eol);
+
+    // print the fields
+    for (const struct item *i = items; i->label; i++)
+    {
+        size_t *sz_internal = (size_t*) ((uint8_t*)(& internal) + (int) i->size);
+        size_t *sz_spiram   = (size_t*) ((uint8_t*)(& spiram)   + (int) i->size);
+        cli_print(cli, "%-*s %-8d %-8d%s", (int) length, i->label, *sz_internal, *sz_spiram, cli->eol);
     }
 }
 
@@ -1245,7 +1257,7 @@ static CliCommand cli_commands[] = {
     { "task", cmd_task, "view tasks", 0, 0, 0 },
 #endif
 #if defined(ESP32)
-    { "mem", cmd_mem, "memory diags", 0, 0, 0 },
+    { "mem", cmd_heap, "view heap", 0, 0, 0 },
 #endif
     { "gpio",   cmd_gpio,   "gpio [show|toggle|flash] <gpio> [0|1|?]", 0, 0, 0 },
     { "verbose", cmd_verbose, "verbose", 0, 0, 0 },
