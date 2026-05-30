@@ -128,7 +128,7 @@ Accelerator::Accelerator(int _max_p, int _min_p, int _steps)
 {
     set_state(STOP);
 
-    table = new int[size];
+    table = new int[size_t(size)];
 
     for (int i = 0; i < size; i++)
     {

@@ -86,7 +86,7 @@ class _Socket : public Socket
         if (!addr)
             return -1;
 
-        int err;
+        int err = 0;
         int fd = socket(AF_INET, udp ? SOCK_DGRAM : SOCK_STREAM, 0);
         if (fd < 0)
         {

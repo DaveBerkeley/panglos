@@ -24,4 +24,8 @@
 #include "panglos/stm32/arch.h"
 #endif
 
+#if defined(ARCH_GOWIN_EMCU)
+#include "panglos/gowin_emcu/arch.h"
+#endif
+
 //  FIN

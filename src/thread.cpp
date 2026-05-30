@@ -16,12 +16,12 @@ ThreadPool::ThreadPool(const char *name, int n, size_t stack, Thread::Priority p
     count(n),
     names(0)
 {
-    threads = new Thread* [count];
+    threads = new Thread* [size_t(count)];
 
     if (strstr(name, "%d"))
     {
         size_t len = strlen(name) + 8;
-        names = new char* [count];
+        names = new char* [size_t(count)];
         for (int i = 0; i < count; i++)
         {
             names[i] = new char [len];

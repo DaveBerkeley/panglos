@@ -159,7 +159,7 @@ LineOut::LineOut(int _size, Out *_out, bool _no_eol)
     out(_out),
     no_eol(_no_eol)
 {
-    data = new char[size];
+    data = new char[size_t(size)];
 }
 
 LineOut::~LineOut()

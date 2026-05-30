@@ -52,7 +52,7 @@ public:
             sem_put_wait->post();
         }
 
-        data = new uint8_t [size * num];
+        data = new uint8_t [size_t(size * num)];
     }
 
     ~Linux_Queue()

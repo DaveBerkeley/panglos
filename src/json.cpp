@@ -500,7 +500,7 @@ Match::Match(bool _verbose, int nlevels)
     items(Item::get_next)
 {
     if (verbose) PO_DEBUG("");
-    levels = new Level[nlevels];
+    levels = new Level[size_t(nlevels)];
 }
 
 Match::~Match()
