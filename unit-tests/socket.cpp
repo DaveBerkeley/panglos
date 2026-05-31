@@ -15,27 +15,38 @@ using namespace panglos;
 
 class EchoClient : public Client
 {
-     virtual void run() override
-     {
-         PO_DEBUG("");
-     }
+    int idx;
+
+    virtual void run() override
+    {
+        PO_DEBUG("");
+        if (idx % 2)
+        {
+            // half the threads wait
+            Time::msleep(100);
+        }
+    }
 public:
-    EchoClient(SocketServer *ss)
-    :   Client(ss)
+    EchoClient(SocketServer *ss, int n)
+    :   Client(ss),
+        idx(n)
     {
     }
 };
 
 class TestFactory : public Client::Factory
 {
+    Socket *socket;
+    int num;
+
     virtual Client *create_client(SocketServer *ss) override
     {
-        Client *client = new EchoClient(ss);
+        static int count = 0;
+        Client *client = new EchoClient(ss, count);
         PO_DEBUG("%p", client);
 
-        static int count = 0;
         count += 1;
-        if (count == 3)
+        if (count == num)
         {
             ss->kill();
         }
@@ -44,19 +55,25 @@ class TestFactory : public Client::Factory
     }
 
 public:
+    TestFactory(Socket *s, int n)
+    :   socket(s),
+        num(n)
+    {
+    }
+
     static void run(void *arg)
     {
         ASSERT(arg);
-        Socket *s = (Socket*) arg;
-        TestFactory factory;
-        run_socket_server(s, & factory);
+        TestFactory *factory = (TestFactory *) arg;
+        run_socket_server(factory->socket, factory);
     }
 };
 
-static Thread *run_server(Socket *s)
+static Thread *run_server(Socket *s, int num)
 {
+    static TestFactory factory(s, num);
     Thread *thread = Thread::create("server");
-    thread->start(TestFactory::run, s);
+    thread->start(factory.run, & factory);
     return thread;
 }
 
@@ -97,19 +114,20 @@ TEST(Socket, Test)
         .port = "6667",
     };
 
-    Socket *s = Socket::open_tcpip(sa.ip, sa.port, Socket::SERVER);
-    Thread *thread = run_server(s);
+    const int num = 4;
 
-    const int num = 3;
+    Socket *s = Socket::open_tcpip(sa.ip, sa.port, Socket::SERVER);
+    Thread *thread = run_server(s, num);
+
     Thread *threads[num];
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < num; i++)
     {
         threads[i] = Thread::create("client");
         threads[i]->start(run_client, & sa);
     }
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < num; i++)
     {
         threads[i]->join();
         delete threads[i];

@@ -59,6 +59,7 @@ protected:
     SocketServer *ss;
     char *name;
     Client *next;
+    static int id;
 public:
 
     Client(SocketServer *ss);
@@ -73,6 +74,8 @@ public:
 
     static void runner(void *arg);
     static Client **get_next(Client *c);
+
+    const char *get_name() { return name; }
 
     class Factory
     {

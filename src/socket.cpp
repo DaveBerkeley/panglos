@@ -181,6 +181,8 @@ Socket *Socket::open_tcpip(const char *ip, const char *port, Role role)
      *
      */
 
+int Client::id = 0;
+
 Client::Client(SocketServer *s)
 :   thread(0),
     sem(0),
@@ -189,18 +191,20 @@ Client::Client(SocketServer *s)
     name(0),
     next(0)
 {
-    PO_DEBUG("%p", this);
+    PO_DEBUG("client=%p", this);
 }
 
 Client::~Client()
 {
-    PO_DEBUG("%p", this);
+    PO_DEBUG("client=%s", get_name());
     delete thread;
     free(name);
 }
 
 void Client::kill()
 {
+    PO_DEBUG("client=%s", get_name());
+    // the client must not kill itself!
     ASSERT(thread != Thread::get_current());
 
     delete sock;
@@ -212,22 +216,21 @@ void Client::kill()
 
 void Client::start(Socket *s, Semaphore *_sem)
 {
-    PO_DEBUG("%p", this);
     sock = s;
     sem = _sem;
 
-    const int fd = ((_Socket*) s)->sock;
     char buff[32];
-    snprintf(buff, sizeof(buff), "client_%d", fd);
+    snprintf(buff, sizeof(buff), "client_%d", id++);
     name = strdup(buff);
 
+    PO_DEBUG("client=%s", get_name());
     thread = Thread::create(name);
     thread->start(runner, this);
 }
 
 void Client::stop()
 {
-    PO_DEBUG("%p", this);
+    PO_DEBUG("client=%s", get_name());
     Socket *s = sock;
     sock = 0;
     delete s;
@@ -235,12 +238,12 @@ void Client::stop()
 
 void Client::runner()
 {
-    PO_DEBUG("start %p", this);
+    PO_DEBUG("client=%s start", get_name());
     ASSERT(sem);
     ss->add_client(this);
     sem->post(); // let the server know that we have started
     run();
-    PO_DEBUG("end");
+    PO_DEBUG("client=%s end", get_name());
     ss->del_client(this);
 }
 
@@ -319,17 +322,19 @@ public:
 
     virtual void add_client(Client *client) override
     {
-        PO_DEBUG("%p", client);
+        PO_DEBUG("client=%s", client->get_name());
         //clients.push(client, mutex);
     }
 
     virtual void del_client(Client *client) override
     {
-        PO_DEBUG("%p", client);
+        PO_DEBUG("client=%s", client->get_name());
         // Move to ex client list
         Lock lock(mutex);
-        clients.remove(client, 0);
-        ex_clients.push(client, 0);
+        if (clients.remove(client, 0))
+        {
+            ex_clients.push(client, 0);
+        }
     }
 
     void tidy_clients(Clients &client_list)
@@ -338,7 +343,7 @@ public:
         while (client_list.size(mutex))
         {
             Client *client = client_list.pop(mutex);
-            PO_DEBUG("client=%p", client);
+            PO_DEBUG("client=%s", client->get_name());
             client->stop();
             client->kill();
             delete client;
@@ -380,6 +385,7 @@ public:
             // Wait for the client's thread to start
             clients.push(client, mutex);
             sem->wait();
+            // housekeeping : remove any expired clients
             tidy_clients(ex_clients);
         }
 
