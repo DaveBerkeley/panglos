@@ -49,12 +49,15 @@ class _Watchdog : public Watchdog
         {
             thread = Thread::get_current();
         }
-        Watched *w = find(thread);
+
+        Lock lock(mutex);
+
+        Watched *w = find(thread, 0);
         if (!w)
         {
             PO_DEBUG("create new Watched{}");
             w = new Watched(thread);
-            tasks.push(w, mutex);
+            tasks.push(w, 0);
         }
 
         w->last = Time::get();
@@ -65,11 +68,13 @@ class _Watchdog : public Watchdog
     virtual void remove(Thread *thread=0) override
     {
         PO_DEBUG("");
-        Watched *w = find(thread);
+        Lock lock(mutex);
+
+        Watched *w = find(thread, 0);
         if (w)
         {
             PO_DEBUG("removed");
-            tasks.remove(w, mutex);
+            tasks.remove(w, 0);
             delete w;
         }
     }
@@ -111,7 +116,7 @@ class _Watchdog : public Watchdog
 
     virtual bool expired(Thread *thread=0) override
     {
-        Watched *w = find(thread);
+        Watched *w = find(thread, mutex);
         return w ? w->alarmed : false;
     }
 
@@ -123,7 +128,7 @@ class _Watchdog : public Watchdog
         return (thread == w->thread) ? 1 : 0;
     }
 
-    Watched *find(Thread *thread)
+    Watched *find(Thread *thread, Mutex *mutex)
     {
         if (!thread)
         {
