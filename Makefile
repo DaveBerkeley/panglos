@@ -28,5 +28,7 @@ clang: $(APP)
 images: docs/mutex.dot
 	dot -T png $< -o images/mutex.png
 
+ctags:
+	ctags -R . 
 
 # FIN
