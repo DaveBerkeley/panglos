@@ -3,6 +3,8 @@
      *
      */
 
+#if (ESP_IDF_VERSION_MAJOR == 4)
+
 #include <driver/adc.h>
 #include <hal/adc_types.h>
 
@@ -60,5 +62,7 @@ uint16_t ESP_ADC2::read(uint8_t chan)
     ASSERT(r == ESP_OK);
     return rd;
 }
+
+#endif  //  ESP_IDF_VERSION_MAJOR == 4
 
 //  FIN
