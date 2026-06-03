@@ -248,7 +248,7 @@ static void cmd_task(CLI *cli, CliCommand *)
 #include "multi_heap.h"
 #include "esp_heap_caps.h"
 
-static void cmd_heap(CLI *cli, CliCommand *)
+static void _cmd_heap_dump(CLI *cli)
 {
     multi_heap_info_t internal, spiram;
     heap_caps_get_info(& internal, MALLOC_CAP_INTERNAL);
@@ -288,6 +288,290 @@ static void cmd_heap(CLI *cli, CliCommand *)
         size_t *sz_spiram   = (size_t*) ((uint8_t*)(& spiram)   + (int) i->size);
         cli_print(cli, "%-*s %-8d %-8d%s", (int) length, i->label, *sz_internal, *sz_spiram, cli->eol);
     }
+}
+
+struct HeapState
+{
+    enum Fn {
+        FN_COUNT,
+        FN_SAVE,
+    };
+    enum Command {
+        CMD_MARK,
+        CMD_SHOW,
+        CMD_DIFF,
+        CMD_RELEASE,
+    };
+
+    enum Fn fn;
+
+    size_t idx;
+    size_t size;
+    walker_block_info_t *snapshot;
+    size_t other_size;
+    walker_block_info_t *other_snapshot;
+};
+
+static HeapState heap_state;
+
+static bool heap_visit(walker_heap_into_t heap_info, walker_block_info_t block_info, void *arg)
+{
+    ASSERT(arg);
+    struct HeapState *visit = (struct HeapState *) arg;
+
+    switch (visit->fn)
+    {
+        case HeapState::FN_COUNT : 
+        {
+            visit->idx += 1;
+            break;
+        }
+        case HeapState::FN_SAVE : 
+        {
+            if (visit->idx >= visit->size) break;
+            memcpy(& visit->snapshot[visit->idx], & block_info, sizeof(walker_block_info_t));
+            visit->idx += 1;
+            break;
+        }
+        default : ASSERT(0);
+    }
+    return true;
+}
+
+static void _cmd_heap_snapshot(CLI *cli, int caps)
+{
+    cli_print(cli, "make snapshot%s", cli->eol);
+    // release any previous snapshot
+    free(heap_state.snapshot);
+    heap_state.snapshot = 0;
+
+    // count the blocks
+    heap_state.idx = 0;
+    heap_state.fn = HeapState::FN_COUNT;
+    heap_caps_walk(caps, heap_visit, & heap_state);
+
+    // allocate a suitable sized store for the data
+    const size_t blocks = heap_state.idx + 8; // headroom
+    heap_state.snapshot = (walker_block_info_t*) malloc(blocks * sizeof(walker_block_info_t));
+    heap_state.size = blocks;
+
+    // zero the data
+    memset(heap_state.snapshot, 0, blocks * sizeof(walker_block_info_t));
+
+    // save the blocks
+    heap_state.idx = 0;
+    heap_state.fn = HeapState::FN_SAVE;
+    heap_caps_walk(caps, heap_visit, & heap_state);
+}
+
+class HeapItem
+{
+public:
+    walker_block_info_t *info;
+    size_t n;
+
+    bool valid()
+    {
+        return (n > 0) && info && info->ptr;
+    }
+
+    void next()
+    {
+        ASSERT(valid());
+        n -= 1;
+        info += 1;
+    }
+
+    bool skip()
+    {
+        ASSERT(valid());
+        if (!info->used)
+        {
+            // skip free blocks
+            //cli_print(cli, "skip%s", cli->eol);
+            next();
+            return true;
+        }
+        return false;
+    }
+};
+
+static void show_item(CLI *cli, const char *text, walker_block_info_t *info)
+{
+    cli_print(cli, "%s ptr=%p size=%d%s", text, info->ptr, info->size, cli->eol);
+}
+
+static void show_item_size(CLI *cli, const char *text, walker_block_info_t *info, size_t sz)
+{
+    cli_print(cli, "%s ptr=%p sa=%d sb=%d%s", text, info->ptr, info->size, sz, cli->eol);
+}
+
+static void cmp_heaps(CLI *cli)
+{
+    struct HeapItem now = { .info = heap_state.snapshot, .n = heap_state.size };
+    struct HeapItem was = { .info = heap_state.other_snapshot, .n = heap_state.other_size };
+    //size_t freed = 0;
+    //size_t alloced = 0;
+
+    // run through both heap snapshots, printing differences in alloc
+    while (now.valid() && was.valid())
+    {
+        if (now.skip()) continue;
+        if (was.skip()) continue;
+
+        if (now.valid() && was.valid())
+        {
+            //  both lists still valid
+            if (now.info->ptr == was.info->ptr)
+            {
+                // both point to the next used block
+                if (now.info->size != was.info->size)
+                {
+                    // blocks differ
+                    show_item_size(cli, "=", now.info, was.info->size);
+                    //alloced -= now.info->size;
+                    //freed += hb.info->size;
+                }
+                now.next();
+                was.next();
+                continue;
+            }
+            // show the lower mem address
+            if (now.info->ptr < was.info->ptr)
+            {
+                show_item(cli, ">", now.info);
+                now.next();
+                continue;
+            }
+            if (was.info->ptr < now.info->ptr)
+            {
+                show_item(cli, "<", was.info);
+                was.next();
+                continue;
+            }
+            ASSERT(0);
+        }
+        // if one list is exhausted, print the other
+        if (!was.valid())
+        {
+            show_item(cli, ">", now.info);
+            now.next();
+            continue;
+        }
+        if (!now.valid())
+        {
+            show_item(cli, "<", was.info);
+            was.next();
+            continue;
+        }
+        ASSERT(0);
+    }
+}
+
+static void _cmd_heap_walk(CLI *cli, int caps, HeapState::Command cmd)
+{
+    switch (cmd)
+    {
+        case HeapState::CMD_MARK : 
+        {
+            _cmd_heap_snapshot(cli, caps);
+            break;
+        }
+        case HeapState::CMD_RELEASE : 
+        {
+            cli_print(cli, 
+                heap_state.snapshot ? "heap state released%s" : "no heap state allocated%s", 
+                cli->eol);
+
+            free(heap_state.snapshot);
+            heap_state.snapshot = 0;
+            break;
+        }
+        case HeapState::CMD_SHOW : 
+        {
+            if (!heap_state.snapshot)
+            {
+                cli_print(cli, "no snapshot%s", cli->eol);
+                break;
+            }
+            for (size_t i = 0; i < heap_state.idx; i++)
+            {
+                walker_block_info_t *info = & heap_state.snapshot[i];
+                cli_print(cli, "\t%p size=%d %s %s",
+                    info->ptr, info->size, 
+                    info->used ? "used" : "free",
+                    cli->eol);
+
+            }
+            break;
+        }
+        case HeapState::CMD_DIFF : 
+        {
+            if (!heap_state.snapshot)
+            {
+                cli_print(cli, "no snapshot%s", cli->eol);
+                break;
+            }
+            // copy the snapshot into 'other'
+            heap_state.other_snapshot = heap_state.snapshot;
+            heap_state.other_size = heap_state.size;
+            heap_state.snapshot = 0;
+
+            _cmd_heap_snapshot(cli, caps);
+            cmp_heaps(cli);
+
+            // free the new snapshot
+            free(heap_state.snapshot);
+            heap_state.snapshot = 0;
+
+            // restore the old snapshot
+            heap_state.snapshot = heap_state.other_snapshot;
+            heap_state.size = heap_state.other_size;
+            break;
+        }
+        default : ASSERT(0);
+    }
+}
+
+static void cmd_heap(CLI *cli, CliCommand *)
+{
+    const char *s = cli_get_arg(cli, 0);
+
+    // dump by default
+    if ((!s) || (!strcmp(s, "dump")))
+    {
+        _cmd_heap_dump(cli);
+        return;
+    }
+
+    if (!strcmp(s, "walk"))
+    {
+        _cmd_heap_walk(cli, MALLOC_CAP_INTERNAL, HeapState::CMD_MARK);
+        _cmd_heap_walk(cli, MALLOC_CAP_INTERNAL, HeapState::CMD_SHOW);
+        return;
+    }
+    if (!strcmp(s, "mark"))
+    {
+        _cmd_heap_walk(cli, MALLOC_CAP_INTERNAL, HeapState::CMD_MARK);
+        return;
+    }
+    if (!strcmp(s, "show"))
+    {
+        _cmd_heap_walk(cli, MALLOC_CAP_INTERNAL, HeapState::CMD_SHOW);
+        return;
+    }
+    if (!strcmp(s, "diff"))
+    {
+        _cmd_heap_walk(cli, MALLOC_CAP_INTERNAL, HeapState::CMD_DIFF);
+        return;
+    }
+    if (!strcmp(s, "release"))
+    {
+        _cmd_heap_walk(cli, MALLOC_CAP_INTERNAL, HeapState::CMD_RELEASE);
+        return;
+    }
+
+    cli_print(cli, "unknown option '%s'%s", s, cli->eol);
 }
 
 #endif
@@ -1257,7 +1541,7 @@ static CliCommand cli_commands[] = {
     { "task", cmd_task, "view tasks", 0, 0, 0 },
 #endif
 #if defined(ESP32)
-    { "mem", cmd_heap, "view heap", 0, 0, 0 },
+    { "mem", cmd_heap, "mem [dump|walk|mark|show|diff|release]", 0, 0, 0 },
 #endif
     { "gpio",   cmd_gpio,   "gpio [show|toggle|flash] <gpio> [0|1|?]", 0, 0, 0 },
     { "verbose", cmd_verbose, "verbose", 0, 0, 0 },
