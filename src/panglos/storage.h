@@ -26,6 +26,7 @@ public:
         VAL_OTHER,
     } Type;
 
+    const char *get_ns() { return ns; }
     Type get_type(const char *key);
 
     bool get(const char *key, int8_t *value);
