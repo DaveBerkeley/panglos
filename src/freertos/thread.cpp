@@ -138,12 +138,25 @@ static LUT freertos_err[] =
     {   0,  0   },
 };
 
+static UBaseType_t priority(Thread::Priority p)
+{
+    switch (p)
+    {
+        case Thread::High   :   return 23;
+        case Thread::Medium :   return 15;
+        case Thread::Low    :   return 0;
+        default : break;
+    }
+    ASSERT(0);
+    return -1;
+}
+
 void RTOS_Thread::start(void (*_fn)(void *arg), void *_arg, int core)
 {
     PO_DEBUG("%p", this);
     arg = _arg;
     fn = _fn;
-    BaseType_t err = xTaskCreatePinnedToCore(thread_run, name, stack, this, pri, & handle, 
+    BaseType_t err = xTaskCreatePinnedToCore(thread_run, name, stack, this, priority(pri), & handle, 
             (core == -1) ? tskNO_AFFINITY : core);
     if (err != pdPASS)
     {
