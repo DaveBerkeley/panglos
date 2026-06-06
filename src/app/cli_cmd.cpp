@@ -205,14 +205,15 @@ static void cmd_task(CLI *cli, CliCommand *)
     const UBaseType_t n = uxTaskGetSystemState(tasks, num_tasks, 0);
     ASSERT(n == num_tasks);
 
-    const int cols[] = { 3, 20, 10, 10, 5, 5 };
-    cli_print(cli, "%*s %-*s %-*s %-*s %-*s %-*s %s", 
+    const int cols[] = { 3, 20, 10, 10, 5, 5, 5 };
+    cli_print(cli, "%*s %-*s %-*s %-*s %-*s %-*s %-*s %s", 
             cols[0], "#", 
             cols[1], "Task", 
             cols[2], "State", 
             cols[3], "Stack_HWM", 
             cols[4], "Core",
             cols[5], "Pri.",
+            cols[6], "POS",
             cli->eol);
  
     for (UBaseType_t i = 0; i < num_tasks; ++i)
@@ -222,20 +223,23 @@ static void cmd_task(CLI *cli, CliCommand *)
         char _core[16];
         snprintf(_core, sizeof(_core), "%d", core);
 
-        cli_print(cli, "%-*d %-*s %-*s %-*ld %-*s %-*ld %s", 
+        Thread *thread = Thread::get_by_name(task->pcTaskName);
+
+        cli_print(cli, "%-*d %-*s %-*s %-*ld %-*s %-*ld %-*s %s", 
             cols[0], (int) task->xTaskNumber, 
             cols[1], task->pcTaskName, 
             cols[2], lut(lut_task_state, task->eCurrentState),
             cols[3], (long) tasks[i].usStackHighWaterMark, 
             cols[4], (core == tskNO_AFFINITY) ? "*" : _core, 
             cols[5], (long) tasks[i].uxCurrentPriority, 
+            cols[6], thread ? "*" : " ", 
             cli->eol);
     }
 
     free(tasks);
 }
 
-#endif  //  ARCH_LINUX
+#endif  //  FREERTOS
 
     /*
      *
