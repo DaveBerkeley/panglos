@@ -224,7 +224,7 @@ void Client::start(Socket *s, Semaphore *_sem)
     name = strdup(buff);
 
     PO_DEBUG("client=%s", get_name());
-    thread = Thread::create(name);
+    thread = Thread::create(name, stack_size());
     thread->start(runner, this);
 }
 

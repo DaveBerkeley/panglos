@@ -76,6 +76,7 @@ public:
     static Client **get_next(Client *c);
 
     const char *get_name() { return name; }
+    virtual size_t stack_size() { return 0; }
 
     class Factory
     {
