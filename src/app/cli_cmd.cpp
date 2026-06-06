@@ -197,6 +197,26 @@ static LUT lut_task_state[] = {
     {   0, 0 }
 };
 
+static int task_cmp(const void *a, const void *b, void *arg)
+{
+    TaskStatus_t *ta = (TaskStatus_t *) a;
+    TaskStatus_t *tb = (TaskStatus_t *) b;
+    ASSERT(ta && tb);
+    const char *s = (const char *) arg;
+
+    if (!s)
+        return 0;
+    if (!strcmp(s, "id"))
+        return ta->xTaskNumber - tb->xTaskNumber;
+    if (!strcmp(s, "pri"))
+        return ta->uxCurrentPriority - tb->uxCurrentPriority;
+    if (!strcmp(s, "hwm"))
+        return ta->usStackHighWaterMark - tb->usStackHighWaterMark;
+    if (!strcmp(s, "name"))
+        return strcasecmp(ta->pcTaskName, tb->pcTaskName);
+    return 0;
+}
+
 static void cmd_task(CLI *cli, CliCommand *)
 {
     const UBaseType_t num_tasks = uxTaskGetNumberOfTasks();
@@ -204,6 +224,9 @@ static void cmd_task(CLI *cli, CliCommand *)
 
     const UBaseType_t n = uxTaskGetSystemState(tasks, num_tasks, 0);
     ASSERT(n == num_tasks);
+
+    const char *s = cli_get_arg(cli, 0);
+    qsort_r(tasks, num_tasks, sizeof(TaskStatus_t), task_cmp, (void*) s);
 
     const int cols[] = { 3, 20, 10, 10, 5, 5, 5 };
     cli_print(cli, "%*s %-*s %-*s %-*s %-*s %-*s %-*s %s", 
@@ -1542,7 +1565,7 @@ static CliCommand cli_commands[] = {
     { "reset",  cmd_reset,  "ASSERT(0)", 0, 0, 0 },
     { "help",   cmd_help,   "help <cmd>", 0, 0, 0 },
 #if defined(FREERTOS)
-    { "task", cmd_task, "view tasks", 0, 0, 0 },
+    { "task", cmd_task, "task [sort by:(id|pri|hwm|name)]", 0, 0, 0 },
 #endif
 #if defined(ESP32)
     { "mem", cmd_heap, "mem [dump|walk|mark|show|diff|release]", 0, 0, 0 },
