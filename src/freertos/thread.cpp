@@ -80,7 +80,7 @@ public:
     {
         ASSERT(fn);
         threads.push(this, mutex);
-        PO_DEBUG("fn=%p arg=%p", fn, arg);
+        PO_DEBUG("name=%s fn=%p arg=%p stack=%d", name, fn, arg, stack);
         fn(arg);
         dead->post();
         threads.remove(this, mutex);
