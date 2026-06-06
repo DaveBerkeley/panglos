@@ -130,7 +130,9 @@ XUART::XUART(int id, uint32_t _rx, uint32_t _tx, uint32_t baud, bool _verbose)
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_CTS_RTS,
         .rx_flow_ctrl_thresh = 122,
+#if defined(UART_SCLK_APB)
         .source_clk = UART_SCLK_APB,
+#endif
     };
     esp_err_t err = uart_param_config(port, & config);
     esp_check(err, __LINE__);
