@@ -3,9 +3,41 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include "panglos/debug.h"
 #include "panglos/thread.h"
 
 namespace panglos {
+
+    /*
+     *
+     */
+
+struct ByName
+{
+    const char *name;
+    Thread *thread;
+};
+
+static int visit_by_name(Thread *thread, void *arg)
+{
+    ASSERT(arg);
+    struct ByName *bn = (struct ByName *) arg;
+    if (!strcmp(bn->name, thread->get_name()))
+    {
+        bn->thread = thread;
+    }
+    return !!bn->thread;
+}
+
+Thread *Thread::get_by_name(const char *name)
+{
+    struct ByName arg = {
+        .name = name,
+        .thread = 0
+    };
+    Thread::visit(visit_by_name, & arg);
+    return arg.thread;
+}
 
     /*
      *  ThreadPool

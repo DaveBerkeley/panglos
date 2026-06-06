@@ -27,9 +27,14 @@ TEST(Thread, GetCurrent)
 
 static void tt_nowt(void *arg)
 {
-    PO_DEBUG("");
-    IGNORE(arg);
-    Time::sleep(1);
+    bool *dead = (bool*) arg;
+
+    while (true)
+    {
+        Time::sleep(1);
+        if (!dead) break;
+        if (*dead) break;
+    }
 }
 
 TEST(Thread, Pool)
@@ -37,6 +42,34 @@ TEST(Thread, Pool)
     ThreadPool pool("thread_%d", 5, 4000);
 
     pool.start(tt_nowt, 0);
+    pool.join();
+}
+
+TEST(Thread, Name)
+{
+    const int num_threads = 5;
+    ThreadPool pool("thread_%d", num_threads, 4000);
+
+    bool dead = false;
+    pool.start(tt_nowt, & dead);
+
+    // wait for them all to start
+    Time::sleep(1);
+
+    for (int i = 0; i < num_threads; i++)
+    {
+        char name[24];
+        snprintf(name, sizeof(name), "thread_%d", i);
+        Thread *thread = Thread::get_by_name(name);
+        EXPECT_TRUE(thread);
+        EXPECT_STREQ(name, thread->get_name());
+    } 
+
+    Thread *thread = Thread::get_by_name("noname");
+    EXPECT_FALSE(thread);
+
+    dead = true;
+
     pool.join();
 }
 

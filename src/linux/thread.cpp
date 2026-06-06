@@ -1,9 +1,11 @@
 
 #include <stddef.h>
+#include <stdlib.h>
 #include <pthread.h>
 
 #include "panglos/debug.h"
 
+#include "panglos/list.h"
 #include "panglos/thread.h"
 
 using namespace panglos;
@@ -16,18 +18,40 @@ class NativeThread;
 
 static __thread NativeThread *native_thread = 0;
 
+static Mutex *mutex = 0;
+
+static void del_mutex()
+{
+    delete mutex;
+}
+
 class NativeThread : public Thread
 {
     const char *name;
     pthread_t thread;
     void (*fn)(void*);
     void *arg;
+
+    Thread *next;
+public:
+    static Thread **get_next(Thread *t) { return & ((NativeThread*)t)->next; }
+    typedef List<Thread *> Threads;
+
+    static Threads threads;
+
 public:
     NativeThread(const char *_name)
     :   name(_name),
         thread(0),
-        fn(0)
+        fn(0),
+        arg(0),
+        next(0)
     {
+        if (!mutex)
+        {
+            mutex = Mutex::create();
+            atexit(del_mutex);
+        }
     }
 
     virtual ~NativeThread()
@@ -40,7 +64,11 @@ public:
         NativeThread *nt = (NativeThread*) arg;
         native_thread = nt;
         ASSERT(nt->fn);
+    
+        threads.push(nt, mutex);
         nt->fn(nt->arg);
+        threads.remove(nt, mutex);
+
         pthread_exit(0);
         return 0;
     }
@@ -65,7 +93,14 @@ public:
     }
 };
 
+NativeThread::Threads NativeThread::threads(NativeThread::get_next);
+
 namespace panglos {
+
+void Thread::visit(int (*fn)(Thread *, void *), void *arg)
+{
+    NativeThread::threads.visit(fn, arg, mutex);
+}
 
 Thread *Thread::create(const char *name, size_t stack, Priority priority)
 {

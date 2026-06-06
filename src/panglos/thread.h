@@ -25,6 +25,7 @@ public:
 
     static Thread *get_current();
     static void visit(int (*fn)(Thread*, void*), void*);
+    static Thread *get_by_name(const char *name);
 };
 
 class ThreadPool
