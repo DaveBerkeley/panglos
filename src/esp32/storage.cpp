@@ -13,7 +13,7 @@ namespace panglos {
 
 static bool error(esp_err_t err, const char *fn, int line, const char *ns=0, const char *extra=0)
 {
-    PO_ERROR("err=%s err=%d fn=%s +%d %s.%s", 
+    PO_INFO("err=%s err=%d fn=%s +%d %s.%s", 
             //lut(err_lut, err), 
             esp_err_to_name(err),
             err, fn, line, 
@@ -209,7 +209,7 @@ bool Storage::get(const char *key, char *value, size_t *s)
     esp_err_t err = nvs_get_str(*make_handle(& handle), key, value, s);
     if (err != ESP_OK)
     {
-        PO_ERROR("k=%s", key);
+        PO_INFO("k=%s", key);
         return error(err, __FUNCTION__, __LINE__, ns, key);
     }
 
@@ -221,7 +221,7 @@ bool Storage::set_blob(const char *key, void *data, size_t size)
     esp_err_t err = nvs_set_blob(*make_handle(& handle), key, data, size);
     if (err != ESP_OK)
     {
-        PO_ERROR("k=%s", key);
+        //PO_ERROR("k=%s", key);
         return error(err, __FUNCTION__, __LINE__, ns, key);
     }
     return true;
@@ -232,7 +232,7 @@ bool Storage::get_blob(const char *key, void *data, size_t *size)
     esp_err_t err = nvs_get_blob(*make_handle(& handle), key, data, size);
     if (err != ESP_OK)
     {
-        PO_ERROR("k=%s", key);
+        //PO_ERROR("k=%s", key);
         return error(err, __FUNCTION__, __LINE__, ns, key);
     }
     return true;
