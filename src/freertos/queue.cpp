@@ -57,7 +57,7 @@ public:
         return ok == pdTRUE;
     }
 
-    virtual bool put(Message *msg) override
+    virtual bool put(const Message *msg) override
     {
         BaseType_t ok;
 

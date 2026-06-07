@@ -105,7 +105,7 @@ public:
         return true;
     }
 
-    virtual bool put(Message *msg) override
+    virtual bool put(const Message *msg) override
     {
         while (true)
         {
@@ -116,7 +116,7 @@ public:
 
                 if (next != out)
                 {
-                    copy(get_data(__FUNCTION__, in), msg);
+                    copy(get_data(__FUNCTION__, in), (Message *) msg);
                     in = next;
                     count += 1;
 

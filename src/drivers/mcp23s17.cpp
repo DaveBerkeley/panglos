@@ -163,7 +163,7 @@ MCP23S17::~MCP23S17()
 
 Cache *MCP23S17::get_cache(Register reg)
 {
-    switch (reg)
+    switch (int(reg))
     {
         case R_GPIOA : return gpio_cache[0];
         case R_GPIOB : return gpio_cache[1];
