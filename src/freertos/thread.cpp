@@ -156,6 +156,14 @@ void RTOS_Thread::start(void (*_fn)(void *arg), void *_arg, int core)
     PO_DEBUG("%p", this);
     arg = _arg;
     fn = _fn;
+
+    // (core > 0) will assert on MPUs with less cores
+    while ((core > 0) && !taskVALID_CORE_ID(core))
+    {
+        PO_WARNING("invalid core id=%d", core);
+        core -= 1;
+    }
+
     BaseType_t err = xTaskCreatePinnedToCore(thread_run, name, stack, this, priority(pri), & handle, 
             (core == -1) ? tskNO_AFFINITY : core);
     if (err != pdPASS)
