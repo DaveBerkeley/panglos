@@ -1556,6 +1556,52 @@ static void cmd_timer(CLI *cli, CliCommand *)
 
 #endif // defined(ESP_PLATFORM)
 
+    /*
+     *
+     */
+
+static void cmd_logging_error(CLI *cli)
+{
+    cli_print(cli, "expected '<?");
+    for (const LUT* plut = Severity_lut; plut->text; plut++)
+    {
+        if (plut->code != S_NONE)
+        {
+            cli_print(cli, "|%s", plut->text);
+        }
+    }
+    cli_print(cli, ">' %s", cli->eol);
+}
+
+static void cmd_logging(CLI *cli, CliCommand *cmd)
+{
+    if (!logger) return;
+    const char *s = cli_get_arg(cli, 0);
+
+    if (!s)
+    {
+        cmd_logging_error(cli);
+        return;
+    }
+
+    if (!strcmp(s, "?"))
+    {
+        Severity sv = logger->get_severity();
+        cli_print(cli, "severity=%s%s", lut(Severity_lut, sv), cli->eol);
+        return;
+    }
+
+    const int sv = rlut(Severity_lut, s);
+
+    if (sv == 0)
+    {
+        cmd_logging_error(cli);
+        return;
+    }
+
+    logger->set_severity((Severity) sv);
+    cli_print(cli, "set severity=%s%s", s, cli->eol);
+}
 
     /*
      *
@@ -1578,6 +1624,7 @@ static CliCommand cli_commands[] = {
     { "wifi", cmd_wifi,   "wifi", 0, 0, 0 },
     { "timer", cmd_timer,   "timer", 0, 0, 0 },
 #endif
+    { "logging", cmd_logging, "severity|?", 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0 },
 };
 

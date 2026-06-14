@@ -187,6 +187,17 @@ int Logging::count()
      *
      */
 
+Severity Logging::set_severity(Severity s)
+{
+    Severity was = severity;
+    severity = s;
+    return was;
+}
+
+    /*
+     *
+     */
+
 void Logging::printf(Logging *logging, Severity s, const char *fmt, ...)
 {
     ASSERT(logging);

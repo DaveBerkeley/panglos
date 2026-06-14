@@ -41,6 +41,7 @@ public:
     ~Logging();
 
     Severity set_severity(Severity s);
+    Severity get_severity() { return severity; }
     void add(Out *out, Severity s, Mutex *mutex);
     void add_irq(Out *out, Severity s);
     bool remove(Out *out);
