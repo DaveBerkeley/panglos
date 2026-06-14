@@ -13,12 +13,11 @@ namespace panglos {
 
 static bool error(esp_err_t err, const char *fn, int line, const char *ns=0, const char *extra=0)
 {
-    PO_INFO("err=%s err=%d fn=%s +%d %s.%s", 
-            //lut(err_lut, err), 
+    PO_INFO("'%s.%s' err=%s fn=%s() line=%d", 
+            ns ? ns : "", extra ? extra : "",
             esp_err_to_name(err),
-            err, fn, line, 
-            ns ? ns : "",
-            extra ? extra : "");
+            fn, line
+    );
     return false;
 }
 
@@ -209,7 +208,7 @@ bool Storage::get(const char *key, char *value, size_t *s)
     esp_err_t err = nvs_get_str(*make_handle(& handle), key, value, s);
     if (err != ESP_OK)
     {
-        PO_INFO("k=%s", key);
+        //PO_INFO("k=%s", key);
         return error(err, __FUNCTION__, __LINE__, ns, key);
     }
 
