@@ -11,17 +11,6 @@ using namespace panglos;
 
 extern "C" {
 
-const LUT Severity_lut[] = {
-    { "NONE", S_NONE, },
-    { "CRITICAL", S_CRITICAL, },
-    { "ERROR", S_ERROR, },
-    { "WARNING", S_WARNING, },
-    { "NOTICE", S_NOTICE, },
-    { "INFO", S_INFO, },
-    { "DEBUG", S_DEBUG, },
-    { 0, S_NONE},
-};
-
 void Error_Handler(void)
 {
     printf("ERROR\n");

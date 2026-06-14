@@ -13,22 +13,6 @@
      *
      */
 
-const LUT Severity_lut[] = {
-    // Logging Severity
-    {   "NONE", S_NONE, },
-    {   "CRITICAL", S_CRITICAL, },
-    {   "ERROR", S_ERROR, },
-    {   "WARNING", S_WARNING, },
-    {   "NOTICE", S_NOTICE, },
-    {   "INFO", S_INFO, },
-    {   "DEBUG", S_DEBUG, },
-    { 0, 0 },
-};
-
-    /*
-     *
-     */
-
 void Error_Handler(void)
 {
     printf("ERROR ERROR ERROR\n\r");

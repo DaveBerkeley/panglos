@@ -37,6 +37,22 @@ int rlut(const LUT *lut, const char *s)
     return 0;
 }
 
+    /*
+     *
+     */
+
+const LUT Severity_lut[] = {
+    // Logging Severity
+    {   "NONE", S_NONE, },
+    {   "CRITICAL", S_CRITICAL, },
+    {   "ERROR", S_ERROR, },
+    {   "WARNING", S_WARNING, },
+    {   "NOTICE", S_NOTICE, },
+    {   "INFO", S_INFO, },
+    {   "DEBUG", S_DEBUG, },
+    { 0, 0 },
+};
+
 namespace panglos {
 
 Logging *logger = 0;
