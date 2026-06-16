@@ -14,8 +14,8 @@ bool DateTime::leap_year(int y)
 
 int DateTime::days_in_month(int y, int m)
 {
-    ASSERT((m > 0) && (m <= 12));
-    ASSERT((y >= 0) && (y <= 99));
+    if ((m < 1) || (m > 12)) return -1;
+    if ((y < 0) || (y > 99)) return -1;
     if (m == 2)
     {
         return leap_year(y) ? 29 : 28;

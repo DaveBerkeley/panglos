@@ -36,6 +36,7 @@ files = [
     'src/drivers/mcp6s91.cpp',
     'src/drivers/mhz19b.cpp',
     'src/drivers/mcp3002.cpp',
+    'src/drivers/rtc.cpp',
 
     'src/app/event.cpp',
 
@@ -86,6 +87,7 @@ files = [
     'unit-tests/fmt.cpp',
     'unit-tests/event.cpp',
     'unit-tests/json_fmt.cpp',
+    'unit-tests/rtc.cpp',
 ]
 
 ccflags = [
@@ -105,6 +107,7 @@ ccflags = [
     '-g',
     '-DGTEST=1',
     '-DARCH_LINUX=1',
+    '-DPO_RTC=1',
 ]
 
 cpppath = [

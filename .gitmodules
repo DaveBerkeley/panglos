@@ -1,3 +1,6 @@
 [submodule "lib/printf"]
 	path = lib/printf
 	url = https://github.com/eyalroz/printf
+[submodule "lib/cli"]
+	path = lib/cli
+	url = https://github.com/DaveBerkeley/cli
