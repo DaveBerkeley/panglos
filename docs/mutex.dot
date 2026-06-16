@@ -1,20 +1,23 @@
 digraph cpp {
-node [shape=record];
-Mutex [label="{Mutex|lock()\nunlock()}"];
-I2C [label="{I2C|write()\nwrite_read()\nread()}"];
-ESP_I2C [label="{ESP_I2C|// ESP32 HAL specific}", style=filled, fillcolor="lightgrey"];
-STM32_I2C [label="{STM_I2C|// STM32 HAL specific}", style=filled, fillcolor="azure"];
-bitbang [label="{Bitbang_I2C|// implementation}"];
-SysMutex [label="{SysMutex|// FreeRTOS specific}", style=filled, fillcolor="beige"];
-RTC [label="{RTC|get()\nset()}"];
-DS3231 [label="{DS3231|// implementation}"];
-{ rank=same Mutex, RTC };
-{ rank=same SysMutex, I2C, DS3231 };
-{ rank=max STM32_I2C, ESP_I2C, bitbang };
-    Mutex -> I2C [arrowhead = ediamond];
+    node [shape=record];
+    Mutex [label="{Mutex|lock()\nunlock()}"];
+    I2C [label="{I2C|write()\nwrite_read()\nread()}"];
+    ESP_I2C [label="{ESP_I2C|// ESP32 HAL specific}", style=filled, fillcolor="lightgrey"];
+    STM32_I2C [label="{STM_I2C|// STM32 HAL specific}", style=filled, fillcolor="azure"];
+    bitbang [label="{Bitbang_I2C|// implementation}"];
+    SysMutex [label="{SysMutex|// FreeRTOS specific}", style=filled, fillcolor="beige"];
+    RTC [label="{RTC|get()\nset()}"];
+    DS3231 [label="{DS3231|// implementation}"];
+
+    { rank=min RTC };
+    { rank=same Mutex; DS3231 };
+    { rank=same SysMutex; I2C };
+    { rank=max STM32_I2C; ESP_I2C; bitbang };
+
+    I2C -> Mutex [arrowhead = normal];
     SysMutex -> Mutex [arrowhead = empty];
     DS3231 -> RTC [arrowhead = empty];
-    I2C -> DS3231 [arrowhead = ediamond];
+    DS3231 -> I2C [arrowhead = normal];
     ESP_I2C -> I2C [arrowhead = empty];
     STM32_I2C -> I2C [arrowhead = empty];
     bitbang -> I2C [arrowhead = empty];
