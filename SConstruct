@@ -39,6 +39,7 @@ files = [
     'src/drivers/rtc.cpp',
 
     'src/app/event.cpp',
+    'src/app/cli_cmd.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
@@ -50,6 +51,10 @@ files = [
 
     # https://github.com/eyalroz/printf
     'lib/printf/src/printf/printf.c',
+
+    'lib/cli/src/cli.cpp',
+    'lib/cli/src/list.cpp',
+    'lib/cli/test/test_io.cpp',
 
     'unit-tests/stubs.cpp',
     'unit-tests/buffer_test.cpp',
@@ -87,6 +92,7 @@ files = [
     'unit-tests/fmt.cpp',
     'unit-tests/event.cpp',
     'unit-tests/json_fmt.cpp',
+    'unit-tests/cli_cmd.cpp',
     'unit-tests/rtc.cpp',
 ]
 
@@ -113,6 +119,7 @@ ccflags = [
 cpppath = [
     'src',
     'lib/printf/src',
+    'lib',
 ]
 
 cflags = [

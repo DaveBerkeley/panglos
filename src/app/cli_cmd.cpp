@@ -47,23 +47,6 @@ void cli_error(CLI *cli, const char *text)
     cli_print(cli, "%s%s", text, cli->eol);
 }
 
-static bool isin(const char *str, const char **table)
-{
-    for (; *table; table++)
-    {
-        if (!strcmp(str, *table)) return true;
-    }
-    return false;
-}
-
-static void cli_print_table(CLI *cli, const char **table, const char *sep="")
-{
-    for (int i = 0; *table; table++, i++)
-    {
-        cli_print(cli, "%s%s", (i == 0) ? "" : sep, *table);
-    }
-}
-
 bool get_args(CLI *cli, int idx, int *args, int n)
 {
     ASSERT(args);
@@ -749,6 +732,23 @@ static LUT st_lut[] = {
     { 0, 0 },
 };
 
+static bool isin(const char *str, const char **table)
+{
+    for (; *table; table++)
+    {
+        if (!strcmp(str, *table)) return true;
+    }
+    return false;
+}
+
+static void cli_print_table(CLI *cli, const char **table, const char *sep="")
+{
+    for (int i = 0; *table; table++, i++)
+    {
+        cli_print(cli, "%s%s", (i == 0) ? "" : sep, *table);
+    }
+}
+
 static void cmd_storage_list(CLI *cli, CliCommand *)
 {
     int idx = 0;
@@ -1156,6 +1156,12 @@ static void cmd_rtc_set(CLI *cli, CliCommand *cmd)
         .month = (uint8_t) args[1],
         .year  = (uint16_t) args[0],
     };
+
+    if (!rtc->validate(dt))
+    {
+        cli_print(cli, "Invalid date-time%s", cli->eol);
+        return;
+    }
 
     //cli_print(cli, "%04d-%02d-%02d %02d:%02d:%02d%s", dt.year, dt.month, dt.day, dt.hour, dt.min, dt.sec, cli->eol);
     if (!rtc->set(& dt))
@@ -1573,7 +1579,7 @@ static void cmd_logging_error(CLI *cli)
     cli_print(cli, ">' %s", cli->eol);
 }
 
-static void cmd_logging(CLI *cli, CliCommand *cmd)
+static void cmd_logging(CLI *cli, CliCommand *)
 {
     if (!logger) return;
     const char *s = cli_get_arg(cli, 0);
@@ -1619,12 +1625,17 @@ static CliCommand cli_commands[] = {
     { "gpio",   cmd_gpio,   "gpio [show|toggle|flash] <gpio> [0|1|?]", 0, 0, 0 },
     { "verbose", cmd_verbose, "verbose", 0, 0, 0 },
     { "banner", cmd_banner,   "banner", 0, 0, 0 },
+    
+#if !defined(GTEST)
     { "db",     cli_nowt,     "list|del|get|set|blob", & st_del, 0, 0 },
+#endif
+
 #if 0 // defined(ESP_PLATFORM)
     { "wifi", cmd_wifi,   "wifi", 0, 0, 0 },
     { "timer", cmd_timer,   "timer", 0, 0, 0 },
 #endif
     { "logging", cmd_logging, "severity|?", 0, 0, 0 },
+    { "devices", cmd_devices, "list devices", 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0 },
 };
 
@@ -1672,11 +1683,6 @@ void add_cli_commands(CLI *cli)
         cli_insert(cli, & cli->head, & cmd);
     }
 #endif
-
-    {
-        static CliCommand cmd = { "devices", cmd_devices, "list devices", 0, 0, 0 };
-        cli_insert(cli, & cli->head, & cmd);
-    }
 }
 
 }   //  namespace panglos
