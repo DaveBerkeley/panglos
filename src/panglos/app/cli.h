@@ -1,7 +1,7 @@
 
 #pragma once
 
-class CliCommand;
+struct CliCommand;
 
 namespace panglos {
 

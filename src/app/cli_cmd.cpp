@@ -1125,9 +1125,8 @@ static void cmd_rtc_get(CLI *cli, CliCommand *cmd)
     cli_print(cli, "%04d-%02d-%02d %02d:%02d:%02d%s", dt.year, dt.month, dt.day, dt.hour, dt.min, dt.sec, cli->eol);
 }
 
-static void cmd_rtc_set(CLI *cli, CliCommand *cmd)
+static void cmd_rtc_set(CLI *cli, CliCommand *)
 {
-    IGNORE(cmd);
     RTC *rtc = (RTC*) Objects::objects->get("rtc");
     ASSERT(rtc);
 
