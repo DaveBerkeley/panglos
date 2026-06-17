@@ -266,4 +266,196 @@ TEST(CliCmd, I2C)
 
 #endif  //  PO_I2C
 
+    /*
+     *
+     */
+
+#include "panglos/drivers/gpio.h"
+#include "panglos/mutex.h"
+
+class _GPIO : public GPIO
+{
+    panglos::Mutex *mutex;
+    bool state;
+    int count;
+
+    virtual void set(bool s) override
+    {
+        panglos::Lock lock(mutex);
+        state = s;
+    }
+
+    virtual bool get() override
+    {
+        panglos::Lock lock(mutex);
+        return state;
+    }
+
+    virtual void toggle() override
+    {
+        panglos::Lock lock(mutex);
+        state = !state;
+        count += 1;
+    }
+public:
+    _GPIO()
+    :   mutex(0),
+        state(false),
+        count(0)
+    {
+        mutex = panglos::Mutex::create();
+    }
+    ~_GPIO()
+    {
+        delete mutex;
+    }
+
+    int get_count() { return count; }
+};
+
+#include "panglos/thread.h"
+#include "panglos/time.h"
+
+class TestDelay
+{
+    Thread *thread;
+    GPIO *gpio;
+    int period; // ms
+
+public:
+
+    TestDelay(GPIO *g, int ms)
+    :   thread(0),
+        gpio(g),
+        period(ms)
+    {
+        thread = Thread::create("gpio");
+        thread->start(delay, this);
+    }
+
+    ~TestDelay()
+    {
+        thread->join();
+        delete thread;
+    }
+
+    void delay()
+    {
+        Time::msleep(period);
+        if (gpio) gpio->toggle();
+        Time::msleep(period);
+        gpio_terminate_loop();
+    }
+
+    static void delay(void *arg)
+    {
+        ASSERT(arg);
+        TestDelay *obj = (TestDelay *) arg;
+        obj->delay();
+    }
+};
+
+TEST(CliCmd, GPIO)
+{
+    TestCli test;
+    CLI *cli = test.get_cli();
+
+    add_cli_commands(cli);
+
+    _GPIO *led = new _GPIO;
+    Objects::objects->add("led", led);
+
+    { 
+        // no gpio
+        test.process("gpio\n");
+        const char *s = test.get();
+        EXPECT_TRUE(strstr(s, "expects name of gpio"));
+        //PO_DEBUG("'%s'", s);
+        test.reset();
+    }
+
+    { 
+        // no cmd
+        test.process("gpio led\n");
+        const char *s = test.get();
+        EXPECT_TRUE(strstr(s, "expects state"));
+        //PO_DEBUG("'%s'", s);
+        test.reset();
+    }
+
+    { 
+        // invalid gpio
+        test.process("gpio xxx\n");
+        const char *s = test.get();
+        EXPECT_TRUE(strstr(s, "can't find device"));
+        //PO_DEBUG("'%s'", s);
+        test.reset();
+    }
+
+    { 
+        // query state
+        test.process("gpio led ?\n");
+        const char *s = test.get();
+        EXPECT_TRUE(strstr(s, "0"));
+        EXPECT_FALSE(strstr(s, "1"));
+        //PO_DEBUG("'%s'", s);
+        test.reset();
+    }
+
+    { 
+        // set state
+        test.process("gpio led 1\n");
+        test.reset();
+        test.process("gpio led ?\n");
+        const char *s = test.get();
+        EXPECT_TRUE(strstr(s, "1"));
+        EXPECT_FALSE(strstr(s, "0"));
+        //PO_DEBUG("'%s'", s);
+        test.reset();
+    }
+
+    { 
+        // toggle state
+        test.process("gpio led 1\n");
+        test.reset();
+        test.process("gpio toggle led\n");
+        test.reset();
+        test.process("gpio led ?\n");
+        const char *s = test.get();
+        EXPECT_TRUE(strstr(s, "0"));
+        EXPECT_FALSE(strstr(s, "1"));
+        //PO_DEBUG("'%s'", s);
+        test.reset();
+    }
+
+    { 
+        // show state
+        // check that the led toggles from 0 to 1
+        TestDelay delay(led, 50);
+
+        test.process("gpio led 0\n");
+        test.reset();
+        test.process("gpio show 10 led\n");
+        const char *s = test.get();
+        const char *m = strstr(s, "led 0");
+        EXPECT_TRUE(m);
+        EXPECT_TRUE(strstr(m, "led 1"));
+        //PO_DEBUG("'%s'", s);
+        test.reset();
+    }
+
+    { 
+        // flash state
+        // count the flashes
+        TestDelay delay(0, 50);
+        const int start = led->get_count();
+        test.process("gpio flash 10 led\n");
+        const int end = led->get_count();
+        EXPECT_LT(start, end);
+        test.reset();
+    }
+
+    delete led;
+}
+
 //  FIN

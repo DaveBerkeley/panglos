@@ -2,6 +2,7 @@
 #include <string.h>
 #include <math.h>
 #include <arpa/inet.h> // for htonl()
+#include <atomic>
 
 #include "cli/src/cli.h"
 
@@ -615,6 +616,18 @@ static void cmd_uart(CLI *cli, CliCommand *cmd)
      *
      */
 
+#if defined(GTEST)
+// need this to disable the clang sanitiser warnings in CliCmd tests
+std::atomic<bool> gpio_end;
+#else
+static bool gpio_end;
+#endif
+
+void gpio_terminate_loop()
+{
+    gpio_end = true;
+}
+
 static void gpio_flash(CLI *cli, int idx)
 {
     int delay = 500; //ms
@@ -624,7 +637,7 @@ static void gpio_flash(CLI *cli, int idx)
         cli_print(cli, "flash rate=%d ms%s", delay, cli->eol);
         idx += 1;
     }
-    while (true)
+    while (!gpio_end)
     {
         for (int i = idx; ; i++)
         {
@@ -640,12 +653,14 @@ static void gpio_flash(CLI *cli, int idx)
     }
 }
 
-static void cmd_gpio(CLI *cli, CliCommand *cmd)
+static void cmd_gpio(CLI *cli, CliCommand *)
 {
-    IGNORE(cmd);
     bool toggle = false;
     bool show = false;
     int idx = 0;
+    int delay = 500; //ms
+
+    gpio_end = false;
     const char *s = cli_get_arg(cli, idx++);
 
     if (s && !strcmp(s, "toggle"))
@@ -658,11 +673,16 @@ static void cmd_gpio(CLI *cli, CliCommand *cmd)
     {
         show = true;
         s = cli_get_arg(cli, idx++);
+        if (cli_parse_int(s, & delay, 0))
+        {
+            s = cli_get_arg(cli, idx++);
+        }
     }
 
     if (s && !strcmp(s, "flash"))
     {
         gpio_flash(cli, idx);
+        return;
     }
 
     if (!s)
@@ -685,11 +705,16 @@ static void cmd_gpio(CLI *cli, CliCommand *cmd)
         return;
     }
 
-    // if "gpio show <name>" loop forever printing value
-    while (show)
+    // if "gpio show [delay_ms] <name>" loop forever printing value
+    if (show)
     {
-        cli_print(cli, "%s %d%s", name, gpio->get(), cli->eol);
-        Time::msleep(500);
+
+        while (!gpio_end)
+        {
+            cli_print(cli, "%s %d%s", name, gpio->get(), cli->eol);
+            Time::msleep(delay);
+        }
+        return;
     }
 
     s = cli_get_arg(cli, idx++);
