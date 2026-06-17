@@ -290,8 +290,9 @@ Storage::List::~List()
     del_iter(& iter);
 }
 
-bool Storage::List::get(char *_ns, char *key, Type *type)
+bool Storage::List::get(char *_ns, char *key, Type *type, size_t max_sz)
 {
+    if (max_sz > NVS_KEY_NAME_MAX_SIZE) max_sz = NVS_KEY_NAME_MAX_SIZE;
     if (!iter)
     {
         return false;
@@ -305,10 +306,10 @@ bool Storage::List::get(char *_ns, char *key, Type *type)
     nvs_entry_info(iter->iter, & info);
 
     ASSERT(key);
-    strncpy(key, info.key, NVS_KEY_NAME_MAX_SIZE);
+    strncpy(key, info.key, max_sz);
     if (_ns)
     {
-        strncpy(_ns, info.namespace_name, NVS_KEY_NAME_MAX_SIZE);
+        strncpy(_ns, info.namespace_name, max_sz);
     }
     if (type)
     {

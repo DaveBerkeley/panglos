@@ -65,6 +65,9 @@ public:
             case Storage::VAL_INT32 :  return;
             case Storage::VAL_INT16 :  return;
             case Storage::VAL_INT8  :  return;
+            case Storage::VAL_BLOB  :  // TODO!
+            case Storage::VAL_NONE  :
+            case Storage::VAL_OTHER :
             default: ASSERT(0);
         } 
     }
@@ -129,6 +132,14 @@ public:
 
     ~Helper()
     {
+        clear(mutex);
+        delete mutex;
+    }
+
+    void clear(Mutex *m=0)
+    {
+        Lock lock(m ? m : mutex);
+
         while (true)
         {
             KVPair *pair = pairs.pop(0);
@@ -136,8 +147,6 @@ public:
             pair->free_pair();
             delete pair;
         }
-
-        delete mutex;
     }
 
     bool set(const char *ns, const char *key, const char *value)
@@ -243,6 +252,40 @@ public:
         delete pair;
         return true;
     }
+
+    Storage::Type get_type(const char *ns, const char *key)
+    {
+        Lock lock(mutex);
+
+        KVPair *pair = find(ns, key, 0);
+        if (!pair) return Storage::VAL_NONE;
+        return pair->type;
+    }
+
+    class Iterator
+    {
+        KVPair *item;
+    public:
+        Iterator(KVPair *p)
+        :   item(p)
+        {
+        }
+
+        bool next(char *ns, char *key, Storage::Type *type, size_t max_sz)
+        {
+            if (!item) return false;
+            strncpy(ns, item->keys.ns, max_sz);
+            strncpy(key, item->keys.key, max_sz);
+            *type = item->type;
+            item = item->next;
+            return true;
+        }
+    };
+
+    KVPair *start()
+    {
+        return pairs.head;
+    }
 };
 
 static Helper helper;
@@ -263,9 +306,7 @@ Storage::~Storage()
 
 Storage::Type Storage::get_type(const char *key)
 {
-    IGNORE(key);
-    ASSERT(0);
-    return VAL_NONE;
+    return helper.get_type(ns, key);
 }
 
 bool Storage::get(const char *key, int8_t *value)
@@ -335,31 +376,51 @@ bool Storage::erase(const char *key)
 
 bool Storage::commit()
 {
-    ASSERT(0);
-    return false;
+    return true;
 }
 
     /*
      *
      */
 
+class Storage::List::Iter : public Helper::Iterator
+{
+public:
+    Iter(KVPair *p)
+    :   Iterator(p)
+    {
+    }
+};
+
 Storage::List::List(const char *_ns)
 :   ns(_ns),
     iter(0)
 {
+    iter = new Storage::List::Iter(helper.start());
 }
  
 Storage::List::~List()
 {
+    delete iter;
 }
  
-bool Storage::List::get(char *ns, char *key, Storage::Type *type)
+bool Storage::List::get(char *_ns, char *key, Storage::Type *type, size_t max_sz)
 {
-    IGNORE(ns);
-    IGNORE(key);
-    IGNORE(type);
-    ASSERT(0);
-    return false;
+    while (true)
+    {
+        if (!iter->next(_ns, key, type, max_sz)) return false;
+        if (ns && strcmp(_ns, ns)) continue;
+        return true;
+    }
+}
+
+    /*
+     *
+     */
+
+void Storage::clear_all()
+{
+    helper.clear();
 }
  
 }   //  panglos

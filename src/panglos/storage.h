@@ -54,11 +54,17 @@ public:
         class Iter;
         Iter *iter;
 
-        List(const char *ns);
+        List(const char *ns=0);
         ~List();
 
-        bool get(char *ns, char *key, Type *type);
+        // note: max len(ns) or len(key) on esp32 is 16
+        bool get(char *ns, char *key, Type *type, size_t max_len);
     };
+
+    //  Functions for unit tests
+    static void clear_all();
+    static bool load(const char *path);
+    static bool save(const char *path);
 };
 
 }   //  namespace panglos

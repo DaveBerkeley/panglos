@@ -744,8 +744,6 @@ static void cmd_gpio(CLI *cli, CliCommand *)
      *
      */
 
-#if !defined(GTEST)
-
 static LUT st_lut[] = { 
     {   "NONE",     Storage::VAL_NONE,  },
     {   "INT8",     Storage::VAL_INT8,  }, 
@@ -785,7 +783,7 @@ static void cmd_storage_list(CLI *cli, CliCommand *)
     char key[24];
     Storage::Type type;
 
-    while (list.get(ns, key, & type))
+    while (list.get(ns, key, & type, sizeof(ns)))
     {
         cli_print(cli, "%s %s %s%s", ns, key, lut(st_lut, type), cli->eol);
     }
@@ -929,7 +927,7 @@ static void dump(CLI *cli, const void *data, size_t size, int columns=16)
         for (int i = 0; i < columns; i++)
         {
             if (!size) break;
-            uint8_t c = *d++;
+            char c = *d++;
             cli_print(cli, " %x%x", c >> 4, c & 0x0f);
             size -= 1;
         }
@@ -974,7 +972,6 @@ static void blob_get(CLI *cli, const char *ns, const char *key)
 
 class Capture
 {
-    CLI *cli;
     char last;
     size_t chunk;
     size_t size;
@@ -984,9 +981,8 @@ public:
     char *data;
     size_t idx;
 
-    Capture(CLI *_cli, const char *_ns, const char *_key, size_t init_size=128)
-    :   cli(_cli), 
-        last(0),
+    Capture(const char *_ns, const char *_key, size_t init_size=128)
+    :   last(0),
         chunk(init_size),
         size(init_size),
         ns(strdup(_ns)),
@@ -1042,7 +1038,7 @@ static void captured(CLI *cli, char c)
         cli_print(cli, "error writing blob '%s':'%s' size=%d%s", 
                 cap->ns,
                 cap->key, 
-                cap->idx,
+                (int) cap->idx,
                 cli->eol);
     }
     else
@@ -1050,7 +1046,7 @@ static void captured(CLI *cli, char c)
         cli_print(cli, "set blob '%s':'%s' size=%d%s", 
                 cap->ns,
                 cap->key, 
-                cap->idx,
+                (int) cap->idx,
                 cli->eol);
     }
 
@@ -1063,7 +1059,7 @@ static void blob_set(CLI *cli, const char *ns, const char *key)
 {
     const bool verbose = true;
     Storage db(ns, verbose);
-    cli_capture(cli, captured, new Capture(cli, ns, key));
+    cli_capture(cli, captured, new Capture(ns, key));
 }
 
 static void cmd_storage_blob(CLI *cli, CliCommand *)
@@ -1124,8 +1120,6 @@ static CliCommand st_set  = { "set",  cmd_storage_set,  "<namespace> <key> <valu
 static CliCommand st_get  = { "get",  cmd_storage_get,  "<namespace> <key>", 0, 0, & st_set, };
 static CliCommand st_blob = { "blob", cmd_storage_blob, "set|get <namespace> <key>", 0, 0, & st_get, };
 static CliCommand st_del  = { "del",  cmd_storage_del,  "<namespace> <key>", 0, 0, & st_blob, };
-
-#endif  //  GTEST
 
     /*
      *
@@ -1649,10 +1643,7 @@ static CliCommand cli_commands[] = {
     { "gpio",   cmd_gpio,   "gpio [show|toggle|flash] <gpio> [0|1|?]", 0, 0, 0 },
     { "verbose", cmd_verbose, "verbose", 0, 0, 0 },
     { "banner", cmd_banner,   "banner", 0, 0, 0 },
-    
-#if !defined(GTEST)
     { "db",     cli_nowt,     "list|del|get|set|blob", & st_del, 0, 0 },
-#endif
 
 #if 0 // defined(ESP_PLATFORM)
     { "wifi", cmd_wifi,   "wifi", 0, 0, 0 },
