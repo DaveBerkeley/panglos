@@ -179,23 +179,91 @@ TEST(CliCmd, RTC)
      *
      */
 
-#if 0
-TEST(CliCmd, Test)
+#if defined(PO_I2C)
+
+#include "panglos/drivers/i2c.h"
+
+class _I2C : public I2C
+{
+    virtual bool probe(uint8_t addr, uint32_t ) override
+    {
+        return (addr == 0x12) || (addr == 0x35);
+    }
+
+    virtual int write(uint8_t , const uint8_t* , uint32_t ) override
+    {
+        return 0;
+    }
+
+    virtual int write_read(uint8_t , const uint8_t* , uint32_t , uint8_t* , uint32_t ) override
+    {
+        return 0;
+    }
+
+    virtual int read(uint8_t , uint8_t* , uint32_t ) override
+    {
+        return 0;
+    }
+public:
+    _I2C()
+    :   I2C(0)
+    {
+    }
+};
+
+TEST(CliCmd, I2C)
 {
     TestCli test;
     CLI *cli = test.get_cli();
 
+    I2C *i2c = new _I2C;
+    Objects::objects->add("i2c", i2c);
+
     add_cli_commands(cli);
 
-    const char *cmd[] = {
-        "help\n",
-        0,
-    };
+    { 
+        // probe test : fail
+        const uint8_t bad[] = { 0, 0x01, 0x11, 0x13, 0x7f, 0x80 };
+        for (size_t idx = 0; idx < sizeof(bad); idx++)
+        {
+            char cmd[24];
+            snprintf(cmd, sizeof(cmd), "i2c %#x\n", bad[idx]);
+            test.process(cmd);
+            const char *s = test.get();
+            EXPECT_TRUE(strstr(s, "no device found"));
+            //PO_DEBUG("'%s' '%s'", cmd, s);
+            test.reset();
+        }
+    }
 
-    test.process(cmd);
+    { 
+        // probe test : pass
+        const uint8_t good[] = { 0x12, 0x35 };
+        for (size_t idx = 0; idx < sizeof(good); idx++)
+        {
+            char cmd[24];
+            snprintf(cmd, sizeof(cmd), "i2c %#x\n", good[idx]);
+            test.process(cmd);
+            const char *s = test.get();
+            EXPECT_TRUE(strstr(s, "found"));
+            //PO_DEBUG("'%s' '%s'", cmd, s);
+            test.reset();
+        }
+    }
 
-    PO_DEBUG("'%s'", test.get());
+    { 
+        // scan test
+        test.process("i2c\n");
+        const char *s = test.get();
+        EXPECT_TRUE(strstr(s, "found 0x12"));
+        EXPECT_TRUE(strstr(s, "found 0x35"));
+        //PO_DEBUG("'%s'", s);
+        test.reset();
+    }
+
+    delete i2c;
 }
-#endif
+
+#endif  //  PO_I2C
 
 //  FIN

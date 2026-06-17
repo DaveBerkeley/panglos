@@ -114,6 +114,7 @@ ccflags = [
     '-DGTEST=1',
     '-DARCH_LINUX=1',
     '-DPO_RTC=1',
+    '-DPO_I2C=1',
 ]
 
 cpppath = [
