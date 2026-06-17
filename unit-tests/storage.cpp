@@ -222,4 +222,40 @@ TEST(Storage, List)
     EXPECT_EQ(0, count);
 }
 
+TEST(Storage, Blob)
+{
+    Storage::clear_all();
+    Storage db("test");
+
+    bool ok;
+
+    struct X {
+        struct A { int i; double f ; };
+        struct A a;
+        struct A b;
+        int x;
+    };
+
+    struct X x = { { 0 } };
+    x.a.f = 1234.56;
+    x.b.f = 1.01;
+    x.b.i = 1234;
+
+    ok = db.set_blob("hello", & x, sizeof(x));
+    EXPECT_TRUE(ok);
+    EXPECT_EQ(Storage::VAL_BLOB, db.get_type("hello"));
+    EXPECT_EQ("test", db.get_ns());
+
+    struct X y;
+    size_t sz = sizeof(y);
+
+    ok = db.get_blob("hello", & y, & sz);
+    EXPECT_TRUE(ok);
+    EXPECT_EQ(sz, sizeof(y));
+    EXPECT_EQ(x.a.i, y.a.i);
+    EXPECT_EQ(x.a.f, y.a.f);
+    EXPECT_EQ(x.b.i, y.b.i);
+    EXPECT_EQ(x.b.f, y.b.f);
+}
+
 //  FIN

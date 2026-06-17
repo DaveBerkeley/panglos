@@ -39,6 +39,7 @@ public:
         int16_t v16;
         int32_t v32;
         const char *s;
+        void *blob;
     };
 
     static KVPair **get_next(KVPair *item) { return & item->next; }
@@ -61,11 +62,11 @@ public:
     {
         switch (type)
         {
-            case Storage::VAL_STR : free((void*) s); s = 0; break;
-            case Storage::VAL_INT32 :  return;
-            case Storage::VAL_INT16 :  return;
-            case Storage::VAL_INT8  :  return;
-            case Storage::VAL_BLOB  :  // TODO!
+            case Storage::VAL_BLOB  : free(blob); blob = 0; break; 
+            case Storage::VAL_STR   : free((void*) s); s = 0; break;
+            case Storage::VAL_INT32 : return;
+            case Storage::VAL_INT16 : return;
+            case Storage::VAL_INT8  : return;
             case Storage::VAL_NONE  :
             case Storage::VAL_OTHER :
             default: ASSERT(0);
@@ -190,6 +191,22 @@ public:
         return true;
     }
 
+    bool set_blob(const char *ns, const char *key, void *data, size_t sz)
+    {
+        Lock lock(mutex);
+
+        KVPair *pair = find_set(ns, key);
+        pair->type = Storage::VAL_BLOB;
+
+        ASSERT(data);
+        void *blob = malloc(sz);
+        memcpy(blob, data, sz);
+
+        pair->blob = blob;
+        pair->size = sz;
+        return true;
+    }
+
     bool get(const char *ns, const char *key, char *value, size_t *n)
     {
         ASSERT(value);
@@ -237,6 +254,20 @@ public:
         if (!pair) return false;
 
         if (value) *value = pair->v8;
+        return true;
+    }
+
+    bool get_blob(const char *ns, const char *key, void *data, size_t *sz)
+    {
+        Lock lock(mutex);
+
+        KVPair *pair = find(ns, key, Storage::VAL_BLOB, 0);
+        if (!pair) return false;
+
+        ASSERT(data);
+        ASSERT(sz);
+        if (pair->size > *sz) return false; // blob too big to copy
+        memcpy(data, pair->blob, pair->size);
         return true;
     }
 
@@ -353,20 +384,12 @@ bool Storage::set(const char *key, const char *value)
 
 bool Storage::set_blob(const char *key, void *data, size_t size)
 {
-    IGNORE(key);
-    IGNORE(data);
-    IGNORE(size);
-    ASSERT(0);
-    return false;
+    return helper.set_blob(ns, key, data, size);
 }
 
 bool Storage::get_blob(const char *key, void *data, size_t *size)
 {
-    IGNORE(key);
-    IGNORE(data);
-    IGNORE(size);
-    ASSERT(0);
-    return false;
+    return helper.get_blob(ns, key, data, size);
 }
 
 bool Storage::erase(const char *key)
