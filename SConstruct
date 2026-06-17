@@ -48,6 +48,7 @@ files = [
     'src/linux/semaphore.cpp',
     'src/linux/queue.cpp',
     'src/linux/time.cpp',
+    'src/linux/storage.cpp',
 
     # https://github.com/eyalroz/printf
     'lib/printf/src/printf/printf.c',
@@ -94,6 +95,7 @@ files = [
     'unit-tests/json_fmt.cpp',
     'unit-tests/cli_cmd.cpp',
     'unit-tests/rtc.cpp',
+    'unit-tests/storage.cpp',
 ]
 
 ccflags = [
