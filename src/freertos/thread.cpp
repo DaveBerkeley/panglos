@@ -93,9 +93,13 @@ public:
 
     virtual int get_core() override
     {
+#if defined(CONFIG_FREERTOS_UNICORE)
+        return 0;
+#else
         TaskStatus_t status;
         vTaskGetInfo(0, & status, pdFALSE, eInvalid);
         return xTaskGetCoreID(status.xHandle);
+#endif
     }
 };
 
