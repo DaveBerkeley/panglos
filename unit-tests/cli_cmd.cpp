@@ -6,8 +6,16 @@
 
 #include "panglos/debug.h"
 #include "panglos/object.h"
+#include "panglos/thread.h"
+#include "panglos/time.h"
+#include "panglos/mutex.h"
+#include "panglos/storage.h"
 
 #include "panglos/app/cli_cmd.h"
+
+#include "panglos/drivers/rtc.h"
+#include "panglos/drivers/i2c.h"
+#include "panglos/drivers/gpio.h"
 
 using namespace panglos;
 
@@ -77,8 +85,6 @@ public:
      */
 
 #if defined(PO_RTC)
-
-#include "panglos/drivers/rtc.h"
 
 class _RTC : public RTC
 {
@@ -181,8 +187,6 @@ TEST(CliCmd, RTC)
 
 #if defined(PO_I2C)
 
-#include "panglos/drivers/i2c.h"
-
 class _I2C : public I2C
 {
     virtual bool probe(uint8_t addr, uint32_t ) override
@@ -270,9 +274,6 @@ TEST(CliCmd, I2C)
      *
      */
 
-#include "panglos/drivers/gpio.h"
-#include "panglos/mutex.h"
-
 class _GPIO : public GPIO
 {
     panglos::Mutex *mutex;
@@ -312,9 +313,6 @@ public:
 
     int get_count() { return count; }
 };
-
-#include "panglos/thread.h"
-#include "panglos/time.h"
 
 class TestDelay
 {
@@ -456,6 +454,191 @@ TEST(CliCmd, GPIO)
     }
 
     delete led;
+}
+
+    /*
+     *
+     */
+
+TEST(CliCmd, DbList)
+{
+    TestCli test;
+    CLI *cli = test.get_cli();
+
+    add_cli_commands(cli);
+
+    Storage db("test");
+
+    db.set("str", "hello");
+    db.set("i8", int8_t(0x12));
+    db.set("i16", int16_t(0x1234));
+    db.set("i32", int32_t(0x12345678));
+
+    test.process("db list\n");
+ 
+    const char *s = test.get();
+    char *buff = (char*) malloc(strlen(s)+1);
+    strcpy(buff, s);
+    //PO_DEBUG("'%s'", buff);
+
+    char *tok = buff;
+    // skip leading prompt
+    for (; (*tok == ' ') || (*tok == '>'); tok++)
+        ;
+    char *save = 0;
+    char *start = tok;
+
+    struct Match {
+        const char *text;
+        bool found;
+    };
+
+    struct Match matches[] = {
+        {   "test i8 INT8\r", },
+        {   "test i16 INT16\r", },
+        {   "test i32 INT32\r", },
+        {   "test str STR\r", },
+        { 0 },
+    };
+
+    while (true)
+    {
+        tok = strtok_r(start, "\n", & save);
+        if (!tok) break;
+        //PO_DEBUG("x '%s'", tok);
+        start = 0;
+        for (struct Match *m = matches; m->text; m++)
+        {
+            if (!strcmp(m->text, tok)) m->found = true;
+        }
+    }
+
+    for (struct Match *m = matches; m->text; m++)
+    {
+        EXPECT_TRUE(m->found);
+    }
+    
+    free(buff);
+}
+
+    /*
+     *
+     */
+
+static int get_value(TestCli &test)
+{
+    const char *s = test.get();
+
+    if (strstr(s, "Error reading value")) return -1;
+
+    char *end = 0;
+    long int value = strtol(s, & end, 0);
+    test.reset();
+    return (int) value;
+}
+
+TEST(CliCmd, DbSetGetDel)
+{
+    TestCli test;
+    CLI *cli = test.get_cli();
+
+    add_cli_commands(cli);
+
+    // not set yet
+    test.process("db get test value\n");
+    EXPECT_EQ(get_value(test), -1);
+ 
+    // set the value
+    test.process("db set test value 1234\n");
+    test.reset();
+
+    // get the value
+    test.process("db get test value\n");
+    EXPECT_EQ(get_value(test), 1234);
+
+    // del the value
+    test.process("db del test value\n");
+    test.reset();
+ 
+    test.process("db get test value\n");
+    EXPECT_EQ(get_value(test), -1);
+}
+
+TEST(CliCmd, DbBlob)
+{
+    bool ok;
+    TestCli test;
+    CLI *cli = test.get_cli();
+
+    add_cli_commands(cli);
+
+    const char *data = "hello world\nlast line\n";
+
+    // set
+    test.process("db blob set test value\n");
+    test.process(data);
+    test.process("\n"); // blob entry is terminated by "\n\n"
+    test.reset();
+
+    {
+        // check by getting blob directly from the Storage
+        Storage db("test");
+
+        size_t size = 0;
+        ok = db.get_blob("value", 0, & size);
+        EXPECT_TRUE(ok); 
+        EXPECT_EQ(size, strlen(data));
+
+        char *buff = (char *) malloc(size + 1);
+        buff[size] = '\0'; // terminate the returned string
+
+        ok = db.get_blob("value", buff, & size);
+        EXPECT_TRUE(ok);     
+        EXPECT_STREQ(data, buff);
+
+        free(buff);
+    }
+
+    // check the blob get command
+    // get blob returns a hexdump of the string
+    test.process("db blob get test value\n");
+    const char *s = test.get();
+
+    // copy the cli prints
+    char *buff = (char *) malloc(strlen(s) + 1);
+    strcpy(buff, s);
+
+    const char *delim = "\r\n ";
+    char *end = 0;
+    char *tok = strtok_r(buff, delim, & end);
+
+    int compares = 0;
+    // iterate through the expected data, checking for addr: and hex data
+    for (int idx = 0; tok; idx++)
+    {
+        char cmp[16];
+        if (!(idx % 16))
+        {
+            // check for XXXX: address
+            snprintf(cmp, sizeof(cmp), "%04x:", idx);
+            //PO_DEBUG("'%s' - '%s'", cmp, tok);
+            EXPECT_STREQ(cmp, tok);
+            tok = strtok_r(0, delim, & end);
+        }
+        if (!tok) break;
+        if (strchr(tok, '>')) break; // cursor
+
+        // check for XX data
+        snprintf(cmp, sizeof(cmp), "%02x", data[idx]);
+        //PO_DEBUG("'%s' - '%s'", cmp, tok);
+        EXPECT_STREQ(cmp, tok);
+        compares += 1;
+        tok = strtok_r(0, delim, & end);
+    }
+
+    EXPECT_EQ(compares, strlen(data));
+
+    free(buff);
 }
 
 //  FIN

@@ -259,15 +259,18 @@ public:
 
     bool get_blob(const char *ns, const char *key, void *data, size_t *sz)
     {
+        ASSERT(sz);
         Lock lock(mutex);
 
         KVPair *pair = find(ns, key, Storage::VAL_BLOB, 0);
         if (!pair) return false;
 
-        ASSERT(data);
-        ASSERT(sz);
-        if (pair->size > *sz) return false; // blob too big to copy
-        memcpy(data, pair->blob, pair->size);
+        if (data)
+        {
+            if (pair->size > *sz) return false; // blob too big to copy
+            memcpy(data, pair->blob, pair->size);
+        }
+        *sz = pair->size;
         return true;
     }
 

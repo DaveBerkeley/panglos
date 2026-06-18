@@ -922,7 +922,7 @@ static void dump(CLI *cli, const void *data, size_t size, int columns=16)
     int addr = 0;
     while (size)
     {
-        cli_print(cli, "%04d:", addr);
+        cli_print(cli, "%04x:", addr);
         addr += columns;
         for (int i = 0; i < columns; i++)
         {
@@ -1016,7 +1016,7 @@ public:
 
         const bool done = (c == '\n') && (last == '\n');
         last = c;
-        if (done) PO_DEBUG("");
+        //if (done) PO_DEBUG("");
         return !done;
     }
 };
@@ -1033,12 +1033,13 @@ static void captured(CLI *cli, char c)
 
     Storage db(cap->ns);
 
-    if (!db.set_blob(cap->key, cap->data, cap->idx))
+    size_t size = cap->idx - 1; // remove the trailing '\n'
+    if (!db.set_blob(cap->key, cap->data, size))
     {
         cli_print(cli, "error writing blob '%s':'%s' size=%d%s", 
                 cap->ns,
                 cap->key, 
-                (int) cap->idx,
+                (int) size,
                 cli->eol);
     }
     else
@@ -1046,7 +1047,7 @@ static void captured(CLI *cli, char c)
         cli_print(cli, "set blob '%s':'%s' size=%d%s", 
                 cap->ns,
                 cap->key, 
-                (int) cap->idx,
+                (int) size,
                 cli->eol);
     }
 
