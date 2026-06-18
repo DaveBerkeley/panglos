@@ -65,6 +65,22 @@ public:
     static void clear_all();
     static bool load(const char *path);
     static bool save(const char *path);
+
+    // Validate params
+
+    static bool validate_range(int32_t v, const char *name, int32_t lo, int32_t hi);
+    static bool validate_set(int32_t v, const char *name, const int32_t *set, size_t n);
+
+    //  Get a block of params
+
+    struct IntParam
+    {
+        const char *name;
+        int32_t *value;
+        bool (*validate)(int32_t v, const char *name);
+    };
+
+    void get_params(const struct IntParam *params);
 };
 
 }   //  namespace panglos

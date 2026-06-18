@@ -21,6 +21,7 @@ files = [
     'src/date.cpp',
     'src/fmt.cpp',
     'src/json_fmt.cpp',
+    'src/storage.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/2_wire_bitbang.cpp',

@@ -258,4 +258,104 @@ TEST(Storage, Blob)
     EXPECT_EQ(x.b.f, y.b.f);
 }
 
+    /*
+     *
+     */
+
+TEST(Storage, ValidateRange)
+{
+    bool ok;
+
+    for (int32_t i = -5; i < 10; i++)
+    {
+        ok = Storage::validate_range(i, "test", -5, 10);
+        EXPECT_TRUE(ok);
+    }
+    ok = Storage::validate_range(-6, "test", -5, 10);
+    EXPECT_FALSE(ok);
+    ok = Storage::validate_range(11, "test", -5, 10);
+    EXPECT_FALSE(ok);
+}
+
+TEST(Storage, ValidateSet)
+{
+    bool ok;
+
+    const int32_t set[] = {
+        0, 4, 10, -1,
+    };
+
+    ok = Storage::validate_set(0, "test", set, 4);
+    EXPECT_TRUE(ok);
+    ok = Storage::validate_set(4, "test", set, 4);
+    EXPECT_TRUE(ok);
+    ok = Storage::validate_set(10, "test", set, 4);
+    EXPECT_TRUE(ok);
+    ok = Storage::validate_set(-1, "test", set, 4);
+    EXPECT_TRUE(ok);
+    ok = Storage::validate_set(-2, "test", set, 4);
+    EXPECT_FALSE(ok);
+    ok = Storage::validate_set(1, "test", set, 4);
+    EXPECT_FALSE(ok);
+    ok = Storage::validate_set(2, "test", set, 4);
+    EXPECT_FALSE(ok);
+    ok = Storage::validate_set(3, "test", set, 4);
+    EXPECT_FALSE(ok);
+    ok = Storage::validate_set(5, "test", set, 4);
+    EXPECT_FALSE(ok);
+}
+
+    /*
+     *
+     */
+
+static bool validate_number(int32_t v, const char *name)
+{
+    if (!strcmp(name, "d"))
+    {
+        return Storage::validate_range(v, name, -10, -1);
+    }
+    return false;
+}
+
+TEST(Storage, GetParams32)
+{
+    Storage::clear_all();
+
+    Storage db("test");
+    bool ok;
+    
+    ok = db.set("a", int32_t(12345678));
+    EXPECT_TRUE(ok);
+    ok = db.set("b", int32_t(2345678));
+    EXPECT_TRUE(ok);
+    ok = db.set("c", int32_t(345678));
+    EXPECT_TRUE(ok);
+    ok = db.set("d", int32_t(-4));
+    EXPECT_TRUE(ok);
+    ok = db.set("e", int32_t(5678));
+    EXPECT_TRUE(ok);
+
+    int32_t a = 1;
+    int32_t b = 2;
+    int32_t c = 3;
+    int32_t d = 4;
+    int32_t e = 5;
+    const Storage::IntParam params[] = {
+        {   "a", & a, 0 },
+        {   "b", & b, 0 },
+        {   "c", & c, 0 },
+        {   "d", & d, validate_number },
+        {   "e", & e, validate_number },
+        {   0 },
+    };
+
+    db.get_params(params);
+    EXPECT_EQ(a, 12345678);
+    EXPECT_EQ(b, 2345678);
+    EXPECT_EQ(c, 345678);
+    EXPECT_EQ(d, -4);
+    EXPECT_EQ(e, 5);
+}
+
 //  FIN
