@@ -1,4 +1,6 @@
 
+#include <atomic>
+
 #include <gtest/gtest.h>
 
 #include "panglos/debug.h"
@@ -27,7 +29,7 @@ TEST(Thread, GetCurrent)
 
 static void tt_nowt(void *arg)
 {
-    bool *dead = (bool*) arg;
+    std::atomic<bool> *dead = (std::atomic<bool>*) arg;
 
     while (true)
     {
@@ -50,7 +52,7 @@ TEST(Thread, Name)
     const int num_threads = 5;
     ThreadPool pool("thread_%d", num_threads, 4000);
 
-    bool dead = false;
+    std::atomic<bool> dead(false);
     pool.start(tt_nowt, & dead);
 
     // wait for them all to start
