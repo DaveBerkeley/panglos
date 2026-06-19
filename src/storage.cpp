@@ -28,6 +28,15 @@ void Storage::get_params(const struct Storage::IntParam *params)
     }
 }
 
+void Storage::show_params(const struct Storage::IntParam *params)
+{
+    for (const struct IntParam *p = params; p->name; p++)
+    {
+        ASSERT(p->value);
+        PO_DEBUG("%s.%s=%d", get_ns(), p->name, *p->value);
+    }
+}
+
     /*
      *
      */

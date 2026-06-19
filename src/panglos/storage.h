@@ -81,6 +81,7 @@ public:
     };
 
     void get_params(const struct IntParam *params);
+    void show_params(const struct IntParam *params);
 };
 
 }   //  namespace panglos
