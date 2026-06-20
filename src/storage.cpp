@@ -33,7 +33,7 @@ void Storage::show_params(const struct Storage::IntParam *params)
     for (const struct IntParam *p = params; p->name; p++)
     {
         ASSERT(p->value);
-        PO_DEBUG("%s.%s=%d", get_ns(), p->name, *p->value);
+        PO_DEBUG("%s.%s=%d", get_ns(), p->name, (int) *p->value);
     }
 }
 
@@ -44,7 +44,7 @@ void Storage::show_params(const struct Storage::IntParam *params)
 bool Storage::validate_range(int32_t v, const char *name, int32_t lo, int32_t hi)
 {
     if ((v >= lo) && (v <= hi)) return true;
-    PO_WARNING("%s %d not in range %d .. %d", name, v, lo, hi);
+    PO_WARNING("%s %d not in range %d .. %d", name, (int) v, (int) lo, (int) hi);
     return false;
 }
 
@@ -54,7 +54,7 @@ bool Storage::validate_set(int32_t v, const char *name, const int32_t *set, size
     {
         if (v == set[i]) return true;
     }
-    PO_WARNING("%s %d not in set[%d]", name, v, (int) n);
+    PO_WARNING("%s %d not in set[%d]", name, (int) v, (int) n);
     return false;
 }
 

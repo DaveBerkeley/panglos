@@ -137,6 +137,8 @@ cxxflags = [
     '-Wall',
     '-Wextra',
     '-Werror',
+    '-Wformat=2', # strict level
+    '-Werror=format',
 ]
 
 lflags = [
