@@ -301,6 +301,20 @@ static void _cmd_heap_dump(CLI *cli)
     }
 }
 
+    /*
+     *  Heap walker facility in 5.3.4 not in 5.2.1
+     */
+
+#include "esp_idf_version.h"
+
+#if (ESP_IDF_VERSION_MAJOR >= 5)
+#if (ESP_IDF_VERSION_MINOR >= 3)
+#define HEAP_WALKER
+#endif
+#endif
+
+#if defined(HEAP_WALKER)
+
 struct HeapState
 {
     enum Fn {
@@ -544,6 +558,9 @@ static void _cmd_heap_walk(CLI *cli, int caps, HeapState::Command cmd)
     }
 }
 
+#endif  //  HEAP_WALKER
+
+
 static void cmd_heap(CLI *cli, CliCommand *)
 {
     const char *s = cli_get_arg(cli, 0);
@@ -555,6 +572,7 @@ static void cmd_heap(CLI *cli, CliCommand *)
         return;
     }
 
+#if defined(HEAP_WALKER)
     if (!strcmp(s, "walk"))
     {
         _cmd_heap_walk(cli, MALLOC_CAP_INTERNAL, HeapState::CMD_MARK);
@@ -581,6 +599,7 @@ static void cmd_heap(CLI *cli, CliCommand *)
         _cmd_heap_walk(cli, MALLOC_CAP_INTERNAL, HeapState::CMD_RELEASE);
         return;
     }
+#endif
 
     cli_print(cli, "unknown option '%s'%s", s, cli->eol);
 }
@@ -1632,6 +1651,34 @@ static void cmd_logging(CLI *cli, CliCommand *)
      *
      */
 
+#if 0
+// TODO
+static void cmd_echo(CLI *cli, CliCommand *)
+{
+    const char *s = cli_get_arg(cli, 0);
+
+    if (!s)
+    {
+        cli_print(cli, "echo=%d%s", cli->echo, cli->eol);
+        return;
+    }
+
+    long value = 0;
+
+    if (!cli_parse_long(s, & value, 0))
+    {
+        cli_print(cli, "Error reading '%s'%s", s, cli->eol);
+        return;
+    }
+
+    cli->echo = value;
+}
+#endif
+
+    /*
+     *
+     */
+
 static CliCommand cli_commands[] = {
     { "reset",  cmd_reset,  "ASSERT(0)", 0, 0, 0 },
     { "help",   cmd_help,   "help <cmd>", 0, 0, 0 },
@@ -1652,6 +1699,7 @@ static CliCommand cli_commands[] = {
 #endif
     { "logging", cmd_logging, "severity|?", 0, 0, 0 },
     { "devices", cmd_devices, "list devices", 0, 0, 0 },
+//    { "echo", cmd_echo, "1|0", 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0 },
 };
 
