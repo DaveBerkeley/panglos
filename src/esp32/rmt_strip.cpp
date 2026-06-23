@@ -58,6 +58,7 @@ class BaseRmt : public RmtLedStrip
 public:
     int nleds;
     int bits_per_led;
+    Type type;
     gpio_num_t gpio;
     
 #if (ESP_IDF_VERSION_MAJOR == 4)
@@ -69,9 +70,10 @@ public:
     rmt_bit_t on;
     rmt_bit_t off;
 
-    BaseRmt(int _nleds, int _bits_per_led, Type type)
+    BaseRmt(int _nleds, int _bits_per_led, Type _type)
     :   nleds(_nleds),
-        bits_per_led(_bits_per_led)
+        bits_per_led(_bits_per_led),
+        type(_type)
     {
         data = new rmt_bit_t[nleds * bits_per_led];
 
@@ -122,7 +124,14 @@ public:
         rmt_bit_t *out = & data[idx];
         uint32_t mask = 1 << (bits_per_led - 1);
 
-        const uint32_t state = rgb(r, g, b);
+        uint32_t state = 0;
+
+        switch (type)
+        {
+            case SK68XX  : state = rgb(g, r, b); break;
+            case WS2812B : 
+            default      : state = rgb(r, g, b);
+        }
 
         while (mask)
         {
