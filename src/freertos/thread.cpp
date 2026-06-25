@@ -1,5 +1,7 @@
 
+#include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 extern "C" {
     #include <freertos/FreeRTOS.h>
@@ -17,8 +19,6 @@ namespace panglos {
     /*
      *
      */
-
-class RTOS_Thread;
 
 // TLS seems to be broken on esp32 + FreeRTOS
 //static __thread RTOS_Thread *_this_thread;
@@ -93,12 +93,12 @@ public:
 
     virtual int get_core() override
     {
-#if defined(CONFIG_FREERTOS_UNICORE)
-        return 0;
-#else
+#if defined(CONFIG_FREERTOS_SMP)
         TaskStatus_t status;
         vTaskGetInfo(0, & status, pdFALSE, eInvalid);
         return xTaskGetCoreID(status.xHandle);
+#else
+        return 0;
 #endif
     }
 };
@@ -168,11 +168,15 @@ void RTOS_Thread::start(void (*_fn)(void *arg), void *_arg, int core)
         core -= 1;
     }
 
+#if defined(CONFIG_FREERTOS_SMP)
     BaseType_t err = xTaskCreatePinnedToCore(thread_run, name, stack, this, priority(pri), & handle, 
             (core == -1) ? tskNO_AFFINITY : core);
+#else
+    BaseType_t err = xTaskCreate(thread_run, name, stack, this, priority(pri), & handle);
+#endif
     if (err != pdPASS)
     {
-        PO_ERROR("name=%s stack=%d err=%d '%s'", name, stack, err, lut(freertos_err, err));
+        PO_ERROR("name=%s stack=%d err=%d '%s'", name, (int) stack, (int) err, lut(freertos_err, err));
         ASSERT(0);
     }
 }

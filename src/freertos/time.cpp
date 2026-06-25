@@ -1,6 +1,8 @@
 
+extern "C" {
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+}
 
 #include "panglos/debug.h"
 #include "panglos/time.h"

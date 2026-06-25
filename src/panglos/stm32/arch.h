@@ -1,6 +1,5 @@
 
-#if !defined(__PANGLOS_STM32_ARCH__)
-#define __PANGLOS_STM32_ARCH__
+#pragma once
 
     /*
      *
@@ -18,7 +17,5 @@ void arch_restore_irq(uint32_t was);
 #if defined(__cplusplus)
 }
 #endif
-
-#endif  //  __PANGLOS_STM32_ARCH__
 
 //  FIN
