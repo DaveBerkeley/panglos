@@ -2,7 +2,6 @@
 #if defined(ESP32)
 
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 
 #include "panglos/debug.h"
 #include "panglos/thread.h"
@@ -13,22 +12,17 @@
      *
      */
 
-void Error_Handler(void)
+__attribute__((weak)) void Error_Handler(void)
 {
     printf("ERROR ERROR ERROR\n\r");
     abort();
 }
 
-uint32_t get_time(void)
+// TODO : this should be in the FreeRTOS layer
+__attribute__((weak)) uint32_t get_time(void)
 {
     TickType_t ticks = xTaskGetTickCount();
     return ticks;
-}
-
-const char *get_task(void)
-{
-    panglos::Thread *thread = panglos::Thread::get_current();
-    return thread ? thread->get_name() : pcTaskGetName(0);
 }
 
     /*
