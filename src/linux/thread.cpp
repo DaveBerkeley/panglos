@@ -14,6 +14,8 @@ using namespace panglos;
      *
      */
 
+#if defined(ARCH_LINUX)
+
 class NativeThread;
 
 static __thread NativeThread *native_thread = 0;
@@ -138,5 +140,7 @@ Thread *Thread::get_current()
 }
 
 }   //  namespace panglos
+
+#endif //   defined(ARCH_LINUX)
 
 //  FIN
