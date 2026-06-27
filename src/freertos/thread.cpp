@@ -202,6 +202,9 @@ Thread *Thread::create(const char *name, size_t stack, Thread::Priority pri)
 static const char *get_task_name()
 {
     UBaseType_t num_tasks = uxTaskGetNumberOfTasks();
+
+    if (num_tasks == 0) return "none";
+
     TaskStatus_t *tasks = (TaskStatus_t*) malloc(sizeof(TaskStatus_t) * num_tasks);
 
     const char *name = "unknown";
