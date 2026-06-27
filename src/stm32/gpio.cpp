@@ -1,9 +1,10 @@
 
-#include "../panglos/stm32/stm32fxxx_hal.h"
+#include "panglos/debug.h"
+#undef UNUSED
+#include "panglos/stm32/hal.h"
 
-#include "../panglos/debug.h"
-#include "../panglos/drivers/gpio.h"
-#include "../panglos/stm32/gpio_arm.h"
+#include "panglos/drivers/gpio.h"
+#include "panglos/stm32/gpio_arm.h"
 
     /*
      *  GPIO
@@ -88,7 +89,7 @@ static void busy(GPIO_TypeDef *port, uint16_t pin, bool mark)
 
     if (mark)
     {   
-        ASSERT_ERROR((*map & pin) == 0, "port=%#x pin=%#x", port, pin);
+        ASSERT_ERROR((*map & pin) == 0, "port=%p pin=%#x", port, pin);
         *map |= pin;
     }
     else
