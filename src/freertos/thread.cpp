@@ -146,8 +146,8 @@ static UBaseType_t priority(Thread::Priority p)
 {
     switch (p)
     {
-        case Thread::High   :   return 23;
-        case Thread::Medium :   return 15;
+        case Thread::High   :   return configMAX_PRIORITIES -1;
+        case Thread::Medium :   return UBaseType_t(configMAX_PRIORITIES / 2);
         case Thread::Low    :   return 0;
         default : break;
     }
