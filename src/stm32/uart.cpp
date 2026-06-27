@@ -12,9 +12,17 @@ static void init_uart_clk(USART_TypeDef *uart)
 {
     // stm32f446 : USART1 USART2 USART3 UART4 UART5 USART6
     ASSERT(uart);
-    ASSERT(uart == USART1);
-    // TODO
-    __HAL_RCC_USART1_CLK_ENABLE();
+    if (uart == USART1) { __HAL_RCC_USART1_CLK_ENABLE(); return; }
+    if (uart == USART2) { __HAL_RCC_USART2_CLK_ENABLE(); return; }
+    if (uart == USART3) { __HAL_RCC_USART3_CLK_ENABLE(); return; }
+#if defined(USART4)
+    if (uart == USART4) { __HAL_RCC_USART4_CLK_ENABLE(); return; }
+#endif
+#if defined(USART5)
+    if (uart == USART5) { __HAL_RCC_USART5_CLK_ENABLE(); return; }
+#endif
+    if (uart == USART6) { __HAL_RCC_USART6_CLK_ENABLE(); return; }
+    ASSERT(0);
 }
 
     /*
