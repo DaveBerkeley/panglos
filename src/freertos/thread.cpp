@@ -228,53 +228,6 @@ static const char *get_task_name()
     return name;
 }
 
-
-class OtherThread : public Thread
-{
-public:
-    TaskHandle_t handle;
-    char name[24];
-    class OtherThread *next;
-
-    virtual void start(void (*)(void *), void *, int) override { }
-    virtual void join() override { }
-
-    virtual const char *get_name() override
-    {
-        return name;
-    }
-
-    static OtherThread **get_next(OtherThread *t) { return & t->next; }
-
-    static List<OtherThread *> others;
-
-    static int match(OtherThread *t, void *arg)
-    {
-        ASSERT(arg);
-        TaskHandle_t h = (TaskHandle_t) arg;
-        return t->handle == h;
-    }
-
-    static Thread *find(TaskHandle_t h)
-    {
-        return others.find(match, h, mutex);
-    }
-
-    OtherThread(TaskHandle_t h)
-    :   handle(h)
-    {
-        if (!mutex)
-        {
-            mutex = Mutex::create();
-        }
-
-        snprintf(name, sizeof(name), "%s", get_task_name());
-        others.push(this, mutex);
-    }
-};
-
-List<OtherThread *> OtherThread::others(OtherThread::get_next);
-
 static int match_handle(RTOS_Thread *thread, void *arg)
 {
     ASSERT(arg);
@@ -285,21 +238,7 @@ static int match_handle(RTOS_Thread *thread, void *arg)
 Thread *Thread::get_current()
 {
     TaskHandle_t handle = xTaskGetCurrentTaskHandle();
-    Thread *thread = threads.find(match_handle, handle, mutex);
-    if (thread)
-    {
-        return thread;
-    }
-
-    // not a Task that we've created as a Thread
-    thread = OtherThread::find(handle);
-
-    if (!thread)
-    {
-        thread = new OtherThread(handle);
-    }
-
-    return thread;
+    return threads.find(match_handle, handle, mutex);
 }
 
 }   //  namespace panglos
@@ -315,7 +254,18 @@ __attribute__((weak)) uint32_t get_time(void)
 const char *get_task(void)
 {
     panglos::Thread *thread = panglos::Thread::get_current();
-    return thread ? thread->get_name() : pcTaskGetName(0);
+    if (thread)
+    {
+        return thread->get_name();
+    }
+    
+    UBaseType_t num_tasks = uxTaskGetNumberOfTasks();
+    if (num_tasks > 0)
+    {
+        return pcTaskGetName(0);
+    }
+
+    return "none";
 }
 
 }
