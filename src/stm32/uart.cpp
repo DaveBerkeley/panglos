@@ -7,8 +7,9 @@
 #undef UNUSED
 
 #include "panglos/stm32/uart.h"
+#include "panglos/stm32/gpio_arm.h"
 
-static void init_uart_clk(USART_TypeDef *uart)
+static void uart_enable_clock(USART_TypeDef *uart)
 {
     // stm32f446 : USART1 USART2 USART3 UART4 UART5 USART6
     ASSERT(uart);
@@ -26,31 +27,6 @@ static void init_uart_clk(USART_TypeDef *uart)
 }
 
     /*
-     *  These functions should be part of the GPIO library
-     */ 
-
-static void init_gpio_clk(GPIO_TypeDef *port)
-{
-    ASSERT(port);
-    // stm32f446 : GPIOA GPIOB GPIOC GPIOD GPIOE GPIOF GPIOG GPIOH
-    if (port == GPIOA) { __HAL_RCC_GPIOA_CLK_ENABLE(); return; }
-    if (port == GPIOB) { __HAL_RCC_GPIOB_CLK_ENABLE(); return; }
-    if (port == GPIOC) { __HAL_RCC_GPIOC_CLK_ENABLE(); return; }
-    if (port == GPIOD) { __HAL_RCC_GPIOD_CLK_ENABLE(); return; }
-    if (port == GPIOE) { __HAL_RCC_GPIOE_CLK_ENABLE(); return; }
-    if (port == GPIOF) { __HAL_RCC_GPIOF_CLK_ENABLE(); return; }
-    if (port == GPIOG) { __HAL_RCC_GPIOG_CLK_ENABLE(); return; }
-    if (port == GPIOH) { __HAL_RCC_GPIOH_CLK_ENABLE(); return; }
-    ASSERT(0);
-}
-
-static void _init_gpio(GPIO_TypeDef *port, GPIO_InitTypeDef *config)
-{
-    init_gpio_clk(port);
-    HAL_GPIO_Init(port, config);
-}
-
-    /*
      *
      */
 
@@ -58,6 +34,8 @@ namespace panglos {
 
 void STM32_UART::init_gpio(struct Config::Pin *pin)
 {
+    gpio_enable_clock(pin->port);
+
     GPIO_InitTypeDef config = {0};
 
     config.Pin = pin->pin;
@@ -65,7 +43,7 @@ void STM32_UART::init_gpio(struct Config::Pin *pin)
     config.Pull = GPIO_NOPULL ; // GPIO_PULLUP;
     config.Speed = GPIO_SPEED_FREQ_HIGH;
     config.Alternate = pin->alt;
-    _init_gpio(pin->port, & config);
+    HAL_GPIO_Init(pin->port, & config);
 }
 
 bool STM32_UART::init_uart(USART_TypeDef *uart, int baud)
@@ -95,7 +73,7 @@ STM32_UART::STM32_UART()
 
 bool STM32_UART::init(struct Config *config)
 {
-    init_uart_clk(config->uart);
+    uart_enable_clock(config->uart);
     init_gpio(& config->rx);
     init_gpio(& config->tx);
     return init_uart(config->uart, config->baud);
@@ -103,6 +81,7 @@ bool STM32_UART::init(struct Config *config)
 
 int STM32_UART::rx(char* data, int n)
 {
+    // TODO
     ASSERT(0);
     UNUSED(data);
     UNUSED(n);

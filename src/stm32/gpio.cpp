@@ -10,25 +10,6 @@
      *  GPIO
      */
 
-static void enable_clock(GPIO_TypeDef *port)
-{
-    if (port == GPIOA) { __HAL_RCC_GPIOA_CLK_ENABLE(); return; }
-    if (port == GPIOB) { __HAL_RCC_GPIOB_CLK_ENABLE(); return; }
-    if (port == GPIOC) { __HAL_RCC_GPIOC_CLK_ENABLE(); return; }
-    if (port == GPIOD) { __HAL_RCC_GPIOD_CLK_ENABLE(); return; }
-    if (port == GPIOE) { __HAL_RCC_GPIOE_CLK_ENABLE(); return; }
-    //if (port == GPIOF) { __HAL_RCC_GPIOF_CLK_ENABLE(); return; }
-    //if (port == GPIOG) { __HAL_RCC_GPIOG_CLK_ENABLE(); return; }
-    //if (port == GPIOH) { __HAL_RCC_GPIOH_CLK_ENABLE(); return; }
-    //if (port == GPIOI) { __HAL_RCC_GPIOI_CLK_ENABLE(); return; }
-    //if (port == GPIOJ) { __HAL_RCC_GPIOJ_CLK_ENABLE(); return; }
-    ASSERT(0);
-}
-
-    /*
-     *
-     */
-
 static inline int pin_to_idx(uint16_t pin)
 {
     switch (pin)
@@ -54,7 +35,30 @@ static inline int pin_to_idx(uint16_t pin)
     return 0;
 }
 
+    /*
+     *
+     */
+
 namespace panglos {
+
+void gpio_enable_clock(GPIO_TypeDef *port)
+{
+    if (port == GPIOA) { __HAL_RCC_GPIOA_CLK_ENABLE(); return; }
+    if (port == GPIOB) { __HAL_RCC_GPIOB_CLK_ENABLE(); return; }
+    if (port == GPIOC) { __HAL_RCC_GPIOC_CLK_ENABLE(); return; }
+    if (port == GPIOD) { __HAL_RCC_GPIOD_CLK_ENABLE(); return; }
+    if (port == GPIOE) { __HAL_RCC_GPIOE_CLK_ENABLE(); return; }
+    if (port == GPIOF) { __HAL_RCC_GPIOF_CLK_ENABLE(); return; }
+    if (port == GPIOG) { __HAL_RCC_GPIOG_CLK_ENABLE(); return; }
+    if (port == GPIOH) { __HAL_RCC_GPIOH_CLK_ENABLE(); return; }
+#if defined(GPIOI)
+    if (port == GPIOI) { __HAL_RCC_GPIOI_CLK_ENABLE(); return; }
+#endif
+#if defined(GPIOJ)
+    if (port == GPIOJ) { __HAL_RCC_GPIOJ_CLK_ENABLE(); return; }
+#endif
+    ASSERT(0);
+}
 
     /*
      *
@@ -138,6 +142,25 @@ IRQn_Type pin_to_irq(uint16_t pin)
      *
      */
 
+void gpio_init(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t alt_fn)
+{
+    busy(port, pin, true);
+    gpio_enable_clock(port);
+
+    GPIO_InitTypeDef gpio_init = {0};
+
+    gpio_init.Pin = pin;
+    gpio_init.Speed = GPIO_SPEED_FREQ_LOW;
+    gpio_init.Mode = mode;
+#if defined(STM32F4xx)
+    // TODO : provide some similar function for STM32F1xx devices?
+    gpio_init.Alternate = alt_fn;
+#endif
+    gpio_init.Pull = GPIO_NOPULL;
+
+    HAL_GPIO_Init(port, & gpio_init);
+}
+
 class ARM_GPIO : public panglos::GPIO
 {
     GPIO_TypeDef *port;
@@ -150,24 +173,9 @@ public:
     ARM_GPIO(GPIO_TypeDef *_port, uint16_t _pin, uint32_t mode, uint32_t alt_fn)
     :   port(_port), pin(_pin), irq_handler(0), irq_arg(0), irq_enabled(false)
     {
-        busy(port, pin, true);
-
-        enable_clock(port);
-
-        GPIO_InitTypeDef gpio_init = {0};
-
         set(false);
 
-        gpio_init.Pin = pin;
-        gpio_init.Speed = GPIO_SPEED_FREQ_LOW;
-        gpio_init.Mode = mode;
-#if defined(STM32F4xx)
-        // TODO : provide some similar function for STM32F1xx devices?
-        gpio_init.Alternate = alt_fn;
-#endif
-        gpio_init.Pull = GPIO_NOPULL;
-
-        HAL_GPIO_Init(port, & gpio_init);
+        gpio_init(port, pin, mode, alt_fn);
 
         // Tutorial on GPIO interrupts :
         // https://stm32f4-discovery.net/2014/08/stm32f4-external-interrupts-tutorial/
@@ -234,6 +242,10 @@ public:
         }
     }
 };
+
+    /*
+     *
+     */
 
 GPIO *gpio_create(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t alt_fn)
 {
