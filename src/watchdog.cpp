@@ -36,6 +36,30 @@ public:
      *
      */
 
+class DummyThread : public panglos::Thread
+{
+    virtual void start(void (*)(void *arg), void *, int ) override
+    {
+        ASSERT(0);
+    }
+
+    virtual void join() override
+    {
+        ASSERT(0);
+    }
+    
+    virtual const char *get_name() override
+    {
+        return "system";
+    }
+};
+
+static DummyThread dummy_thread;
+
+    /*
+     *
+     */
+
 class _Watchdog : public Watchdog
 {
     List<Watched*> tasks;
@@ -48,6 +72,10 @@ class _Watchdog : public Watchdog
         if (!thread)
         {
             thread = Thread::get_current();
+        }
+        if (!thread)
+        {
+            thread = & dummy_thread;
         }
 
         Lock lock(mutex);
@@ -130,10 +158,7 @@ class _Watchdog : public Watchdog
 
     Watched *find(Thread *thread, Mutex *mutex)
     {
-        if (!thread)
-        {
-            thread = Thread::get_current();
-        }
+        ASSERT(thread);
         Watched *w = tasks.find(match, thread, mutex);
         return w;
     }
