@@ -192,42 +192,6 @@ Thread *Thread::create(const char *name, size_t stack, Thread::Priority pri)
     return new RTOS_Thread(name, stack, pri);
 }
 
-    /*
-     *  ESP-IDF creates a number of other threads in the background.
-     *
-     *  We can create a dummy Thread for each of these, 
-     *  so the names can be distinguished in the log outout.
-     */
-
-static const char *get_task_name()
-{
-    UBaseType_t num_tasks = uxTaskGetNumberOfTasks();
-
-    if (num_tasks == 0) return "none";
-
-    TaskStatus_t *tasks = (TaskStatus_t*) malloc(sizeof(TaskStatus_t) * num_tasks);
-
-    const char *name = "unknown";
-
-    UBaseType_t n =  uxTaskGetSystemState(tasks, num_tasks, 0);
-    ASSERT(n == num_tasks);
-
-    TaskHandle_t handle = xTaskGetCurrentTaskHandle();
-
-    for (UBaseType_t i = 0; i < num_tasks; ++i)
-    {
-        TaskStatus_t *task = & tasks[i];
-        if (task->xHandle == handle)
-        {
-            name = task->pcTaskName;
-            break;
-        }
-    }
-
-    free(tasks);
-    return name;
-}
-
 static int match_handle(RTOS_Thread *thread, void *arg)
 {
     ASSERT(arg);
