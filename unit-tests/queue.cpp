@@ -1,9 +1,10 @@
 
 #include <atomic>
 
+#include "panglos/debug.h"
+
 #include <gtest/gtest.h>
 
-#include "panglos/debug.h"
 #include "panglos/queue.h"
 #include "panglos/mutex.h"
 #include "panglos/thread.h"
@@ -137,5 +138,8 @@ TEST(Queue, Thread)
 }
 
 #endif
+
+// Linker fooling
+void force_test_queue() { }
 
 //  FIN

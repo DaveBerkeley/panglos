@@ -33,15 +33,15 @@ public:
 #define __STRINGISE(x)  #x
 #define STRINGISE(x)    __STRINGISE(x)
 
-#define EXPECT_EQ(a, b)     ASSERT_PRINT((a) == (b), "Failed EXPECT_EQ %s, %s", STRINGISE(a), STRINGISE(b))
-#define EXPECT_NE(a, b)     ASSERT_PRINT((a) != (b), "Failed EXPECT_NE %s, %s", STRINGISE(a), STRINGISE(b))
-#define EXPECT_GT(a, b)     ASSERT_PRINT((a) > (b),  "Failed EXPECT_GT %s, %s", STRINGISE(a), STRINGISE(b))
-#define EXPECT_GE(a, b)     ASSERT_PRINT((a) >= (b), "Failed EXPECT_GE %s, %s", STRINGISE(a), STRINGISE(b))
-#define EXPECT_LT(a, b)     ASSERT_PRINT((a) < (b),  "Failed EXPECT_LT %s, %s", STRINGISE(a), STRINGISE(b))
-#define EXPECT_LE(a, b)     ASSERT_PRINT((a) <= (b), "Failed EXPECT_LE %s, %s", STRINGISE(a), STRINGISE(b))
-#define EXPECT_TRUE(a)      ASSERT_PRINT((a),        "Failed EXPECT_TRUE %s",   STRINGISE(a))
-#define EXPECT_FALSE(a)     ASSERT_PRINT(!(a),       "Failed EXPECT_FALSE %s",  STRINGISE(a))
-#define EXPECT_STREQ(a, b)  ASSERT_PRINT(!strcmp((a), (b)), "Failed EXPECT_STREQ %s, %s", STRINGISE(a), STRINGISE(b))
+#define EXPECT_EQ(a, b)     ASSERT_ERROR((a) == (b), "Failed EXPECT_EQ %s, %s", STRINGISE(a), STRINGISE(b))
+#define EXPECT_NE(a, b)     ASSERT_ERROR((a) != (b), "Failed EXPECT_NE %s, %s", STRINGISE(a), STRINGISE(b))
+#define EXPECT_GT(a, b)     ASSERT_ERROR((a) > (b),  "Failed EXPECT_GT %s, %s", STRINGISE(a), STRINGISE(b))
+#define EXPECT_GE(a, b)     ASSERT_ERROR((a) >= (b), "Failed EXPECT_GE %s, %s", STRINGISE(a), STRINGISE(b))
+#define EXPECT_LT(a, b)     ASSERT_ERROR((a) < (b),  "Failed EXPECT_LT %s, %s", STRINGISE(a), STRINGISE(b))
+#define EXPECT_LE(a, b)     ASSERT_ERROR((a) <= (b), "Failed EXPECT_LE %s, %s", STRINGISE(a), STRINGISE(b))
+#define EXPECT_TRUE(a)      ASSERT_ERROR((a),        "Failed EXPECT_TRUE %s",   STRINGISE(a))
+#define EXPECT_FALSE(a)     ASSERT_ERROR(!(a),       "Failed EXPECT_FALSE %s",  STRINGISE(a))
+#define EXPECT_STREQ(a, b)  ASSERT_ERROR(!strcmp((a), (b)), "Failed EXPECT_STREQ %s, %s", STRINGISE(a), STRINGISE(b))
 
 #define TEST(group,fn) \
     extern void test_ ##group ##fn(); \
