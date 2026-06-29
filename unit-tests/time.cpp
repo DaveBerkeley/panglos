@@ -41,4 +41,29 @@ TEST(Time, Elapsed)
     Time::set(0);
 }
 
+TEST(Time, ElapsedUpdate)
+{
+    Time::set(100);
+
+    Time::tick_t start = Time::get();
+    Time::tick_t t = start;
+    EXPECT_EQ(t, 100);
+
+    EXPECT_FALSE(Time::elapsed_update(& t, 10));
+    EXPECT_EQ(t, 100);
+    Time::set(100 + 9);
+
+    EXPECT_FALSE(Time::elapsed_update(& t, 10));
+    EXPECT_EQ(t, 100);
+    Time::set(100 + 10);
+
+    EXPECT_TRUE(Time::elapsed_update(& t, 10));
+    EXPECT_EQ(t, 110);
+ 
+    EXPECT_FALSE(Time::elapsed_update(& t, 10));
+    EXPECT_EQ(t, 110);
+
+    Time::set(0);
+}
+
 //  FIN
