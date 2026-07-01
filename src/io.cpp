@@ -245,9 +245,10 @@ int LineReader::strip(char *data, int n)
 void dump(panglos::Out *out, const uint8_t *data, size_t sz, bool show_idx)
 {
     panglos::FmtOut fmt(out);
+    const int row = 16;
 
     fmt.printf("Dump %p\n", data);
-    for (size_t i = 0; i < sz; i += 16)
+    for (size_t i = 0; i < sz; i += row)
     {   
         if (show_idx)
         {
@@ -258,17 +259,32 @@ void dump(panglos::Out *out, const uint8_t *data, size_t sz, bool show_idx)
             fmt.printf("%p:", & data[i]);
         }
 
-        for (int j = 0; j < 16; j++)
+        for (int j = 0; j < row; j++)
         {
-            fmt.printf(" %02X%s", (int) data[i+j], (j == 7) ? " " : "");
+            const char *mid = (j % 8) ? "" : " ";
+            if ((i + j) < sz)
+            {
+                fmt.printf("%s %02X", mid, (int) data[i+j]);
+            }
+            else
+            {
+                fmt.printf("%s   ", mid);
+            }
         }
 
         fmt.printf("  |");
 
-        for (int j = 0; j < 16; j++)
+        for (int j = 0; j < row; j++)
         {
-            char c = (char) data[i+j];
-            fmt.printf("%c", isprint(c) ? c : '.');
+            if ((i + j) < sz)
+            {
+                char c = (char) data[i+j];
+                fmt.printf("%c", isprint(c) ? c : '.');
+            }
+            else
+            {
+                fmt.printf(" ");
+            }
         }
 
         fmt.printf("|\n");
