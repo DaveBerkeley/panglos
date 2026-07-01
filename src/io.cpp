@@ -247,7 +247,7 @@ void dump(panglos::Out *out, const uint8_t *data, size_t sz, bool show_idx)
     panglos::FmtOut fmt(out);
     const int row = 16;
 
-    fmt.printf("Dump %p\n", data);
+    fmt.printf("Dump %p\r\n", data);
     for (size_t i = 0; i < sz; i += row)
     {   
         if (show_idx)
@@ -287,7 +287,7 @@ void dump(panglos::Out *out, const uint8_t *data, size_t sz, bool show_idx)
             }
         }
 
-        fmt.printf("|\n");
+        fmt.printf("|\r\n");
     }
 }
 
