@@ -1,6 +1,5 @@
 
-#if !defined(__PANGLOS_IO__)
-#define __PANGLOS_IO__
+#pragma once
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -131,9 +130,12 @@ public:
     int strip(char *data, int n);
 };
 
+    /*
+     *
+     */
+
+void dump(Out *out, const uint8_t *data, size_t sz, bool show_idx=false);
 
 }   //  namespace panglos
-
-#endif  //  __PANGLOS_IO__
 
 //  FIN

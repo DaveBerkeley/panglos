@@ -1,5 +1,6 @@
 
 #include <string.h>
+#include <ctype.h>
 
 // tiny printf library
 // https://github.com/eyalroz/printf
@@ -236,6 +237,44 @@ int LineReader::strip(char *data, int n)
     }
     return n;
 }
+
+    /*
+     *
+     */
+
+void dump(panglos::Out *out, const uint8_t *data, size_t sz, bool show_idx)
+{
+    panglos::FmtOut fmt(out);
+
+    fmt.printf("Dump %p\n", data);
+    for (size_t i = 0; i < sz; i += 16)
+    {   
+        if (show_idx)
+        {
+            fmt.printf("%04X:", (int) i);
+        }
+        else
+        {
+            fmt.printf("%p:", & data[i]);
+        }
+
+        for (int j = 0; j < 16; j++)
+        {
+            fmt.printf(" %02X%s", (int) data[i+j], (j == 7) ? " " : "");
+        }
+
+        fmt.printf("  |");
+
+        for (int j = 0; j < 16; j++)
+        {
+            char c = (char) data[i+j];
+            fmt.printf("%c", isprint(c) ? c : '.');
+        }
+
+        fmt.printf("|\n");
+    }
+}
+
 
 }   //  namespace panglos
 

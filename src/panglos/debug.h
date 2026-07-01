@@ -1,6 +1,5 @@
 
-#if !defined(__DEBUG_H__)
-#define __DEBUG_H__
+#pragma once
 
 #include <stdint.h>
 
@@ -73,7 +72,5 @@ extern const LUT Severity_lut[];
 
 #define ASSERT_ERROR(x,fmt,...) \
                             if (!(x)) {  _PO_PRINT(S_ERROR, fmt, ## __VA_ARGS__ ); Error_Handler(); }
-
-#endif // __DEBUG_H__
 
 //  FIN
