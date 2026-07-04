@@ -6,9 +6,9 @@
 #include "panglos/io.h"
 #include "panglos/mutex.h"
 
-using namespace panglos;
+#include "panglos/flash_storage.h"
 
-#include "flash_storage.h"
+namespace panglos {
 
     /*
      *
@@ -27,6 +27,11 @@ static LUT error_lut[] = {
     {   "ALLOC", Page::ALLOC },
     {   0 },
 };
+
+const char *Page::strerror(Page::Error err)
+{
+    return lut(error_lut, err);
+}
 
     /*
      *  RAM Based Page
@@ -144,7 +149,7 @@ public:
 
     virtual void dump(panglos::Out *out, PageAddr start, PageAddr _end) override
     {
-        ::out = out;
+        panglos::out = out;
         panglos::dump(out, base + start, _end ? _end : end, true);
     }
 };
@@ -308,7 +313,7 @@ FlashStorage::PageAddr FlashStorage::write_new_group(Page *p, const char *name)
     PageAddr addr = p->alloc(size);
     if (!addr)
     {
-        PO_ERROR("%s", lut(error_lut, p->get_error()));
+        PO_ERROR("%s", Page::strerror(p->get_error()));
         return 0;
     }
 
@@ -322,14 +327,14 @@ FlashStorage::PageAddr FlashStorage::write_new_group(Page *p, const char *name)
     bool ok = p->write(addr, (uint8_t*) & group, sizeof(group));
     if (!ok)
     {
-        PO_ERROR("%s", lut(error_lut, p->get_error()));
+        PO_ERROR("%s", Page::strerror(p->get_error()));
         return 0;
     }
 
     ok = p->write(group.name, (uint8_t*) name, len);
     if (!ok)
     {
-        PO_ERROR("%s", lut(error_lut, p->get_error()));
+        PO_ERROR("%s", Page::strerror(p->get_error()));
         return 0;
     }
 
@@ -395,7 +400,7 @@ FlashStorage::PageAddr FlashStorage::write_group(const char *name)
         ok = page->write(start, (uint8_t*) & header, sizeof(header));
         if (!ok)
         {
-            PO_ERROR("%s", lut(error_lut, page->get_error()));
+            PO_ERROR("%s", Page::strerror(page->get_error()));
             return 0;
         }
     }
@@ -408,7 +413,7 @@ FlashStorage::PageAddr FlashStorage::write_group(const char *name)
     ok = page->write(addr, (uint8_t*) & start, sizeof(start));
     if (!ok)
     {
-        PO_ERROR("%s", lut(error_lut, page->get_error()));
+        PO_ERROR("%s", Page::strerror(page->get_error()));
         return 0;
     }
 
@@ -425,17 +430,17 @@ FlashStorage::PageAddr FlashStorage::write_new_item(Page *p, ItemEntry *item, co
 
     if (!p->write(addr, (uint8_t*) item, sizeof(ItemEntry)))
     {
-        PO_ERROR("%s", lut(error_lut, p->get_error()));
+        PO_ERROR("%s", Page::strerror(p->get_error()));
         return 0;
     }
     if (!p->write(addr + sizeof(ItemEntry), data, item->data_size))
     {
-        PO_ERROR("%s", lut(error_lut, p->get_error()));
+        PO_ERROR("%s", Page::strerror(p->get_error()));
         return 0;
     }
     if (!p->write(item->name, (uint8_t*) name, item->name_size))
     {
-        PO_ERROR("%s", lut(error_lut, p->get_error()));
+        PO_ERROR("%s", Page::strerror(p->get_error()));
         return 0;
     }
     return addr;
@@ -805,20 +810,20 @@ bool FlashStorage::copy_to_other()
      *
      */
 
-class Buffer
+class FsBuffer
 {
 public:
     uint8_t *data;
     size_t size;
 
-    Buffer(size_t s)
+    FsBuffer(size_t s)
     :   data(0),
         size(0)
     {
         ensure(s);
     }
 
-    ~Buffer()
+    ~FsBuffer()
     {
         free(data);
     }
@@ -841,7 +846,7 @@ bool FlashStorage::visit(Page *p, FlashStorage::Visitor *visitor)
     p = p ? p : page;
     PageAddr giter = 0;
     char name[MAX_NAME];
-    Buffer buffer(64);
+    FsBuffer buffer(64);
 
     while (true)
     {
@@ -918,5 +923,37 @@ bool FlashStorage::delete_item(FlashStorage::PageAddr addr)
     item.name = ERASED;
     return page->write(addr, (uint8_t*) & item, sizeof(item));
 }
+
+    /*
+     *  Implement Storage interface using FlashStorage
+     */
+
+class FlashInterface : public StorageInterface
+{
+    FlashStorage *fs;
+public:
+    FlashInterface(FlashStorage *fs);
+
+    StorageType get_type(const char *ns, const char *key);
+
+    bool get(const char *ns, const char *key, int8_t *value);
+    bool get(const char *ns, const char *key, int16_t *value);
+    bool get(const char *ns, const char *key, int32_t *value);
+    bool get(const char *ns, const char *key, char *value, size_t *n);
+
+    bool set(const char *ns, const char *key, int8_t value);
+    bool set(const char *ns, const char *key, int16_t value);
+    bool set(const char *ns, const char *key, int32_t value);
+    bool set(const char *ns, const char *key, const char *value);
+
+    bool set_blob(const char *ns, const char *key, void *data, size_t size);
+    bool get_blob(const char *ns, const char *key, void *data, size_t *size);
+
+    bool erase(const char *ns, const char *key);
+
+    bool commit();
+};
+
+}   //  namespace panglos
 
 //  FIN

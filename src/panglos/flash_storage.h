@@ -4,14 +4,16 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "panglos/storage.h"
+
     /*
      *
      */
 
 namespace panglos {
-    class Out;
-    class Mutex;
-};
+    
+class Out;
+class Mutex;
 
 class Page
 {
@@ -36,6 +38,7 @@ public:
     virtual bool read(PageAddr addr, uint8_t *data, size_t size) = 0;
     virtual PhyAddr get_addr() = 0;
     virtual Error get_error() = 0;
+    static const char *strerror(Error);
 
     static Page *create_ram(PhyAddr addr, size_t s, bool simulate_flash=false);
     static Page *create_flash(PhyAddr addr, size_t s);
@@ -135,5 +138,7 @@ private:
     PageAddr write_new_group(Page *page, const char *name);
     void set_item_entry(struct ItemEntry *item, const char *name, Type ty, const uint8_t *data, size_t size);
 };
+
+}   //  namespace panglos
 
 //  FIN

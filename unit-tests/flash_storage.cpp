@@ -4,7 +4,9 @@
 #include "panglos/debug.h"
 #include "panglos/io.h"
 
-#include "flash_storage.h"
+#include "panglos/flash_storage.h"
+
+using namespace panglos;
 
 #if defined(ARCH_LINUX)
 
@@ -445,6 +447,14 @@ TEST(Flash, DelItem)
 
     delete p1;
     delete p2;
+}
+
+    /*
+     *
+     */
+
+TEST(Flash, Storage)
+{
 }
 
 // Allows linker command to force inclusion of the tests in this module

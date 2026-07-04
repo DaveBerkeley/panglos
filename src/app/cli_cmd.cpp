@@ -764,13 +764,13 @@ static void cmd_gpio(CLI *cli, CliCommand *)
      */
 
 static LUT st_lut[] = { 
-    {   "NONE",     Storage::VAL_NONE,  },
-    {   "INT8",     Storage::VAL_INT8,  }, 
-    {   "INT16",    Storage::VAL_INT16, },
-    {   "INT32",    Storage::VAL_INT32, },
-    {   "STR",      Storage::VAL_STR,   },
-    {   "BLOB",     Storage::VAL_BLOB,  },
-    {   "OTHER",    Storage::VAL_OTHER, },
+    {   "NONE",     StorageType::VAL_NONE,  },
+    {   "INT8",     StorageType::VAL_INT8,  }, 
+    {   "INT16",    StorageType::VAL_INT16, },
+    {   "INT32",    StorageType::VAL_INT32, },
+    {   "STR",      StorageType::VAL_STR,   },
+    {   "BLOB",     StorageType::VAL_BLOB,  },
+    {   "OTHER",    StorageType::VAL_OTHER, },
     { 0, 0 },
 };
 
@@ -800,7 +800,7 @@ static void cmd_storage_list(CLI *cli, CliCommand *)
 
     char ns[24];
     char key[24];
-    Storage::Type type;
+    StorageType type;
 
     while (list.get(ns, key, & type, sizeof(ns)))
     {
@@ -881,33 +881,33 @@ static void cmd_storage_get(CLI *cli, CliCommand *cmd)
 
     Storage db(ns, false);
 
-    Storage::Type type = db.get_type(key);
+    StorageType type = db.get_type(key);
     bool ok = false;
 
     switch (type)
     {
-        case Storage::VAL_INT8  :
+        case StorageType::VAL_INT8  :
         {
             int8_t value;
             ok = db.get(key, & value);
             cli_print(cli, "%#02x%s", value, cli->eol);
             break;
         }
-        case Storage::VAL_INT16 :
+        case StorageType::VAL_INT16 :
         {
             int16_t value;
             ok = db.get(key, & value);
             cli_print(cli, "%#04x%s", value, cli->eol);
             break;
         }
-        case Storage::VAL_INT32 :
+        case StorageType::VAL_INT32 :
         {
             int32_t value;
             ok = db.get(key, & value);
             cli_print(cli, "%#08x%s", (int) value, cli->eol);
             break;
         }
-        case Storage::VAL_STR   :
+        case StorageType::VAL_STR   :
         {
             char value[64];
             size_t s = sizeof(value);

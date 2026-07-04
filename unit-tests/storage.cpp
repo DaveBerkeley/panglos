@@ -5,10 +5,13 @@
 
 using namespace panglos;
 
+static bool verbose = false;
+static StorageInterface *fs = 0;
+
 TEST(Storage, String)
 {
     Storage::clear_all();
-    Storage db("test");
+    Storage db("test", verbose, fs);
 
     bool ok;
 
@@ -16,7 +19,7 @@ TEST(Storage, String)
 
     ok = db.set("hello", hello);
     EXPECT_TRUE(ok);
-    EXPECT_EQ(Storage::VAL_STR, db.get_type("hello"));
+    EXPECT_EQ(StorageType::VAL_STR, db.get_type("hello"));
     EXPECT_EQ("test", db.get_ns());
 
     char buff[64];
@@ -30,13 +33,13 @@ TEST(Storage, String)
 TEST(Storage, Int32)
 {
     Storage::clear_all();
-    Storage db("test");
+    Storage db("test", verbose, fs);
 
     bool ok;
 
     ok = db.set("hello", 1234);
     EXPECT_TRUE(ok);
-    EXPECT_EQ(Storage::VAL_INT32, db.get_type("hello"));
+    EXPECT_EQ(StorageType::VAL_INT32, db.get_type("hello"));
     EXPECT_EQ("test", db.get_ns());
 
     int32_t v = 0;
@@ -49,14 +52,14 @@ TEST(Storage, Int32)
 TEST(Storage, Int16)
 {
     Storage::clear_all();
-    Storage db("test");
+    Storage db("test", verbose, fs);
 
     bool ok;
 
     const int16_t i16 = 1234;
     ok = db.set("hello", i16);
     EXPECT_TRUE(ok);
-    EXPECT_EQ(Storage::VAL_INT16, db.get_type("hello"));
+    EXPECT_EQ(StorageType::VAL_INT16, db.get_type("hello"));
     EXPECT_EQ("test", db.get_ns());
 
     int16_t v = 0;
@@ -69,14 +72,14 @@ TEST(Storage, Int16)
 TEST(Storage, Int8)
 {
     Storage::clear_all();
-    Storage db("test");
+    Storage db("test", verbose, fs);
 
     bool ok;
 
     const int8_t i8 = 34;
     ok = db.set("hello", i8);
     EXPECT_TRUE(ok);
-    EXPECT_EQ(Storage::VAL_INT8, db.get_type("hello"));
+    EXPECT_EQ(StorageType::VAL_INT8, db.get_type("hello"));
     EXPECT_EQ("test", db.get_ns());
 
     int8_t v = 0;
@@ -89,7 +92,7 @@ TEST(Storage, Int8)
 TEST(Storage, Erase)
 {
     Storage::clear_all();
-    Storage db("test");
+    Storage db("test", verbose, fs);
 
     bool ok;
 
@@ -150,7 +153,7 @@ TEST(Storage, List)
 {
     Storage::clear_all();
     {
-        Storage db("test");
+        Storage db("test", verbose, fs);
         bool ok;
 
         const int8_t i8 = 34;
@@ -177,21 +180,21 @@ TEST(Storage, List)
 
     char ns[24];
     char key[24];
-    Storage::Type type;
+    StorageType type;
 
     struct Check
     {
         const char *ns;
         const char *key;
-        Storage::Type type;
+        StorageType type;
         bool found;
     };
 
     struct Check check[] = {
-        {   "test", "i8", Storage::VAL_INT8, },
-        {   "test", "i16", Storage::VAL_INT16, },
-        {   "test", "i32", Storage::VAL_INT32, },
-        {   "other", "str", Storage::VAL_STR, },
+        {   "test", "i8", StorageType::VAL_INT8, },
+        {   "test", "i16", StorageType::VAL_INT16, },
+        {   "test", "i32", StorageType::VAL_INT32, },
+        {   "other", "str", StorageType::VAL_STR, },
         { 0 },
     };
 
@@ -225,7 +228,7 @@ TEST(Storage, List)
 TEST(Storage, Blob)
 {
     Storage::clear_all();
-    Storage db("test");
+    Storage db("test", verbose, fs);
 
     bool ok;
 
@@ -243,7 +246,7 @@ TEST(Storage, Blob)
 
     ok = db.set_blob("hello", & x, sizeof(x));
     EXPECT_TRUE(ok);
-    EXPECT_EQ(Storage::VAL_BLOB, db.get_type("hello"));
+    EXPECT_EQ(StorageType::VAL_BLOB, db.get_type("hello"));
     EXPECT_EQ("test", db.get_ns());
 
     struct X y;
@@ -322,7 +325,7 @@ TEST(Storage, GetParams32)
 {
     Storage::clear_all();
 
-    Storage db("test");
+    Storage db("test", verbose, fs);
     bool ok;
     
     ok = db.set("a", int32_t(12345678));

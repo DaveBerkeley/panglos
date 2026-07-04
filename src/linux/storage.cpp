@@ -31,7 +31,7 @@ public:
 
     KVPair *next;
     struct Keys keys;
-    Storage::Type type;
+    StorageType type;
     size_t size;
 
     union {
@@ -62,13 +62,13 @@ public:
     {
         switch (type)
         {
-            case Storage::VAL_BLOB  : free(blob); blob = 0; break; 
-            case Storage::VAL_STR   : free((void*) s); s = 0; break;
-            case Storage::VAL_INT32 : return;
-            case Storage::VAL_INT16 : return;
-            case Storage::VAL_INT8  : return;
-            case Storage::VAL_NONE  :
-            case Storage::VAL_OTHER :
+            case StorageType::VAL_BLOB  : free(blob); blob = 0; break; 
+            case StorageType::VAL_STR   : free((void*) s); s = 0; break;
+            case StorageType::VAL_INT32 : return;
+            case StorageType::VAL_INT16 : return;
+            case StorageType::VAL_INT8  : return;
+            case StorageType::VAL_NONE  :
+            case StorageType::VAL_OTHER :
             default: ASSERT(0);
         } 
     }
@@ -81,7 +81,7 @@ public:
     }
 };
 
-class Helper
+class NativeStorage : public StorageInterface
 {
     Mutex *mutex;
     typedef List<KVPair*> Pairs;
@@ -99,7 +99,7 @@ class Helper
         return pairs.find((int (*)(KVPair*,void*)) KVPair::match, & keys, mutex);
     }
 
-    KVPair *find(const char *ns, const char *key, Storage::Type type, Mutex *mutex)
+    KVPair *find(const char *ns, const char *key, StorageType type, Mutex *mutex)
     {
         KVPair *pair = find(ns, key, mutex);
         if (!pair) return 0;
@@ -124,14 +124,14 @@ class Helper
     }
 
 public:
-    Helper()
+    NativeStorage()
     :   mutex(0),
         pairs(KVPair::get_next)
     {
         mutex = Mutex::create();
     }
 
-    ~Helper()
+    ~NativeStorage()
     {
         clear(mutex);
         delete mutex;
@@ -150,53 +150,53 @@ public:
         }
     }
 
-    bool set(const char *ns, const char *key, const char *value)
+    virtual bool set(const char *ns, const char *key, const char *value) override
     {
         ASSERT(value);
         Lock lock(mutex);
 
         KVPair *pair = find_set(ns, key);
-        pair->type = Storage::VAL_STR;
+        pair->type = StorageType::VAL_STR;
         pair->s = strdup(value);
         return true;
     }
 
-    bool set(const char *ns, const char *key, int32_t value)
+    virtual bool set(const char *ns, const char *key, int32_t value) override
     {
         Lock lock(mutex);
 
         KVPair *pair = find_set(ns, key);
-        pair->type = Storage::VAL_INT32;
+        pair->type = StorageType::VAL_INT32;
         pair->v32 = value;
         return true;
     }
 
-    bool set(const char *ns, const char *key, int16_t value)
+    virtual bool set(const char *ns, const char *key, int16_t value) override
     {
         Lock lock(mutex);
 
         KVPair *pair = find_set(ns, key);
-        pair->type = Storage::VAL_INT16;
+        pair->type = StorageType::VAL_INT16;
         pair->v16 = value;
         return true;
     }
 
-    bool set(const char *ns, const char *key, int8_t value)
+    virtual bool set(const char *ns, const char *key, int8_t value) override
     {
         Lock lock(mutex);
 
         KVPair *pair = find_set(ns, key);
-        pair->type = Storage::VAL_INT8;
+        pair->type = StorageType::VAL_INT8;
         pair->v8 = value;
         return true;
     }
 
-    bool set_blob(const char *ns, const char *key, void *data, size_t sz)
+    virtual bool set_blob(const char *ns, const char *key, void *data, size_t sz) override
     {
         Lock lock(mutex);
 
         KVPair *pair = find_set(ns, key);
-        pair->type = Storage::VAL_BLOB;
+        pair->type = StorageType::VAL_BLOB;
 
         ASSERT(data);
         void *blob = malloc(sz);
@@ -207,14 +207,14 @@ public:
         return true;
     }
 
-    bool get(const char *ns, const char *key, char *value, size_t *n)
+    virtual bool get(const char *ns, const char *key, char *value, size_t *n) override
     {
         ASSERT(value);
         ASSERT(n);
 
         Lock lock(mutex);
 
-        KVPair *pair = find(ns, key, Storage::VAL_STR, 0);
+        KVPair *pair = find(ns, key, StorageType::VAL_STR, 0);
         if (!pair) return false;
 
         size_t mx = strlen(pair->s) + 1; // space for '\0'
@@ -224,45 +224,45 @@ public:
         return true;
     }
 
-    bool get(const char *ns, const char *key, int32_t *value)
+    virtual bool get(const char *ns, const char *key, int32_t *value) override
     {
         Lock lock(mutex);
 
-        KVPair *pair = find(ns, key, Storage::VAL_INT32, 0);
+        KVPair *pair = find(ns, key, StorageType::VAL_INT32, 0);
         if (!pair) return false;
 
         if (value) *value = pair->v32;
         return true;
     }
 
-    bool get(const char *ns, const char *key, int16_t *value)
+    virtual bool get(const char *ns, const char *key, int16_t *value) override
     {
         Lock lock(mutex);
 
-        KVPair *pair = find(ns, key, Storage::VAL_INT16, 0);
+        KVPair *pair = find(ns, key, StorageType::VAL_INT16, 0);
         if (!pair) return false;
 
         if (value) *value = pair->v16;
         return true;
     }
 
-    bool get(const char *ns, const char *key, int8_t *value)
+    virtual bool get(const char *ns, const char *key, int8_t *value) override
     {
         Lock lock(mutex);
 
-        KVPair *pair = find(ns, key, Storage::VAL_INT8, 0);
+        KVPair *pair = find(ns, key, StorageType::VAL_INT8, 0);
         if (!pair) return false;
 
         if (value) *value = pair->v8;
         return true;
     }
 
-    bool get_blob(const char *ns, const char *key, void *data, size_t *sz)
+    virtual bool get_blob(const char *ns, const char *key, void *data, size_t *sz) override
     {
         ASSERT(sz);
         Lock lock(mutex);
 
-        KVPair *pair = find(ns, key, Storage::VAL_BLOB, 0);
+        KVPair *pair = find(ns, key, StorageType::VAL_BLOB, 0);
         if (!pair) return false;
 
         if (data)
@@ -274,7 +274,7 @@ public:
         return true;
     }
 
-    bool erase(const char *ns, const char *key)
+    virtual bool erase(const char *ns, const char *key) override
     {
         Lock lock(mutex);
 
@@ -287,16 +287,16 @@ public:
         return true;
     }
 
-    Storage::Type get_type(const char *ns, const char *key)
+    virtual StorageType get_type(const char *ns, const char *key) override
     {
         Lock lock(mutex);
 
         KVPair *pair = find(ns, key, 0);
-        if (!pair) return Storage::VAL_NONE;
+        if (!pair) return StorageType::VAL_NONE;
         return pair->type;
     }
 
-    class Iterator
+    class Iterator : public StorageInterface::Iter
     {
         KVPair *item;
     public:
@@ -304,8 +304,9 @@ public:
         :   item(p)
         {
         }
+        virtual ~Iterator() {}
 
-        bool next(char *ns, char *key, Storage::Type *type, size_t max_sz)
+        virtual bool next(char *ns, char *key, StorageType *type, size_t max_sz) override
         {
             if (!item) return false;
             strncpy(ns, item->keys.ns, max_sz);
@@ -316,129 +317,14 @@ public:
         }
     };
 
-    KVPair *start()
+    virtual Iter *make_iter() override
     {
-        return pairs.head;
-    }
+        return new Iterator(pairs.head);
+    }    
 };
 
-static Helper helper;
-
-    /*
-     *
-     */
-
-Storage::Storage(const char *_ns, bool _verbose)
-:   ns(_ns),
-    verbose(_verbose)
-{
-}
-
-Storage::~Storage()
-{
-}
-
-Storage::Type Storage::get_type(const char *key)
-{
-    return helper.get_type(ns, key);
-}
-
-bool Storage::get(const char *key, int8_t *value)
-{
-    return helper.get(ns, key, value);
-}
-
-bool Storage::get(const char *key, int16_t *value)
-{
-    return helper.get(ns, key, value);
-}
-
-bool Storage::get(const char *key, int32_t *value)
-{
-    return helper.get(ns, key, value);
-}
-
-bool Storage::get(const char *key, char *value, size_t *n)
-{
-    return helper.get(ns, key, value, n);
-}
-
-
-bool Storage::set(const char *key, int8_t value)
-{
-    return helper.set(ns, key, value);
-}
-
-bool Storage::set(const char *key, int16_t value)
-{
-    return helper.set(ns, key, value);
-}
-
-bool Storage::set(const char *key, int32_t value)
-{
-    return helper.set(ns, key, value);
-}
-
-bool Storage::set(const char *key, const char *value)
-{
-    return helper.set(ns, key, value);
-}
-
-
-bool Storage::set_blob(const char *key, void *data, size_t size)
-{
-    return helper.set_blob(ns, key, data, size);
-}
-
-bool Storage::get_blob(const char *key, void *data, size_t *size)
-{
-    return helper.get_blob(ns, key, data, size);
-}
-
-bool Storage::erase(const char *key)
-{
-    return helper.erase(ns, key);
-}
-
-bool Storage::commit()
-{
-    return true;
-}
-
-    /*
-     *
-     */
-
-class Storage::List::Iter : public Helper::Iterator
-{
-public:
-    Iter(KVPair *p)
-    :   Iterator(p)
-    {
-    }
-};
-
-Storage::List::List(const char *_ns)
-:   ns(_ns),
-    iter(0)
-{
-    iter = new Storage::List::Iter(helper.start());
-}
- 
-Storage::List::~List()
-{
-    delete iter;
-}
- 
-bool Storage::List::get(char *_ns, char *key, Storage::Type *type, size_t max_sz)
-{
-    while (true)
-    {
-        if (!iter->next(_ns, key, type, max_sz)) return false;
-        if (ns && strcmp(_ns, ns)) continue;
-        return true;
-    }
-}
+static NativeStorage helper;
+StorageInterface *Storage::native_storage = & helper;
 
     /*
      *
