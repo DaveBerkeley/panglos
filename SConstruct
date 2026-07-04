@@ -22,6 +22,7 @@ files = [
     'src/fmt.cpp',
     'src/json_fmt.cpp',
     'src/storage.cpp',
+    'src/flash_storage.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/2_wire_bitbang.cpp',
@@ -97,6 +98,7 @@ files = [
     'unit-tests/cli_cmd.cpp',
     'unit-tests/rtc.cpp',
     'unit-tests/storage.cpp',
+    'unit-tests/flash_storage.cpp',
 ]
 
 ccflags = [

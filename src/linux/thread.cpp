@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <errno.h>
+#include <string.h>
 
 #include "panglos/debug.h"
 
@@ -86,7 +88,7 @@ public:
     virtual void join() override
     {
         int err = pthread_join(thread, 0);
-        ASSERT(err == 0);
+        ASSERT_ERROR(err == 0, "err=%d err=%s", err, strerror(err));
     }
 
     virtual const char *get_name() override

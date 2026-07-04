@@ -3,6 +3,8 @@
 
 APP = tdd
 
+ARGS:=
+
 $(APP): 
 	scons
 
@@ -12,13 +14,13 @@ clean:
 	find . -name "*~" | xargs rm -f
 
 test: $(APP)
-	./tdd 
+	./tdd $(ARGS)
 
 doxygen: $(APP)
 	doxygen
 
 valgrind: $(APP)
-	valgrind --leak-check=full ./$(APP)
+	valgrind --leak-check=full ./$(APP) $(ARGS)
 
 clang: export CC=clang
 clang: export CXX=clang++
