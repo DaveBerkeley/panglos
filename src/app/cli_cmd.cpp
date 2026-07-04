@@ -866,6 +866,56 @@ static void cmd_storage_set(CLI *cli, CliCommand *)
     }
 }
 
+static void dump(CLI *cli, const void *data, size_t size, int columns=16)
+{
+    const char *d = (char*) data;
+    int addr = 0;
+    while (size)
+    {
+        cli_print(cli, "%04x:", addr);
+        addr += columns;
+        for (int i = 0; i < columns; i++)
+        {
+            if (!size) break;
+            char c = *d++;
+            cli_print(cli, " %x%x", c >> 4, c & 0x0f);
+            size -= 1;
+        }
+        cli_print(cli, "%s", cli->eol);
+    }
+}
+
+static void blob_get(CLI *cli, const char *ns, const char *key)
+{
+    const bool verbose = true;
+    Storage db(ns, verbose);
+
+    size_t size = 0;
+
+    if (!db.get_blob(key, 0, & size))
+    {
+        cli_print(cli, "error reading '%s':'%s'%s", ns, key, cli->eol);
+        return;
+    }
+    if (!size)
+    {
+        cli_print(cli, "error size==0%s", cli->eol);
+        return;
+    }
+
+    void *data = malloc(size);
+    ASSERT(data);
+    if (!db.get_blob(key, data, & size))
+    {
+        free(data);
+        cli_print(cli, "error getting '%s':'%s'%s", ns, key, cli->eol);
+        return;
+    }
+
+    dump(cli, data, size);
+    free(data);
+}
+
 static void cmd_storage_get(CLI *cli, CliCommand *cmd)
 {
     IGNORE(cmd);
@@ -922,6 +972,12 @@ static void cmd_storage_get(CLI *cli, CliCommand *cmd)
             }
             break;
         }
+        case StorageType::VAL_BLOB  :
+        {
+            blob_get(cli, ns, key);
+            ok = true;
+            break;
+        }
         default :
         {
             cli_print(cli, "Unknown type=%d%s", type, cli->eol);
@@ -933,56 +989,6 @@ static void cmd_storage_get(CLI *cli, CliCommand *cmd)
     {
         cli_print(cli, "Error reading %s%s", key, cli->eol);
     }
-}
-
-static void dump(CLI *cli, const void *data, size_t size, int columns=16)
-{
-    const char *d = (char*) data;
-    int addr = 0;
-    while (size)
-    {
-        cli_print(cli, "%04x:", addr);
-        addr += columns;
-        for (int i = 0; i < columns; i++)
-        {
-            if (!size) break;
-            char c = *d++;
-            cli_print(cli, " %x%x", c >> 4, c & 0x0f);
-            size -= 1;
-        }
-        cli_print(cli, "%s", cli->eol);
-    }
-}
-
-static void blob_get(CLI *cli, const char *ns, const char *key)
-{
-    const bool verbose = true;
-    Storage db(ns, verbose);
-
-    size_t size = 0;
-
-    if (!db.get_blob(key, 0, & size))
-    {
-        cli_print(cli, "error reading '%s':'%s'%s", ns, key, cli->eol);
-        return;
-    }
-    if (!size)
-    {
-        cli_print(cli, "error size==0%s", cli->eol);
-        return;
-    }
-
-    void *data = malloc(size);
-    ASSERT(data);
-    if (!db.get_blob(key, data, & size))
-    {
-        free(data);
-        cli_print(cli, "error getting '%s':'%s'%s", ns, key, cli->eol);
-        return;
-    }
-
-    dump(cli, data, size);
-    free(data);
 }
 
     /*
