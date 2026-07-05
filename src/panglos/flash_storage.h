@@ -44,7 +44,7 @@ public:
     static Page *create_flash(PhyAddr addr, size_t s);
 
     // for debug
-    virtual void dump(panglos::Out *, PageAddr start=0, PageAddr end=0) { (start=start); (end=end); }
+    virtual void dump(panglos::Out *, PageAddr start=0, PageAddr end=0) { (start=end); (end=start); }
 };
 
     /*

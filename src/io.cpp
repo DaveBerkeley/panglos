@@ -259,7 +259,7 @@ void dump(panglos::Out *out, const uint8_t *data, size_t sz, bool show_idx)
             fmt.printf("%p:", & data[i]);
         }
 
-        for (int j = 0; j < row; j++)
+        for (size_t j = 0; j < row; j++)
         {
             const char *mid = (j % 8) ? "" : " ";
             if ((i + j) < sz)
@@ -274,7 +274,7 @@ void dump(panglos::Out *out, const uint8_t *data, size_t sz, bool show_idx)
 
         fmt.printf("  |");
 
-        for (int j = 0; j < row; j++)
+        for (size_t j = 0; j < row; j++)
         {
             if ((i + j) < sz)
             {

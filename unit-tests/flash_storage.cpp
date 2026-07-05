@@ -14,10 +14,7 @@ class FlashOut : public panglos::Out
 {
     virtual int tx(const char* data, int n) override
     {
-        char buff[n+1];
-        strncpy(buff, data, n);
-        buff[n] = '\0';
-        printf("%s", buff);
+        printf("%*s", n, data);
         return n;
     }
 };
