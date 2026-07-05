@@ -560,12 +560,13 @@ public:
             }
 
             addr = fs->item_iter(0, & item, gaddr, & i_iter);
-            if (!addr)
+            while (!addr)
             {
                 if (!next_group())
                 {
                     return false;
                 }
+                addr = fs->item_iter(0, & item, gaddr, & i_iter);
             }
 
             Page *page = fs->get_active_page();
