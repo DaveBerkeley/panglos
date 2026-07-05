@@ -100,12 +100,13 @@ public:
 
     FlashStorage(Page *p1, Page *p2);
 
+    Page *get_active_page() { return page; }
+
     PageAddr find_group(const char *name);
     PageAddr find_item(PageAddr group, const char *name);
 
     PageAddr write_group(const char *name);
-    PageAddr write_item(PageAddr group, const char *name, Type ty, const uint8_t *data);
-    PageAddr write_blob(PageAddr group, const char *name, const uint8_t *data, size_t size);
+    PageAddr write_item(PageAddr group, const char *name, Type ty, const uint8_t *data, size_t size=0);
 
     bool delete_group(PageAddr addr);
     bool delete_item(PageAddr addr);

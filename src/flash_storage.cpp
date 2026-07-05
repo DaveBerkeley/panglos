@@ -189,6 +189,8 @@ FlashStorage::FlashStorage(Page *p1, Page *p2)
 
 FlashStorage::PageAddr FlashStorage::group_iter(Page *p, GroupEntry *ge, PageAddr *iter)
 {
+    p = p ? p : page;
+    
     if (*iter == 0)
     {
         // first iteration, read the header
@@ -228,6 +230,8 @@ bool FlashStorage::swap_pages()
 
 FlashStorage::PageAddr FlashStorage::item_iter(Page *p, ItemEntry *item, PageAddr gaddr, PageAddr *iter)
 {
+    p = p ? p : page;
+
     if (*iter == 0)
     {
         struct GroupEntry group;
@@ -466,11 +470,11 @@ void FlashStorage::set_item_entry(struct ItemEntry *item, const char *name, Flas
     item->type = ty;
 }
 
-FlashStorage::PageAddr FlashStorage::write_item(PageAddr group, const char *name, Type ty, const uint8_t *data)
+FlashStorage::PageAddr FlashStorage::write_item(PageAddr group, const char *name, Type ty, const uint8_t *data, size_t size)
 {
     // append new item to the end of the group's list
     struct ItemEntry item;
-    set_item_entry(& item, name, ty, data, 0);
+    set_item_entry(& item, name, ty, data, size);
 
     GroupEntry ge;
     if (!page->read(group, (uint8_t*) & ge, sizeof(ge)))
@@ -570,16 +574,6 @@ FlashStorage::PageAddr FlashStorage::write_item(PageAddr group, const char *name
     if (!page->write(last, (uint8_t*) & extant, sizeof(extant)))
         return 0;
     return addr;
-}
-
-FlashStorage::PageAddr FlashStorage::write_blob(PageAddr group, const char *name, const uint8_t *data, size_t size)
-{
-    IGNORE(group);
-    IGNORE(name);
-    IGNORE(data);
-    IGNORE(size);
-    ASSERT(0);
-    return 0;
 }
 
 Page::Error FlashStorage::get_error(size_t page_idx)

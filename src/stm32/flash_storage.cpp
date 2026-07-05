@@ -12,12 +12,23 @@
 
 namespace panglos {
 
-static LUT hal_lut[] = {
+static const LUT hal_lut[] = {
     {   "HAL_OK", HAL_OK },
     {   "HAL_ERROR", HAL_ERROR },
     {   "HAL_BUSY", HAL_BUSY },
     {   "HAL_TIMEOUT", HAL_TIMEOUT },
     {   0   },
+};
+
+static const LUT hal_flash_lut[] =
+{
+    {   "Read Protection error", HAL_FLASH_ERROR_RD },
+    {   "Programming Sequence error", HAL_FLASH_ERROR_PGS },
+    {   "Programming Parallelism error", HAL_FLASH_ERROR_PGP },
+    {   "Programming Alignment error", HAL_FLASH_ERROR_PGA },
+    {   "Write protection error", HAL_FLASH_ERROR_WRP },
+    {   "Operation Error", HAL_FLASH_ERROR_OPERATION },
+    { 0 },
 };
 
 const char *strerr(HAL_StatusTypeDef err)
@@ -28,7 +39,18 @@ const char *strerr(HAL_StatusTypeDef err)
 bool error(HAL_StatusTypeDef err)
 {
     if (err == HAL_OK) return false;
-    PO_ERROR("err=%d '%s'", err, strerr(err));
+
+    const uint32_t code = HAL_FLASH_GetError();
+
+    PO_ERROR("err=%d '%s' code=%d", err, strerr(err), (int) code);
+
+    // error code is the OR of multiple errors
+    for (const LUT *plut = hal_flash_lut; plut->text; plut++)
+    {
+        if ((code & plut->code) == uint32_t(plut->code))
+            PO_ERROR("%s", plut->text);
+    }
+
     return true;
 }
 
@@ -48,6 +70,43 @@ class FlashLock : public Mutex
 };
 
     /*
+     *  Map physical addresses to flash sector numbers
+     */
+
+struct SectorMap
+{
+    intptr_t addr;
+    uint32_t sector;
+};
+
+#if defined(STM32F446xx)
+
+struct SectorMap sector_map[] = {
+    {   0x08000000, FLASH_SECTOR_0, },
+    {   0x08004000, FLASH_SECTOR_1, },
+    {   0x08008000, FLASH_SECTOR_2, },
+    {   0x0800c000, FLASH_SECTOR_3, },
+    {   0x08010000, FLASH_SECTOR_4, },
+    {   0x08020000, FLASH_SECTOR_5, },
+    {   0x08040000, FLASH_SECTOR_6, },
+    {   0x08060000, FLASH_SECTOR_7, },
+    { 0 },
+};
+
+#endif
+
+uint32_t get_sector(Page::PhyAddr addr)
+{
+    for (const struct SectorMap *s = sector_map; s->addr; s++)
+    {
+        if (intptr_t(addr) == s->addr) return s->sector;
+    }
+    PO_ERROR("no sector found at %p for this processor", addr);
+    ASSERT(0);
+    return 0;
+}
+
+    /*
      *
      */
 
@@ -55,10 +114,10 @@ class FlashPage : public Page
 {
     PhyAddr phy_addr;
     PageAddr sbreak;
-    size_t size;
+    size_t page_size;
     Error last_error;
     FlashLock flash_lock;
-    
+ 
     PageAddr find_start()
     {
         uint8_t *start = (uint8_t*) phy_addr;
@@ -68,15 +127,14 @@ class FlashPage : public Page
         if ((start[0] == 0xff) && (start[1] == 0xff))
             return 0;
 
-        PageAddr addr;
-        for (addr = size-1; addr; addr--)
+        int32_t addr;
+        for (addr = page_size-1; addr >= 0; addr--)
         {
             uint8_t* s = (uint8_t*)(intptr_t(phy_addr) + addr);
             if ((*s) != 0xff)
                 break;
         }
-        addr = round(addr+1);
-        return addr;
+        return addr ? round(addr+1) : 0;
     }
 
 public:
@@ -84,7 +142,7 @@ public:
     FlashPage(Page::PhyAddr _phy_addr, size_t _size)
     :   phy_addr(_phy_addr),
         sbreak(0),
-        size(_size),
+        page_size(_size),
         last_error(NONE)
     {
         sbreak = find_start();
@@ -96,26 +154,6 @@ public:
         return last_error;
     }
 
-#if defined(STM32F446xx)
-    uint32_t get_sector()
-    {
-        switch((intptr_t) phy_addr)
-        {
-            case 0x08000000 : return FLASH_SECTOR_0;
-            case 0x08004000 : return FLASH_SECTOR_1;
-            case 0x08008000 : return FLASH_SECTOR_2;
-            case 0x0800c000 : return FLASH_SECTOR_3;
-            case 0x08010000 : return FLASH_SECTOR_4;
-            case 0x08020000 : return FLASH_SECTOR_5;
-            case 0x08040000 : return FLASH_SECTOR_6;
-            case 0x08060000 : return FLASH_SECTOR_7;
-            default: break;
-        }
-        ASSERT(0);
-        return 0;
-    }
-#endif
-
     virtual bool erase() override
     {
         PO_DEBUG("");
@@ -125,15 +163,21 @@ public:
         FLASH_EraseInitTypeDef def = {
             .TypeErase = FLASH_TYPEERASE_SECTORS,
             .Banks = 0, // unused
-            .Sector = get_sector(),
+            .Sector = get_sector(phy_addr),
             .NbSectors = 1,
             .VoltageRange = FLASH_VOLTAGE_RANGE_3,
         };
         uint32_t sector_error = 0;
 
         HAL_StatusTypeDef err = HAL_FLASHEx_Erase(& def, & sector_error);
-        PO_DEBUG("done. sector_error=%d", (int) sector_error);
-        return !error(err);
+        if (err != HAL_OK)
+        {
+            PO_ERROR("sector_error=%d", (int) sector_error);
+        }
+        if (error(err)) return false;
+        PO_DEBUG("done");
+        sbreak = 0;
+        return true;
     }
 
     virtual size_t round(size_t sz) override
@@ -145,7 +189,7 @@ public:
     virtual PageAddr alloc(size_t s) override
     {
         s = round(s);
-        if ((sbreak + s) > size) return false;
+        if ((sbreak + s) > page_size) return false;
         PageAddr a = sbreak;
         sbreak += s;
         return a;
@@ -162,55 +206,49 @@ public:
     {
         ASSERT(wr);
         Lock lock(& flash_lock);
+        //PO_DEBUG("addr=%#x sz=%d", (int) wr->addr, (int) wr->sz);
 
         while (wr->sz)
         {            
-            PO_DEBUG("addr=%#x sz=%d", (int) wr->addr, (int) wr->sz);
             uint64_t value = 0;
             uint32_t address = wr->addr;
             uint32_t type_program = 0;
+            uint32_t inc = 0;
             if ((wr->sz < 2) || (address & 0x01))
             {
                 value = *wr->data;
                 type_program = FLASH_TYPEPROGRAM_BYTE;
-                wr->data += 1;
-                wr->addr += 1;
-                wr->sz -= 1;
+                inc = 1;
             }
             else if ((wr->sz < 4) || (address & 0x03))
             {
+                ASSERT(!(address & 0x01));
                 value = * (uint16_t*) wr->data;
                 type_program = FLASH_TYPEPROGRAM_HALFWORD;
-                wr->data += 2;
-                wr->addr += 2;
-                wr->sz -= 2;
-            }
-            else if ((wr->sz < 8) || (address & 0x07))
-            {
-                value = * (uint32_t*) wr->data;
-                type_program = FLASH_TYPEPROGRAM_WORD;
-                wr->data += 4;
-                wr->addr += 4;
-                wr->sz -= 4;
+                inc = 2;
             }
             else 
             {
-                value = * (uint64_t*) wr->data;
+                ASSERT(!(address & 0x03));
+                value = * (uint32_t*) wr->data;
                 type_program = FLASH_TYPEPROGRAM_WORD;
-                wr->data += 8;
-                wr->addr += 8;
-                wr->sz -= 8;
+                inc = 4;
             }
+            // note: FLASH_TYPEPROGRAM_DOUBLEWORD doesn't seem to work on the stm32f4xx
             HAL_StatusTypeDef err = HAL_FLASH_Program(type_program, address, value);
             if (error(err))
                 return false;
+            
+            wr->data += inc;
+            wr->addr += inc;
+            wr->sz -= inc;
         }
         return true;
     }
-    
+ 
     virtual bool write(PageAddr addr, const uint8_t *data, size_t sz) override
     {
-        if ((sbreak + sz) > size) return false;
+        if ((sbreak + sz) > page_size) return false;
 
         struct Write wr = {
             .addr = uint32_t(addr + intptr_t(phy_addr)),
@@ -222,7 +260,7 @@ public:
 
     virtual bool can_write(PageAddr addr, const uint8_t *data, size_t sz) override
     {
-        if ((addr + sz) > size) return false;
+        if ((addr + sz) > page_size) return false;
         const uint8_t* base = (const uint8_t*) phy_addr;
 
         for (size_t i = 0; i < sz; i++)
@@ -242,7 +280,7 @@ public:
 
     virtual bool read(PageAddr addr, uint8_t *data, size_t sz) override
     {
-        if ((addr + sz) > size) return false;
+        if ((addr + sz) > page_size) return false;
         memcpy(data, (uint8_t*) (addr + uint32_t(phy_addr)), sz);
         return true;
     }
@@ -351,6 +389,20 @@ class FlashInterface : public StorageInterface
 
     typedef FlashStorage::PageAddr PageAddr;
 
+    static StorageType to_storage_type(FlashStorage::Type type)
+    {
+        switch (type)
+        {
+            case FlashStorage::NONE : return StorageType::VAL_NONE;
+            case FlashStorage::U8 : return StorageType::VAL_INT8;
+            case FlashStorage::U16 : return StorageType::VAL_INT16;
+            case FlashStorage::U32 : return StorageType::VAL_INT32;
+            case FlashStorage::STR : return StorageType::VAL_STR;
+            case FlashStorage::BLOB : return StorageType::VAL_BLOB;
+            default : return StorageType::VAL_OTHER;
+        }
+    }
+ 
 public:
     FlashInterface(FlashStorage *_fs)
     :   fs(_fs)
@@ -364,7 +416,8 @@ public:
 
         if (!fs->visit(0, & visitor))
             return StorageType::VAL_NONE;
-        return StorageType(visitor.response.ty);
+
+        return to_storage_type(visitor.response.ty);
     }
 
     bool get(const char *ns, const char *key, int8_t *value) override
@@ -396,12 +449,20 @@ public:
 
     bool get(const char *ns, const char *key, char *value, size_t *n) override
     {
-        UNUSED(ns);
-        UNUSED(key);
-        UNUSED(value);
-        UNUSED(n);
-        ASSERT(0);
-        return false;
+        FlashVisitor visitor(ns, key);
+        visitor.set_request(FlashStorage::STR, (uint8_t*) value, *n);
+
+        fs->visit(0, & visitor);
+        return visitor.response.copied;
+    }
+
+    bool get_blob(const char *ns, const char *key, void *data, size_t *size) override
+    {
+        FlashVisitor visitor(ns, key);
+        visitor.set_request(FlashStorage::BLOB, (uint8_t*) data, *size);
+
+        fs->visit(0, & visitor);
+        return visitor.response.copied;
     }
 
     PageAddr set_group(const char *ns)
@@ -415,70 +476,120 @@ public:
     {
         PageAddr gaddr = set_group(ns);
         if (gaddr == 0) return false;
-        return fs->write_item(gaddr, key, FlashStorage::U8, (uint8_t*) & value);
+        return fs->write_item(gaddr, key, FlashStorage::U8, (uint8_t*) & value, 0);
     }
 
     bool set(const char *ns, const char *key, int16_t value) override
     {
         PageAddr gaddr = set_group(ns);
         if (gaddr == 0) return false;
-        return fs->write_item(gaddr, key, FlashStorage::U16, (uint8_t*) & value);
+        return fs->write_item(gaddr, key, FlashStorage::U16, (uint8_t*) & value, 0);
     }
 
     bool set(const char *ns, const char *key, int32_t value) override
     {
         PageAddr gaddr = set_group(ns);
         if (gaddr == 0) return false;
-        return fs->write_item(gaddr, key, FlashStorage::U32, (uint8_t*) & value);
+        return fs->write_item(gaddr, key, FlashStorage::U32, (uint8_t*) & value, 0);
     }
 
     bool set(const char *ns, const char *key, const char *value) override
     {
-        UNUSED(ns);
-        UNUSED(key);
-        UNUSED(value);
-        ASSERT(0);
-        return false;
+        PageAddr gaddr = set_group(ns);
+        if (gaddr == 0) return false;
+        return fs->write_item(gaddr, key, FlashStorage::STR, (uint8_t*) value, 0);
     }
 
-    bool set_blob(const char *ns, const char *key, void *data, size_t size) override
+    bool set_blob(const char *ns, const char *key, void *data, size_t sz) override
     {
-        UNUSED(ns);
-        UNUSED(key);
-        UNUSED(data);
-        UNUSED(size);
-        ASSERT(0);
-        return false;
-    }
-
-    bool get_blob(const char *ns, const char *key, void *data, size_t *size) override
-    {
-        UNUSED(ns);
-        UNUSED(key);
-        UNUSED(data);
-        UNUSED(size);
-        ASSERT(0);
-        return false;
+        PageAddr gaddr = set_group(ns);
+        if (gaddr == 0) return false;
+        return fs->write_item(gaddr, key, FlashStorage::BLOB, (uint8_t*) data, sz);
     }
 
     bool erase(const char *ns, const char *key) override
     {
-        UNUSED(ns);
-        UNUSED(key);
-        ASSERT(0);
-        return false;
+        PageAddr gaddr = fs->find_group(ns);
+        if (!gaddr) return false;
+        PageAddr addr = fs->find_item(gaddr, key);
+        if (!addr) return false;
+        return fs->delete_item(addr);
     }
 
     bool commit() override
     {
-        ASSERT(0);
-        return false;
+        return true;
     }
 
-    virtual Iter *make_iter() override
+    class Iter : public StorageInterface::Iter
     {
-        ASSERT(0);
-        return 0;
+        FlashStorage *fs;
+        PageAddr g_iter;
+        PageAddr i_iter;
+        PageAddr gaddr;
+        char group_name[FlashStorage::MAX_NAME];
+        char item_name[FlashStorage::MAX_NAME];
+        FlashStorage::GroupEntry group;
+        FlashStorage::ItemEntry item;
+
+        PageAddr next_group()
+        {
+            i_iter = 0;
+            gaddr = fs->group_iter(0, & group, & g_iter);
+
+            if (gaddr)
+            {
+                Page *page = fs->get_active_page();
+                if (!page->read(group.name, (uint8_t*) & group_name, group.size))
+                    return false;
+            }
+
+            return gaddr;
+        }
+
+        virtual bool next(char *ns, char *key, StorageType *type, size_t max_sz) override
+        {
+            PageAddr addr = 0;
+
+            if (!g_iter)
+            {
+                if (!next_group())
+                {
+                    return false;
+                }
+            }
+
+            addr = fs->item_iter(0, & item, gaddr, & i_iter);
+            if (!addr)
+            {
+                if (!next_group())
+                {
+                    return false;
+                }
+            }
+
+            Page *page = fs->get_active_page();
+            if (!page->read(item.name, (uint8_t*) & item_name, item.name_size))
+                return false;
+
+            if (ns) strncpy(ns, group_name, max_sz);
+            if (key) strncpy(key, item_name, max_sz);
+            if (type) *type = to_storage_type(FlashStorage::Type(item.type));
+            return true;
+        }
+    public:
+        Iter(FlashStorage *f)
+        :   fs(f),
+            g_iter(0),
+            i_iter(0),
+            gaddr(0)
+        {
+        }
+    };    
+
+    virtual StorageInterface::Iter *make_iter() override
+    {
+        return new Iter(fs);
     }
 };
 
