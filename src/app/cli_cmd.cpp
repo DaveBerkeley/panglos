@@ -763,17 +763,6 @@ static void cmd_gpio(CLI *cli, CliCommand *)
      *
      */
 
-static LUT st_lut[] = { 
-    {   "NONE",     StorageType::VAL_NONE,  },
-    {   "INT8",     StorageType::VAL_INT8,  }, 
-    {   "INT16",    StorageType::VAL_INT16, },
-    {   "INT32",    StorageType::VAL_INT32, },
-    {   "STR",      StorageType::VAL_STR,   },
-    {   "BLOB",     StorageType::VAL_BLOB,  },
-    {   "OTHER",    StorageType::VAL_OTHER, },
-    { 0, 0 },
-};
-
 static bool isin(const char *str, const char **table)
 {
     for (; *table; table++)
@@ -804,7 +793,7 @@ static void cmd_storage_list(CLI *cli, CliCommand *)
 
     while (list.get(ns, key, & type, sizeof(ns)))
     {
-        cli_print(cli, "%s %s %s%s", ns, key, lut(st_lut, type), cli->eol);
+        cli_print(cli, "%s %s %s%s", ns, key, storage_type(type), cli->eol);
     }
 }
 

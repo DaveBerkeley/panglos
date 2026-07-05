@@ -19,6 +19,8 @@ typedef enum
     VAL_OTHER,
 } StorageType;
 
+const char *storage_type(StorageType ty);
+
     /*
      *
      */

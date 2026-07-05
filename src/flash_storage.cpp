@@ -924,36 +924,6 @@ bool FlashStorage::delete_item(FlashStorage::PageAddr addr)
     return page->write(addr, (uint8_t*) & item, sizeof(item));
 }
 
-    /*
-     *  Implement Storage interface using FlashStorage
-     */
-
-class FlashInterface : public StorageInterface
-{
-    FlashStorage *fs;
-public:
-    FlashInterface(FlashStorage *fs);
-
-    StorageType get_type(const char *ns, const char *key);
-
-    bool get(const char *ns, const char *key, int8_t *value);
-    bool get(const char *ns, const char *key, int16_t *value);
-    bool get(const char *ns, const char *key, int32_t *value);
-    bool get(const char *ns, const char *key, char *value, size_t *n);
-
-    bool set(const char *ns, const char *key, int8_t value);
-    bool set(const char *ns, const char *key, int16_t value);
-    bool set(const char *ns, const char *key, int32_t value);
-    bool set(const char *ns, const char *key, const char *value);
-
-    bool set_blob(const char *ns, const char *key, void *data, size_t size);
-    bool get_blob(const char *ns, const char *key, void *data, size_t *size);
-
-    bool erase(const char *ns, const char *key);
-
-    bool commit();
-};
-
 }   //  namespace panglos
 
 //  FIN

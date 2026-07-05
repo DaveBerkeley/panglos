@@ -139,6 +139,8 @@ private:
     void set_item_entry(struct ItemEntry *item, const char *name, Type ty, const uint8_t *data, size_t size);
 };
 
+StorageInterface *make_storage(FlashStorage *fs);
+
 }   //  namespace panglos
 
 //  FIN

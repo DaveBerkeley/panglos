@@ -10,6 +10,22 @@ using namespace panglos;
 
 namespace panglos {
 
+static LUT st_lut[] = { 
+    {   "NONE",     StorageType::VAL_NONE,  },
+    {   "INT8",     StorageType::VAL_INT8,  }, 
+    {   "INT16",    StorageType::VAL_INT16, },
+    {   "INT32",    StorageType::VAL_INT32, },
+    {   "STR",      StorageType::VAL_STR,   },
+    {   "BLOB",     StorageType::VAL_BLOB,  },
+    {   "OTHER",    StorageType::VAL_OTHER, },
+    { 0, 0 },
+};
+
+const char *storage_type(StorageType ty)
+{
+    return lut(st_lut, ty);
+}
+
     /*
      *
      */
