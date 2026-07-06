@@ -25,6 +25,19 @@ const char *lut(const LUT *codes, int err)
     return "unknown";
 }
 
+const char *lut_and(const LUT *_lut, int code, const LUT **iter)
+{
+    if (_lut) *iter = _lut;
+    while (*iter)
+    {
+        const LUT *entry = (*iter)++;
+        if (!entry->text) return 0;
+        if (entry->code & code) return entry->text;
+    }
+
+    return 0;
+}
+
 int rlut(const LUT *lut, const char *s)
 {
     for (; lut->text; lut++)

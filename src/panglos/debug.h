@@ -39,6 +39,7 @@ typedef struct {
 }   LUT;
 
 const char *lut(const LUT *codes, int err);
+const char *lut_and(const LUT *_lut, int code, const LUT **iter);
 int rlut(const LUT *codes, const char *s);
 
 void Error_Handler(void);

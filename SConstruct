@@ -99,6 +99,7 @@ files = [
     'unit-tests/rtc.cpp',
     'unit-tests/storage.cpp',
     'unit-tests/flash_storage.cpp',
+    'unit-tests/lut.cpp',
 ]
 
 ccflags = [
