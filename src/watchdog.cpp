@@ -66,9 +66,8 @@ class _Watchdog : public Watchdog
     Mutex *mutex;
     Mutex *mutex_tidy;
 
-    virtual void poll(Time::tick_t holdoff, Thread *thread) override
+    Thread *get_thread(Thread *thread)
     {
-        //PO_DEBUG("");
         if (!thread)
         {
             thread = Thread::get_current();
@@ -77,6 +76,13 @@ class _Watchdog : public Watchdog
         {
             thread = & dummy_thread;
         }
+        return thread;
+    }
+
+    virtual void poll(Time::tick_t holdoff, Thread *thread) override
+    {
+        //PO_DEBUG("");
+        thread = get_thread(thread);
 
         Lock lock(mutex);
 
@@ -96,6 +102,8 @@ class _Watchdog : public Watchdog
     virtual void remove(Thread *thread=0) override
     {
         PO_DEBUG("");
+        thread = get_thread(thread);
+        
         Lock lock(mutex);
 
         Watched *w = find(thread, 0);
