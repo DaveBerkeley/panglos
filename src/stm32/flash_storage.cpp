@@ -1,24 +1,17 @@
 
 #include <string.h>
 
-#include "stm32f4xx_hal.h"
-
 #include "panglos/debug.h"
 #include "panglos/io.h"
 #include "panglos/mutex.h"
+
+#include "panglos/stm32/hal.h"
+#include "panglos/stm32/lut.h"
 
 #include "panglos/flash_storage.h"
 #include "panglos/storage.h"
 
 namespace panglos {
-
-static const LUT hal_lut[] = {
-    {   "HAL_OK", HAL_OK },
-    {   "HAL_ERROR", HAL_ERROR },
-    {   "HAL_BUSY", HAL_BUSY },
-    {   "HAL_TIMEOUT", HAL_TIMEOUT },
-    {   0   },
-};
 
 static const LUT hal_flash_lut[] =
 {

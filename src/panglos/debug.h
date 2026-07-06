@@ -4,10 +4,10 @@
 #include <stdint.h>
 
 #define IGNORE(x) ((void) (x))
-#ifdef UNUSED
-#undef UNUSED
-#endif
+
+#ifndef UNUSED
 #define UNUSED(x) ((void) (x))
+#endif
 
 typedef enum {
     S_NONE = 0,
