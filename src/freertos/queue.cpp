@@ -86,7 +86,7 @@ public:
 Queue *Queue::create(int size, int num, Mutex *m)
 {
     //ASSERT(!m); // Not needed for FreeRTOS queue
-    if (m) PO_INFO("No Mutex need for FreeRTOS Queue");
+    if (m) PO_INFO("No Mutex needed for FreeRTOS Queue");
     return new RTOS_Queue(size, num);
 }
 
