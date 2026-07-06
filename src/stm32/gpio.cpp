@@ -68,28 +68,34 @@ class ARM_GPIO;
 
 static ARM_GPIO *interrupt_table[16];
 
-static uint16_t porta, portb, portc;
+static uint16_t *get_map(GPIO_TypeDef *port)
+{
+#if defined(GPIOA)
+    static uint16_t portA;
+    if (port == GPIOA) return & portA;
+#endif
+#if defined(GPIOB)
+    static uint16_t portB;
+    if (port == GPIOB) return & portB;
+#endif
+#if defined(GPIOC)
+    static uint16_t portC;
+    if (port == GPIOC) return & portC;
+#endif
+#if defined(GPIOD)
+    static uint16_t portD;
+    if (port == GPIOD) return & portD;
+#endif
+    ASSERT(0); // add more!
+}
+
+    /*
+     *
+     */
 
 static void busy(GPIO_TypeDef *port, uint16_t pin, bool mark)
 {
-    uint16_t *map = 0;
-
-    if (port == GPIOA)
-    {
-        map = & porta;
-    }
-    else if (port == GPIOB)
-    {
-        map = & portb;
-    }
-    else if (port == GPIOC)
-    {
-        map = & portc;
-    }
-    else
-    {
-        ASSERT(0);
-    }
+    uint16_t *map = get_map(port);
 
     if (mark)
     {   
