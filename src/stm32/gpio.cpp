@@ -87,6 +87,7 @@ static uint16_t *get_map(GPIO_TypeDef *port)
     if (port == GPIOD) return & portD;
 #endif
     ASSERT(0); // add more!
+    return 0;
 }
 
     /*
@@ -148,7 +149,7 @@ IRQn_Type pin_to_irq(uint16_t pin)
      *
      */
 
-void gpio_init(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t alt_fn)
+void gpio_init(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t alt_fn, uint16_t pull)
 {
     busy(port, pin, true);
     gpio_enable_clock(port);
@@ -162,10 +163,23 @@ void gpio_init(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t alt_fn)
     // TODO : provide some similar function for STM32F1xx devices?
     gpio_init.Alternate = alt_fn;
 #endif
-    gpio_init.Pull = GPIO_NOPULL;
+    gpio_init.Pull = pull ? pull : GPIO_NOPULL;
 
     HAL_GPIO_Init(port, & gpio_init);
 }
+
+    /*
+     *
+     */
+
+void gpio_init(const struct Pin *gpio)
+{
+    gpio_init(gpio->port, gpio->pin, gpio->mode, gpio->alt, gpio->pull);
+}
+
+    /*
+     *
+     */
 
 class ARM_GPIO : public panglos::GPIO
 {
@@ -176,12 +190,12 @@ class ARM_GPIO : public panglos::GPIO
     bool irq_enabled;
 public:
 
-    ARM_GPIO(GPIO_TypeDef *_port, uint16_t _pin, uint32_t mode, uint32_t alt_fn)
+    ARM_GPIO(GPIO_TypeDef *_port, uint16_t _pin, uint32_t mode, uint32_t alt_fn, uint16_t pull)
     :   port(_port), pin(_pin), irq_handler(0), irq_arg(0), irq_enabled(false)
     {
         set(false);
 
-        gpio_init(port, pin, mode, alt_fn);
+        gpio_init(port, pin, mode, alt_fn, pull);
 
         // Tutorial on GPIO interrupts :
         // https://stm32f4-discovery.net/2014/08/stm32f4-external-interrupts-tutorial/
@@ -253,9 +267,9 @@ public:
      *
      */
 
-GPIO *gpio_create(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t alt_fn)
+GPIO *gpio_create(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t alt_fn, uint16_t pull)
 {
-    return new ARM_GPIO(port, pin, mode, alt_fn);
+    return new ARM_GPIO(port, pin, mode, alt_fn, pull);
 }
 
 void gpio_alloc(GPIO_TypeDef *port, uint16_t pin)

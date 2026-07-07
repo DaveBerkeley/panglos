@@ -35,6 +35,7 @@ namespace panglos {
 void STM32_UART::init_gpio(struct Config::Pin *pin)
 {
     gpio_enable_clock(pin->port);
+    gpio_alloc(pin->port, pin->pin);
 
     GPIO_InitTypeDef config = {0};
 
