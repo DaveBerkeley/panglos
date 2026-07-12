@@ -41,6 +41,26 @@ static inline int pin_to_idx(uint16_t pin)
 
 namespace panglos {
 
+const char *gpio_portstr(GPIO_TypeDef *port)
+{
+    if (port == GPIOA) return "GPIOA";
+    if (port == GPIOB) return "GPIOB";
+    if (port == GPIOC) return "GPIOC";
+    if (port == GPIOD) return "GPIOD";
+    if (port == GPIOE) return "GPIOE";
+    if (port == GPIOF) return "GPIOF";
+    if (port == GPIOG) return "GPIOG";
+    if (port == GPIOH) return "GPIOH";
+#if defined(GPIOI)
+    if (port == GPIOI) return "GPIOI";
+#endif
+#if defined(GPIOJ)
+    if (port == GPIOJ) return "GPIOJ";
+#endif
+    ASSERT(0); // Add more ports!
+    return 0;
+}
+
 void gpio_enable_clock(GPIO_TypeDef *port)
 {
     if (port == GPIOA) { __HAL_RCC_GPIOA_CLK_ENABLE(); return; }
@@ -94,19 +114,21 @@ static uint16_t *get_map(GPIO_TypeDef *port)
      *
      */
 
-static void busy(GPIO_TypeDef *port, uint16_t pin, bool mark)
+static bool busy(GPIO_TypeDef *port, uint16_t pin, bool mark)
 {
     uint16_t *map = get_map(port);
 
     if (mark)
     {   
-        ASSERT_ERROR((*map & pin) == 0, "port=%p pin=%#x", port, pin);
+        ASSERT_ERROR(((*map) & pin) == 0, "port=%s pin=%#04x", gpio_portstr(port), pin);
         *map |= pin;
     }
     else
     {
         *map &= ~pin;
+        // note : if ((*map) == 0) we could turn off the clock
     }
+    return *map;
 }
 
     /*
