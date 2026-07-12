@@ -32,7 +32,7 @@ static void uart_enable_clock(USART_TypeDef *uart)
 
 namespace panglos {
 
-void STM32_UART::init_gpio(struct Config::Pin *pin)
+void STM32_UART::init_gpio(const struct Config::Pin *pin)
 {
     gpio_enable_clock(pin->port);
     gpio_alloc(pin->port, pin->pin);
@@ -72,7 +72,7 @@ STM32_UART::STM32_UART()
     memset(& handle, 0, sizeof(handle));
 }
 
-bool STM32_UART::init(struct Config *config)
+bool STM32_UART::init(const struct Config *config)
 {
     uart_enable_clock(config->uart);
     init_gpio(& config->rx);
@@ -105,7 +105,7 @@ int STM32_UART::tx(const char* data, int n)
      *
      */
 
-STM32_UART *STM32_UART::create(STM32_UART::Config *config)
+STM32_UART *STM32_UART::create(const STM32_UART::Config *config)
 {
     ASSERT(config);
 

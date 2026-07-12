@@ -27,18 +27,18 @@ public:
 
 private:
     bool init_uart(USART_TypeDef *uart, int baud);
-    void init_gpio(struct Config::Pin *pin);
+    void init_gpio(const struct Config::Pin *pin);
 
 public:
     STM32_UART();
 
-    bool init(struct Config *config);
+    bool init(const struct Config *config);
 
     // Implement UART
     virtual int rx(char* data, int n) override;
     virtual int tx(const char* data, int n) override;
 
-    static STM32_UART *create(struct Config *config);
+    static STM32_UART *create(const struct Config *config);
 };
 
 }   //  namespace panglos
