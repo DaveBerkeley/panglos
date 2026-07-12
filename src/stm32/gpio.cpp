@@ -294,6 +294,11 @@ GPIO *gpio_create(GPIO_TypeDef *port, uint16_t pin, uint32_t mode, uint32_t alt_
     return new ARM_GPIO(port, pin, mode, alt_fn, pull);
 }
 
+GPIO *gpio_create(const struct Pin *config)
+{
+    return gpio_create(config->port, config->pin, config->mode, config->alt, config->pull);
+}
+
 void gpio_alloc(GPIO_TypeDef *port, uint16_t pin)
 {
     busy(port, pin, true);
