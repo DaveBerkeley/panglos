@@ -1,6 +1,8 @@
 
 #pragma once
 
+namespace panglos {
+
 class Dma
 {
 public:
@@ -13,5 +15,7 @@ public:
     static IRQn_Type get_irq_type(DMA_Stream_TypeDef *stream);
     static bool ck_enable(DMA_TypeDef *dma);
 };
+
+}   //  namespace panglo
 
 //  FIN

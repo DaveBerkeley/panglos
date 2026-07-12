@@ -5,6 +5,8 @@
 
 #include "panglos/stm32/dma.h"
 
+namespace panglos {
+
     /*
      *
      */
@@ -72,5 +74,7 @@ bool Dma::ck_enable(DMA_TypeDef *dma)
     ASSERT(0);
     return false;
 }
+
+}   //  namespace panglos
 
 //  FIN
