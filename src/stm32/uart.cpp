@@ -17,8 +17,6 @@
 
 static void uart_enable_clock(USART_TypeDef *uart)
 {
-    // stm32f446 : USART1 USART2 USART3 UART4 UART5 USART6
-    ASSERT(uart);
 #if defined(USART1)
     if (uart == USART1) { __HAL_RCC_USART1_CLK_ENABLE(); return; }
 #endif
@@ -51,7 +49,7 @@ IRQn_Type panglos::UartConfig::get_irq_type(USART_TypeDef *uart)
     if (uart == USART1) return USART1_IRQn;
 #endif
 #if defined(USART2)
-    if (uart == USART2) return USART3_IRQn;
+    if (uart == USART2) return USART2_IRQn;
 #endif
 #if defined(USART3)
     if (uart == USART3) return USART3_IRQn;
@@ -77,6 +75,7 @@ namespace panglos {
 
 class STM32_UART : public panglos::UART
 {
+    UartConfig config;
     UART_HandleTypeDef handle;
     DMA_HandleTypeDef dma_rx;
     DMA_HandleTypeDef dma_tx;
@@ -97,25 +96,25 @@ class STM32_UART : public panglos::UART
         virtual void run() override { uart->on_rx_dma(); }
     };
 
-    class RxHandler : public IrqHandler
+    class UartHandler : public IrqHandler
     {
         STM32_UART *uart;
     public:
-        RxHandler(STM32_UART *_uart) : uart(_uart) { }
-        virtual void run() override { uart->on_rx_interrupt(); }
+        UartHandler(STM32_UART *_uart) : uart(_uart) { }
+        virtual void run() override { uart->on_interrupt(); }
     };
 
-    struct DmaTxHandler dma_rx_irq;
+    struct DmaRxHandler dma_rx_irq;
     struct DmaTxHandler dma_tx_irq;
-    struct DmaTxHandler rx_irq;
+    struct UartHandler rx_irq;
 
         /*
          *
          */
 
-    void on_rx_interrupt()
+    void on_interrupt()
     {
-        ASSERT(0);
+        //ASSERT(0);
         HAL_UART_IRQHandler(& handle);
     }
 
@@ -130,25 +129,21 @@ class STM32_UART : public panglos::UART
     }
 
 private:
-    void enable_irq(IRQn_Type irq, uint32_t preempt_level, IrqHandler *handler)
-    {
-        HAL_NVIC_SetPriority(irq, preempt_level, 0);
-        set_vector(irq, handler);
-        HAL_NVIC_EnableIRQ(irq);
-    }
-
-    bool init_uart(const struct UartConfig *config)
+    bool init_uart()
     {
         uint32_t mode = 0;
-        if (config->rx.port)
-            mode |= UART_MODE_RX;
-        if (config->tx.port)
-            mode |= UART_MODE_TX;
+        if (config.rx.port && !config.tx.port)  mode = UART_MODE_RX;
+        if (config.tx.port && !config.rx.port)  mode = UART_MODE_TX;
+        if (config.tx.port && config.rx.port)   mode = UART_MODE_TX_RX;
 
-        if (!mode) return false;
+        if (!mode)
+        {
+            PO_ERROR("No rx or tx pins specified");
+            return false;
+        }
 
-        handle.Instance = config->uart;  // Specify which USART peripheral to use
-        handle.Init.BaudRate = config->baud; // Set baud rate
+        handle.Instance = config.uart;  // Specify which USART peripheral to use
+        handle.Init.BaudRate = config.baud; // Set baud rate
         handle.Init.WordLength = UART_WORDLENGTH_8B; // 8 data bits
         handle.Init.StopBits = UART_STOPBITS_1;      // 1 stop bit
         handle.Init.Parity = UART_PARITY_NONE;       // No parity
@@ -160,7 +155,10 @@ private:
         HAL_StatusTypeDef ok = HAL_UART_Init(& handle);
         if (ok != HAL_OK) !hal_error(ok);
 
-        enable_irq(panglos::UartConfig::get_irq_type(config->uart), 5, & rx_irq);
+        if (config.tx_irq || config.rx_irq)
+        {
+            enable_irq(panglos::UartConfig::get_irq_type(config.uart), 5, & rx_irq);
+        }
 
         return true;        
     }
@@ -180,7 +178,7 @@ private:
         HAL_GPIO_Init(pin->port, & config);
     }
 
-    bool init_dma(const struct UartConfig *config, bool rx)
+    bool init_dma(bool rx)
     {
         DMA_HandleTypeDef *dma_handle = 0;
         const struct Dma::Config *dma_config = 0;
@@ -190,14 +188,14 @@ private:
         if (rx)
         {
             dma_handle = & dma_rx;
-            dma_config =  & config->rx_dma;
+            dma_config =  & config.rx_dma;
             direction = DMA_PERIPH_TO_MEMORY;
             handler = & dma_rx_irq;
         }
         else
         {
             dma_handle = & dma_tx;
-            dma_config =  & config->tx_dma;
+            dma_config =  & config.tx_dma;
             direction = DMA_MEMORY_TO_PERIPH;
             handler = & dma_tx_irq;
         }
@@ -243,24 +241,47 @@ public:
         memset(& handle, 0, sizeof(handle));
     }
 
-    bool init(const struct UartConfig *config)
+    ~STM32_UART()
     {
-        uart_enable_clock(config->uart);
-        init_gpio(& config->rx);
-        init_gpio(& config->tx);
+        // TODO : deinit ...
+        set_vector(Dma::get_irq_type(config.rx_dma.stream), 0);
+        set_vector(Dma::get_irq_type(config.tx_dma.stream), 0);
+        set_vector(panglos::UartConfig::get_irq_type(config.uart), 0);
+    }
 
-        init_dma(config, true);     // rx
-        init_dma(config, false);    // tx
+    bool init(const struct UartConfig *_config)
+    {
+        memcpy(& config, _config, sizeof(config));
+        uart_enable_clock(config.uart);
+        init_gpio(& config.rx);
+        init_gpio(& config.tx);
 
-        return init_uart(config);
+        init_dma(true);     // rx
+        init_dma(false);    // tx
+
+        return init_uart();
     }
 
     // Implement UART
+
+    HAL_StatusTypeDef _rx(char* data, int n)
+    {
+        if (config.rx_irq)
+        {
+            return HAL_UART_Receive_IT(& handle, (uint8_t*) data, n);
+        }
+
+        if (config.rx_dma.dma)
+        {
+            return HAL_UARTEx_ReceiveToIdle_DMA(& handle, (uint8_t*) data, n);
+        }
+
+        return HAL_UART_Receive(& handle, (uint8_t*) data, n, HAL_MAX_DELAY);
+    }
+    
     virtual int rx(char* data, int n) override
     {
-        //HAL_StatusTypeDef ok = HAL_UARTEx_ReceiveToIdle_DMA(& handle, (uint8_t*) data, n);
-        //HAL_StatusTypeDef ok = HAL_UART_Receive_DMA(& handle, (uint8_t*) data, n);
-        HAL_StatusTypeDef ok = HAL_UART_Receive_IT(& handle, (uint8_t*) data, n);
+        HAL_StatusTypeDef ok = _rx(data, n);
         if (ok != HAL_OK)
         {
             hal_error(ok);
@@ -270,9 +291,17 @@ public:
 
     virtual int tx(const char* data, int n) override
     {
+        HAL_StatusTypeDef ok = HAL_OK;
         // TODO : using interrupts or DMA if more than n chars ??
-        HAL_StatusTypeDef ok = HAL_UART_Transmit(& handle, (const uint8_t*) data, n, HAL_MAX_DELAY);
-        //HAL_StatusTypeDef ok = HAL_UART_Transmit_DMA(& handle, (const uint8_t*) data, n);
+        if (config.tx_irq)
+        {
+            ok = HAL_UART_Transmit_IT(& handle, (const uint8_t*) data, n);
+        }
+        else
+        {
+            ok = HAL_UART_Transmit(& handle, (const uint8_t*) data, n, HAL_MAX_DELAY);
+            //ok = HAL_UART_Transmit_DMA(& handle, (const uint8_t*) data, n);
+        }
         if (ok != HAL_OK)
         {
             hal_error(ok);

@@ -14,6 +14,8 @@ struct UartConfig
 
     USART_TypeDef *uart;
     int baud;
+    bool rx_irq;
+    bool tx_irq;
 
     struct Dma::Config rx_dma;
     struct Dma::Config tx_dma;
