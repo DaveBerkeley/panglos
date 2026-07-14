@@ -1,45 +1,27 @@
 
 #include "panglos/stm32/hal.h"
+#include "panglos/stm32/dma.h"
+#include "panglos/stm32/gpio_arm.h"
 
 #include "panglos/drivers/uart.h"
 
 namespace panglos {
 
-class STM32_UART : public panglos::UART
+struct UartConfig
 {
-    UART_HandleTypeDef handle;
+    struct Pin rx;
+    struct Pin tx;
 
-public:
-    struct Config
-    {
-        struct Pin {
-            GPIO_TypeDef *port;
-            uint32_t    pin;
-            uint32_t    alt;
-        };
+    USART_TypeDef *uart;
+    int baud;
 
-        struct Pin rx;
-        struct Pin tx;
+    struct Dma::Config rx_dma;
+    struct Dma::Config tx_dma;
 
-        USART_TypeDef *uart;
-        int baud;
-    };
-
-private:
-    bool init_uart(USART_TypeDef *uart, int baud);
-    void init_gpio(const struct Config::Pin *pin);
-
-public:
-    STM32_UART();
-
-    bool init(const struct Config *config);
-
-    // Implement UART
-    virtual int rx(char* data, int n) override;
-    virtual int tx(const char* data, int n) override;
-
-    static STM32_UART *create(const struct Config *config);
+    static IRQn_Type get_irq_type(USART_TypeDef *uart);
 };
+
+UART *create_uart(const struct UartConfig *config);
 
 }   //  namespace panglos
 
