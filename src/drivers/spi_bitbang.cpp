@@ -7,9 +7,8 @@
 
 namespace panglos {
 
-SPI_BitBang::SPI_BitBang(Mutex *m, GPIO *_copi, GPIO *_cipo, GPIO *_ck)
-:   SPI(m),
-    copi(_copi),
+SPI_BitBang::SPI_BitBang(GPIO *_copi, GPIO *_cipo, GPIO *_ck)
+:   copi(_copi),
     cipo(_cipo),
     ck(_ck)
 {

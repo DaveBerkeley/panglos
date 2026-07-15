@@ -137,7 +137,7 @@ void OLED::backlight(bool on)
 
 void OLED::send(uint8_t command, const uint8_t *data, uint8_t n)
 {
-    Lock lock(spi->mutex);
+    SPI::CS_Lock lock(spi, 0);
 
     cs->set(1);
 
@@ -196,7 +196,7 @@ void OLED::reset()
 
 void OLED::write(const uint8_t *data, size_t size)
 {
-    Lock lock(spi->mutex);
+    SPI::CS_Lock lock(spi, 0);
 
     dc->set(1);
     cs->set(0);

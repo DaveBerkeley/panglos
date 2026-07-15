@@ -13,9 +13,12 @@
 
 namespace panglos {
 
+    /*
+     *
+     */
+
 class ESP_SPI : public SPI
 {
-    spi_device_handle_t spi;
 public:
     struct SPI_DEF
     {
@@ -27,11 +30,24 @@ public:
         int clock_hz;
     };
  
+private:
+    struct SPI_DEF def;
+    SPI::Lock cs_lock;
+    spi_device_handle_t spi;
+    int speed;
+
+public:
     ESP_SPI(Mutex *m, struct SPI_DEF *sd, int max_sz=32);
     ~ESP_SPI();
 
+    virtual bool read(uint8_t *data, int size) override;
     virtual bool write(const uint8_t *data, int size) override;
     virtual bool io(const uint8_t *data, uint8_t *rd, int size) override;
+
+    virtual void set_blocking(bool blocking) override;
+    virtual uint32_t set_speed(uint32_t hz) override;
+
+    virtual Lock *lock() override;
 };
 
 }   //  namespace panglos

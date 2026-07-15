@@ -17,7 +17,7 @@ class SPI_BitBang : public SPI
     uint8_t write(uint8_t data);
 
 public:
-    SPI_BitBang(Mutex *m, GPIO *copi, GPIO *cipo, GPIO *ck);
+    SPI_BitBang(GPIO *copi, GPIO *cipo, GPIO *ck);
 
     virtual bool write(const uint8_t *data, int size) override;
     virtual bool io(const uint8_t *data, uint8_t *rd, int size) override;
