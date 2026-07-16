@@ -14,9 +14,10 @@ class TestSpi : public SPI
 public:
     uint8_t gain;
     uint8_t chan;
+    SPI::Lock cs_lock;
 
     TestSpi()
-    :   SPI(0)
+    :   cs_lock(0)
     {
         reset();
     }
@@ -50,6 +51,29 @@ public:
         IGNORE(size);
         ASSERT(0);
         return false;
+    }
+
+    virtual bool read(uint8_t *data, int size) override
+    {
+        IGNORE(data);
+        IGNORE(size);
+        ASSERT(0);
+        return false;
+    }
+
+    virtual Lock *lock() override
+    {
+        return & cs_lock;
+    }
+
+    virtual void set_blocking(bool blocking) override
+    {
+        IGNORE(blocking);
+    }
+    
+    virtual uint32_t set_speed(uint32_t hz) override
+    {
+        return hz;
     }
 };
 

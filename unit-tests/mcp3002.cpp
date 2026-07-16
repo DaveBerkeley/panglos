@@ -14,9 +14,10 @@ class TestSpiAdc : public SPI
 {
     uint8_t cmd[2];
     uint16_t result;
+    SPI::Lock cs_lock;
 public:
     TestSpiAdc()
-    :   SPI(0)
+    :   cs_lock(0)
     {
     }
     void set_result(uint16_t r)
@@ -30,6 +31,13 @@ public:
         ASSERT(0);
         return true;
     }
+    virtual bool read(uint8_t *data, int size) override
+    {
+        IGNORE(data);
+        IGNORE(size);
+        ASSERT(0);
+        return true;
+    }
     virtual bool io(const uint8_t *data, uint8_t *rd, int size) override
     {
         EXPECT_EQ(2, size);
@@ -37,6 +45,17 @@ public:
         rd[0] = uint8_t(result >> 8);
         rd[1] = uint8_t(result & 0xff);
         return true;
+    }
+    virtual void set_blocking(bool) override
+    {
+    }
+    virtual uint32_t set_speed(uint32_t hz) override
+    {
+        return hz;
+    }
+    virtual Lock *lock() override
+    {
+        return & cs_lock;
     }
 };
 

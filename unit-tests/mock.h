@@ -58,8 +58,9 @@ public:
     uint8_t buff[64];
     int in;
     uint8_t rd_data[64];
+    SPI::Lock cs_lock;
 
-    MockSpi() : SPI(0), in(0) { reset(); }
+    MockSpi() : in(0), cs_lock(0) { reset(); }
 
     virtual bool write(const uint8_t *data, int size) override
     {
@@ -67,6 +68,14 @@ public:
         ASSERT((size+in) < (int) sizeof buff);
         memcpy(& buff[in], data, (size_t) size);
         in += size;
+        return true;
+    }
+
+    virtual bool read(uint8_t *data, int size) override
+    {
+        ASSERT(data);
+        ASSERT((size+in) < (int) sizeof buff);
+        memcpy(data, rd_data, size);
         return true;
     }
 
@@ -103,6 +112,22 @@ public:
     {
         set_read(& data, 1);
     }
+
+    virtual void set_blocking(bool blocking) override
+    {
+        IGNORE(blocking);
+    }
+
+    virtual uint32_t set_speed(uint32_t hz) override
+    {
+        return hz;
+    }
+    
+
+    virtual Lock *lock() override
+    {
+        return & cs_lock;
+    }    
 };
 
     /*
