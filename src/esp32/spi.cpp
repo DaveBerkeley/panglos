@@ -84,42 +84,15 @@ ESP_SPI::~ESP_SPI()
     }
 }
 
-bool ESP_SPI::read(uint8_t *data, int size)
-{
-    PO_ERROR("TODO");
-    IGNORE(data);
-    IGNORE(size);
-    ASSERT(0);
-    return false;
-}
-
-bool ESP_SPI::write(const uint8_t *data, int size)
-{
-    ASSERT(data);
-    ASSERT(size);
-
-    spi_transaction_t t;
-    memset(&t, 0, sizeof(t));
-    t.length = 8 * size;
-    t.tx_buffer = data;
-    t.user = 0;
-    t.flags = 0; // SPI_TRANS_USE_TXDATA;
-    esp_err_t err = spi_device_polling_transmit(spi, & t);
-    esp_check(err, __LINE__);
-    return err == ESP_OK;
-}
-
 bool ESP_SPI::io(const uint8_t *data, uint8_t *rd, int size)
 {
-    ASSERT(data);
-    ASSERT(rd);
     ASSERT(size);
 
     spi_transaction_t t;
     memset(&t, 0, sizeof(t));
     t.length = 8 * size;
     t.tx_buffer = data;
-    t.rxlength = 8 * size;
+    t.rxlength = rd ? (8 * size) : 0;
     t.rx_buffer = rd;
     t.user = 0;
     t.flags = 0; // SPI_TRANS_USE_TXDATA;
@@ -127,6 +100,18 @@ bool ESP_SPI::io(const uint8_t *data, uint8_t *rd, int size)
     esp_err_t err = spi_device_polling_transmit(spi, & t);
     esp_check(err, __LINE__);
     return err == ESP_OK;
+}
+
+bool ESP_SPI::read(uint8_t *data, int size)
+{
+    ASSERT(data);
+    return io(0, data, size);
+}
+
+bool ESP_SPI::write(const uint8_t *data, int size)
+{
+    ASSERT(data);
+    return io(data, 0, size);
 }
 
 void ESP_SPI::set_blocking(bool blocking)
