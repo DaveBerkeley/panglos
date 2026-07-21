@@ -23,6 +23,8 @@ public:
     virtual const char *get_name() = 0;
     virtual int get_core() { return -1; }
 
+    static void yield();
+
     static Thread *get_current();
     static void visit(int (*fn)(Thread*, void*), void*);
     static Thread *get_by_name(const char *name);

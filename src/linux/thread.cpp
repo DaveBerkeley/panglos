@@ -141,6 +141,10 @@ Thread *Thread::get_current()
     return & main_thread;
 }
 
+void Thread::yield()
+{
+}
+
 }   //  namespace panglos
 
 #endif //   defined(ARCH_LINUX)

@@ -205,6 +205,11 @@ Thread *Thread::get_current()
     return threads.find(match_handle, handle, mutex);
 }
 
+void Thread::yield()
+{
+    vTaskDelay(0);
+}
+
 }   //  namespace panglos
 
 extern "C" {
