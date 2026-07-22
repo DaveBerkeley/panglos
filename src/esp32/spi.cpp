@@ -119,20 +119,52 @@ void ESP_SPI::set_blocking(bool blocking)
     PO_ERROR("TODO blocking=%d", blocking);
 }
 
+    /*
+     *
+     */
+
+#include "spi_flash_mmap.h"  // For the PLL frequency
+
+uint32_t spi_get_max_safe_freq_hz(uint32_t target_freq_hz)
+{
+    const uint32_t apb_clock = APB_CLK_FREQ;
+ 
+    // Available dividers (n = 2 to 512, even numbers only for most ESPs)
+    // On ESP32, SPI clock = APB_CLK / (2 * n) where n is the divider
+    // The hardware supports dividers: 2, 4, 6, 8, ... up to 512
+
+    // Try all even dividers from 2 to 512
+    for (uint32_t divider = 2; divider <= 512; divider += 2)
+    {
+        const uint32_t freq = apb_clock / divider;
+        
+        if (freq <= target_freq_hz)
+        {
+            // first match will be the highest freq
+            return freq;
+        }
+    }
+   
+    PO_ERROR("Unable to find a suitable freq match for %d", target_freq_hz);
+    return target_freq_hz;
+}
+
 uint32_t ESP_SPI::set_speed(uint32_t hz)
 {
     if (hz == speed) return hz;
 
-    esp_err_t err = add_device(& def, hz, & spi);
+    uint32_t best = spi_get_max_safe_freq_hz(hz);
+    
+    esp_err_t err = add_device(& def, best, & spi);
     esp_check(err, __LINE__);
     speed = hz;
-    
+ 
     int freq_khz = 0;
     err = spi_device_get_actual_freq(spi, & freq_khz);
     esp_check(err, __LINE__);
     if (err != ESP_OK) return 0;
  
-    PO_ERROR("req_hz=%d actual=%d", hz, freq_khz * 1000);
+    PO_INFO("req_hz=%d best=%d actual=%d", hz, best, freq_khz * 1000);
     return freq_khz * 1000;
 }
 
