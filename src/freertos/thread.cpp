@@ -49,6 +49,8 @@ public:
     TaskHandle_t handle;
     Semaphore *dead;
 
+    Out *out;
+
 public:
 
     RTOS_Thread(const char *_name, size_t _stack, Thread::Priority _pri)
@@ -58,7 +60,8 @@ public:
         pri(_pri),
         arg(0),
         handle(0),
-        dead(0)
+        dead(0),
+        out(0)
     {
         dead = Semaphore::create();
 
@@ -66,12 +69,19 @@ public:
         {
             mutex = Mutex::create();
         }
+
+        Thread *parent = Thread::get_current();
+        if (parent)
+            set_out(parent->get_out());
     }
 
     ~RTOS_Thread()
     {
         delete dead;
     }
+
+    virtual void set_out(Out *o) override { out = o; }
+    virtual Out *get_out() override { return out; }
 
     virtual void start(void (*fn)(void *arg), void *arg, int core) override;
     virtual void join() override;

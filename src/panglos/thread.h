@@ -4,6 +4,8 @@
 
 namespace panglos {
 
+class Out;
+
 class Thread
 {
 public:
@@ -22,6 +24,9 @@ public:
 
     virtual const char *get_name() = 0;
     virtual int get_core() { return -1; }
+
+    virtual Out *get_out() { return 0; }
+    virtual void set_out(Out *) { }
 
     static void yield();
 

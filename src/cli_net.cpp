@@ -9,6 +9,7 @@
 #include "panglos/socket.h"
 #include "panglos/logger.h"
 #include "panglos/cli_net.h"
+#include "panglos/thread.h"
 
 namespace panglos {
 
@@ -70,6 +71,10 @@ class CliClient : public Client
         cli.prompt = "> ";
         cli_init(& cli, 96, 0);
         cli.head = & cmd_log;
+
+        Thread *thread = Thread::get_current();
+        if (thread)
+            thread->set_out(& out);
     }
 
 public:
