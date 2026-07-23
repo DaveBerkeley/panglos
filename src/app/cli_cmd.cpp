@@ -115,18 +115,30 @@ static void cmd_pwm(CLI *cli, CliCommand *)
      *
      */
 
-static int match_name(CliCommand *cmd, void *arg)
-{
-    ASSERT(arg);
-    const char *s = (const char*) arg;
-    return strcmp(cmd->cmd, s) == 0;
-}
-
 static void print_help(CLI *cli, CliCommand *cmd)
 {
     ASSERT(cli);
     ASSERT(cmd);
-    cli_print(cli, "%s : %s%s", cmd->cmd, cmd->help, cli->eol);
+
+    cli_print(cli, "%s : ", cmd->cmd);
+
+    if (cmd->help)
+    {
+        cli_print(cli, "%s", cmd->help);
+    }
+    else if (cmd->subcommand)
+    {
+        // list the subcommands
+        const char *sep = 0;
+        for (cmd = cmd->subcommand; cmd; cmd = cmd->next)
+        {
+            if (sep)
+                cli_print(cli, sep);
+            cli_print(cli, "%s", cmd->cmd);
+            sep = "|";
+        }
+    }
+    cli_print(cli, "%s", cli->eol);
 }
 
 static void print_help_nest(CLI *cli, CliCommand *cmd, int nest)
@@ -142,25 +154,34 @@ static void print_help_nest(CLI *cli, CliCommand *cmd, int nest)
     }
 }
 
-static void cmd_help(CLI *cli, CliCommand *cmd)
+static CliCommand *find(CLI *cli, CliCommand *cmd, int idx)
 {
-    IGNORE(cmd);
-    const char *s = cli_get_arg(cli, 0);
+    if (!cmd) return 0;
 
-    if (s)
+    const char *s = cli_get_arg(cli, idx);
+    if (!s) return 0;
+
+    for (; cmd; cmd = cmd->next)
     {
-        cmd = cli_find(& cli->head, match_name, (void*) s);
-        if (!cmd)
-        {
-            cli_print(cli, "command not found%s", cli->eol);
-            return;
-        }
+        if (strcmp(s, cmd->cmd)) continue;
 
-        print_help(cli, cmd);
-        return;
+        CliCommand *sub = find(cli, cmd->subcommand, idx + 1);
+        return sub ? sub : cmd;
     }
+    return 0;
+}
 
-    print_help_nest(cli, cli->head, 0);
+static void cmd_help(CLI *cli, CliCommand *)
+{
+    CliCommand *cmd = find(cli, cli->head, 0);
+    if (cmd)
+    {
+        print_help(cli, cmd);
+    }
+    else
+    {
+        print_help_nest(cli, cli->head, 0);
+    }
 }
 
 #if defined(FREERTOS)
