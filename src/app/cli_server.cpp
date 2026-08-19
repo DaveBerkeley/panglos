@@ -14,20 +14,11 @@
 #include "panglos/storage.h"
 #include "panglos/socket.h"
 #include "panglos/tx_net.h"
-#include "panglos/batch.h"
 
 #include "panglos/app/event.h"
 #include "panglos/app/cli_server.h"
 
 namespace panglos {
-
-class NetJob : public BatchTask::Job 
-{
-    NetJob *next;
-public:
-    NetJob() : next(0) { }
-    static NetJob **get_next(NetJob *nj) { return & nj->next; }
-};
 
     /*
      *

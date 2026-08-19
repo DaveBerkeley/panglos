@@ -34,9 +34,15 @@
 #include "panglos/drivers/i2c_bitbang.h"
 #endif
 
+#if defined(PO_MOTOR)
 #include "panglos/drivers/motor.h"
+#endif
+#if defined(PO_PWM)
 #include "panglos/drivers/pwm.h"
+#endif
+#if defined(PO_7SEG)
 #include "panglos/drivers/7-segment.h"
+#endif
 
 #include "panglos/app/devices.h"
 
@@ -90,6 +96,7 @@ bool reset_init(Device *dev, void *arg)
     return true;    
 }
 
+#if defined(PO_PWM)
 bool pwm_timer_init(Device *dev, void *arg)
 {
     PO_DEBUG("");
@@ -109,6 +116,7 @@ bool pwm_timer_init(Device *dev, void *arg)
 
     return true;
 }
+#endif
 
 #if defined(PO_I2C)
 bool i2c_init(Device *dev, void *arg)
@@ -168,6 +176,7 @@ bool uart_init(panglos::Device *dev, void *arg)
      *
      */
 
+#if defined(PO_7SEG)
 bool seven_seg_init(Device *dev, void *arg)
 {
     const char *name = arg ? (const char *) arg : "i2c";
@@ -193,6 +202,7 @@ bool seven_seg_init(Device *dev, void *arg)
     dev->add(Objects::objects, display);
     return true;
 }
+#endif
 
     /*
      *

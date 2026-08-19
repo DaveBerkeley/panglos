@@ -33,7 +33,7 @@ namespace panglos {
 
 void esp_check(esp_err_t err, int line)
 {
-    ASSERT_ERROR(err == ESP_OK, "err=%s line=%d", lut(err_lut, err), line);
+    ASSERT_ERROR(err == ESP_OK, "err=%d err=%s line=%d", err, lut(err_lut, err), line);
 }
 
     /*

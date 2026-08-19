@@ -145,7 +145,7 @@ uint32_t spi_get_max_safe_freq_hz(uint32_t target_freq_hz)
         }
     }
    
-    PO_ERROR("Unable to find a suitable freq match for %d", target_freq_hz);
+    PO_ERROR("Unable to find a suitable freq match for %d", (int) target_freq_hz);
     return target_freq_hz;
 }
 
@@ -164,7 +164,7 @@ uint32_t ESP_SPI::set_speed(uint32_t hz)
     esp_check(err, __LINE__);
     if (err != ESP_OK) return 0;
  
-    PO_INFO("req_hz=%d best=%d actual=%d", hz, best, freq_khz * 1000);
+    PO_INFO("req_hz=%d best=%d actual=%d", (int) hz, (int) best, freq_khz * 1000);
     return freq_khz * 1000;
 }
 

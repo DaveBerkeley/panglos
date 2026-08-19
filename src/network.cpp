@@ -7,7 +7,6 @@
 #include "panglos/mutex.h"
 #include "panglos/semaphore.h"
 #include "panglos/list.h"
-#include "panglos/batch.h"
 #include "panglos/object.h"
 #include "panglos/network.h"
 
