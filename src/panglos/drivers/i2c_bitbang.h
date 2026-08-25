@@ -25,17 +25,13 @@ class BitBang_I2C : public I2C
 public:
     void start();
     void restart();
-    bool bit_io(bool bit);
     bool ack();
     void stop();
-    uint8_t io(uint8_t wr, bool *_ack);
+    uint8_t io(uint8_t wr, bool *nak, bool write);
 
 private:
     bool _io_write_read(uint8_t cmd, const uint8_t *wr, int wr_len, uint8_t *rd, int rd_len);
     bool io_write_read(uint8_t cmd, const uint8_t *wr, int wr_len, uint8_t *rd, int rd_len);
-
-    bool _read(uint8_t addr, uint8_t* rd, uint32_t len);
-    bool _write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd);
 
 public:
     BitBang_I2C(Mutex *mutex, GPIO *_scl, GPIO *_sda, void (*_wait)(void*), void *wait_arg=0, bool verbose=false);
