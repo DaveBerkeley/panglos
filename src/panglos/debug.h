@@ -58,8 +58,8 @@ extern const LUT Severity_lut[];
      */
 
 #define _PO_PRINT(level, fmt, ...) \
-        po_log(level, "%d %s %s %s +%d %s() : " fmt "\r\n", \
-                (int) get_time(), get_task(), \
+        po_log(level, "%u %s %s %s +%d %s() : " fmt "\r\n", \
+                (unsigned int) get_time(), get_task(), \
                 lut(Severity_lut, level), \
                 __FILE__, __LINE__, __FUNCTION__, \
                 ## __VA_ARGS__ );
