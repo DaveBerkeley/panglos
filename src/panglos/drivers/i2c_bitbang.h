@@ -25,7 +25,6 @@ class BitBang_I2C : public I2C
 public:
     void start();
     void restart();
-    bool ack();
     void stop();
     uint8_t io(uint8_t wr, bool *nak, bool write);
 

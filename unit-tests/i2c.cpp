@@ -398,13 +398,13 @@ TEST(I2C, ByteWrite)
     sim.add(I2CSim::RX, 0x40, true);
     sim.add(I2CSim::STOP);
 
-    bool ack = false;
+    bool nak = false;
 
     i2c.start();
-    uint8_t rd = i2c.io(0x40, & ack);
+    uint8_t rd = i2c.io(0x40, & nak, true);
     i2c.stop();
 
-    EXPECT_EQ(ack, true);
+    EXPECT_EQ(nak, false);
     EXPECT_EQ(rd, 0x40);
 
     // NAK
@@ -413,10 +413,10 @@ TEST(I2C, ByteWrite)
     sim.add(I2CSim::STOP);
 
     i2c.start();
-    rd = i2c.io(0x66, & ack);
+    rd = i2c.io(0x66, & nak, true);
     i2c.stop();
 
-    EXPECT_EQ(ack, false);
+    EXPECT_EQ(nak, true);
     EXPECT_EQ(rd, 0x66);
 }
 

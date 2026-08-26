@@ -50,22 +50,6 @@ void BitBang_I2C::start()
     wait();
 }
 
-bool BitBang_I2C::ack()
-{
-    if (verbose) PO_DEBUG("");
-
-    sda->set(1);
-    wait();
-    scl->set(1);
-    const bool d = sda->get();
-    if (verbose) PO_DEBUG("ack=%d", d);
-    wait();
-    scl->set(0);
-    wait();
-
-    return !d;
-}
-
 void BitBang_I2C::stop()
 {
     if (verbose) PO_DEBUG("");
@@ -84,7 +68,8 @@ uint8_t BitBang_I2C::io(uint8_t wr, bool *nak, bool write)
 
     // use 16-bit data as we have 8-data data bits plus the ack/nak
     uint16_t data = 0;
-    uint16_t send = (wr << 1) + (write ? 0x01 : 0);
+    uint16_t send = uint16_t(wr << 1);
+    if (write) send += 1;
 
     for (int i = 0; i < 9; i++)
     {
