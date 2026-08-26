@@ -1177,7 +1177,7 @@ static void cmd_rtc_get(CLI *cli, CliCommand *cmd)
         return;
     }
 
-    cli_print(cli, "%04d-%02d-%02d %02d:%02d:%02d%s", dt.year, dt.month, dt.day, dt.hour, dt.min, dt.sec, cli->eol);
+    cli_print(cli, "%04d-%02d-%02d %02d:%02d:%02d%s", dt.yy, dt.mm, dt.dd, dt.h, dt.m, dt.s, cli->eol);
 }
 
 static void cmd_rtc_set(CLI *cli, CliCommand *)
@@ -1203,12 +1203,12 @@ static void cmd_rtc_set(CLI *cli, CliCommand *)
     }
 
     RTC::DateTime dt = {
-        .sec   = (uint8_t) args[5],
-        .min   = (uint8_t) args[4],
-        .hour  = (uint8_t) args[3],
-        .day   = (uint8_t) args[2],
-        .month = (uint8_t) args[1],
-        .year  = (uint16_t) args[0],
+        .yy  = (uint16_t) args[0],
+        .mm = (uint8_t) args[1],
+        .dd   = (uint8_t) args[2],
+        .h  = (uint8_t) args[3],
+        .m   = (uint8_t) args[4],
+        .s   = (uint8_t) args[5],
     };
 
     if (!rtc->validate(dt))

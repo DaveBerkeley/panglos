@@ -86,13 +86,13 @@ bool DS3231::set(const DateTime *dt)
 
     const uint8_t wr[] = {
         REG_SEC,
-        to_bcd(dt->sec),
-        to_bcd(dt->min),
-        to_bcd(dt->hour),
+        to_bcd(uint8_t(dt->s)),
+        to_bcd(uint8_t(dt->m)),
+        to_bcd(uint8_t(dt->h)),
         0, // day of week, don't care
-        to_bcd(dt->day),
-        to_bcd(dt->month),
-        to_bcd(uint8_t(dt->year - 2000)),
+        to_bcd(uint8_t(dt->dd)),
+        to_bcd(uint8_t(dt->mm)),
+        to_bcd(uint8_t(dt->yy - 2000)),
     };
 
     int n = i2c->write(ADDR, wr, sizeof(wr));
@@ -118,12 +118,12 @@ bool DS3231::get(DateTime *dt)
     }
 
     // decode data
-    dt->sec   = from_bcd(rd[0]);
-    dt->min   = from_bcd(rd[1]);
-    dt->hour  = from_bcd(rd[2] & 0x3f); // assumes 24-hour mode
-    dt->day   = from_bcd(rd[4] & 0x3f);
-    dt->month = from_bcd(rd[5] & 0x1f);
-    dt->year  = uint16_t(from_bcd(rd[6]) + 2000);
+    dt->s  = from_bcd(rd[0]);
+    dt->m  = from_bcd(rd[1]);
+    dt->h  = from_bcd(rd[2] & 0x3f); // assumes 24-hour mode
+    dt->dd = from_bcd(rd[4] & 0x3f);
+    dt->mm = from_bcd(rd[5] & 0x1f);
+    dt->yy = uint16_t(from_bcd(rd[6]) + 2000);
 
     return true;
 }
