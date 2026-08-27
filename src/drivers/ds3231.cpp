@@ -128,6 +128,45 @@ bool DS3231::get(DateTime *dt)
     return true;
 }
 
+    /*
+     *
+     */
+
+enum DS3231::Variant DS3231::get_variant()
+{
+    // The DS3231 has read-only temperature at 0x11, 0x12
+    // The DS1307 has RAM from 0x08 to 0x30
+    // Reg 0x11 is the uppoer 8 bit of the 10-bit temp
+    // Reg 0x12 has the lower two bits at <<6, then 6 zero bits
+
+    const uint8_t reg = 0x12;
+    uint8_t rd_data;
+
+    // Read the low byte of the temperature
+    if (!i2c->write_read(ADDR, & reg, sizeof(reg), & rd_data, sizeof(rd_data))) return V_UNKNOWN;
+    // if any of bits 0..5 are set, it must be RAM
+    if (rd_data & 0x3f) return V_DS1307;
+
+    // Try XORing the byte
+    uint8_t wr_data[] = { reg, uint8_t(rd_data ^ 0xff) };
+    if (!i2c->write(ADDR, wr_data, sizeof(wr_data))) return V_UNKNOWN;
+    // read it again
+    uint8_t read2;
+    if (!i2c->write_read(ADDR, & reg, sizeof(reg), & read2, sizeof(read2))) return V_UNKNOWN;
+
+    if (read2 != wr_data[1])
+    {
+        // not RAM therefore it must be a DS3231 with a read-only temperature sensor
+        return V_DS3231;
+    }
+
+    // Must be RAM, which we've altered, so restore it
+    wr_data[1] = rd_data;
+    if (!i2c->write(ADDR, wr_data, sizeof(wr_data))) return V_UNKNOWN;
+
+    return V_DS1307;
+}
+
 }   //  namespace panglos
 
 //  FIN

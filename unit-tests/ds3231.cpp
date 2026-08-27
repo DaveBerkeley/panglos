@@ -12,8 +12,13 @@ using namespace panglos;
 class Test_I2C : public I2C
 {
 public:
+    DS3231::Variant v;
+    uint8_t temp_lo;
+
     Test_I2C()
-    :   I2C(0)
+    :   I2C(0),
+        v(DS3231::V_DS3231), // no RAM
+        temp_lo(0xc0)
     {
     }
 
@@ -27,28 +32,59 @@ public:
     virtual int write(uint8_t addr, const uint8_t* wr, uint32_t len)
     {
         ASSERT(addr == DS3231::ADDR);
-        EXPECT_EQ(len, 8); // reg=0,s,m,h,x,d,m,y regs
-        EXPECT_EQ(wr[1], 0x23);
-        EXPECT_EQ(wr[2], 0x15);
-        EXPECT_EQ(wr[3], 0);
-        EXPECT_EQ(wr[5], 0x15);
-        EXPECT_EQ(wr[6], 0x01);
-        EXPECT_EQ(wr[7], 0x40);
+        if (len == 8)
+        {
+            // reg=0,s,m,h,x,d,m,y regs
+            EXPECT_EQ(wr[1], 0x23);
+            EXPECT_EQ(wr[2], 0x15);
+            EXPECT_EQ(wr[3], 0);
+            EXPECT_EQ(wr[5], 0x15);
+            EXPECT_EQ(wr[6], 0x01);
+            EXPECT_EQ(wr[7], 0x40);
+            return int(len);
+        }
+        if (len == 2)
+        {
+            // Get Variant test
+            EXPECT_EQ(wr[0], 0x12);
+            
+            switch (v)
+            {
+                case DS3231::V_DS3231 : break; // temperature is read only
+                case DS3231::V_DS1307 : temp_lo = wr[1]; break; // RAM
+                default : ASSERT(0);
+            }
+            return int(len);
+        }
+
+        ASSERT(0);
         return int(len);
     }
 
     virtual int write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, uint8_t* rd, uint32_t len_rd)
     {
         ASSERT(addr == DS3231::ADDR);
-        ASSERT(*wr == 0);
+        IGNORE(wr); //ASSERT(*wr == 0);
         ASSERT(len_wr == 1);
-        EXPECT_EQ(len_rd, 7); // fetch the s,m,h,x,d,m,y regs
-        rd[0] = 0x12; // s
-        rd[1] = 0x59; // m
-        rd[2] = 0x23; // h
-        rd[4] = 0x19; // d
-        rd[5] = 0x11; // m
-        rd[6] = 0x22; // y
+        if (len_rd == 7)
+        {
+            // get(&dt) test;
+            // fetch the s,m,h,x,d,m,y regs
+            rd[0] = 0x12; // s
+            rd[1] = 0x59; // m
+            rd[2] = 0x23; // h
+            rd[4] = 0x19; // d
+            rd[5] = 0x11; // m
+            rd[6] = 0x22; // y
+            return int(len_rd);
+        }
+
+        // Other write_read tests : write_read(addr, reg=0x12, & data);
+        ASSERT(len_rd == 1);
+
+        EXPECT_EQ((*wr), 0x12); // temprature(lo) or RAM reg
+        EXPECT_EQ(len_rd, 1);
+        *rd = temp_lo;
         return int(len_rd);
     }
 
@@ -153,6 +189,25 @@ TEST(DS3231, Set)
     };
     const bool ok = rtc.set(& dt);
     EXPECT_TRUE(ok);
+}
+
+//    enum Variant { V_UNKNOWN = 0, V_DS3231, V_DS1307 };
+//    enum Variant get_variant();
+
+TEST(DS3231, Variant)
+{
+    Test_I2C i2c;
+
+    DS3231 rtc(& i2c);
+
+    rtc.init();
+
+    DS3231::Variant v = rtc.get_variant();
+    EXPECT_EQ(v, DS3231::V_DS3231);
+
+    i2c.v = DS3231::V_DS1307;
+    v = rtc.get_variant();
+    EXPECT_EQ(v, DS3231::V_DS1307);
 }
 
 //  FIN
