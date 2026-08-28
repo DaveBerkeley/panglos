@@ -26,9 +26,6 @@
 #if defined(PO_RTC)
 #include "panglos/drivers/rtc.h"
 #endif
-#if defined(PO_I2C)
-#include "panglos/drivers/i2c.h"
-#endif
 #if defined(PO_SPI)
 #include "panglos/drivers/spi.h"
 #endif
@@ -1311,62 +1308,6 @@ static void cmd_devices(CLI *cli, CliCommand *cmd)
      *
      */
 
-#if defined(PO_I2C)
-
-static void cmd_i2c(CLI *cli, CliCommand *)
-{
-    I2C *i2c = (I2C*) Objects::objects->get("i2c");
-    if (!i2c)
-    {
-        cli_print(cli, "no i2c device%s", cli->eol);
-        return;
-    }
-
-    const char *s = cli_get_arg(cli, 0);
-
-    if (s)
-    {
-        int addr = 0;
-
-        if (cli_parse_int(s, & addr, 0))
-        {
-            const bool ok = i2c->probe((uint8_t) addr, 2);
-            if (ok)
-            {
-                cli_print(cli, "found %#x%s", addr, cli->eol);
-            }
-            else
-            {
-                cli_print(cli, "no device found%s", cli->eol);
-            }
-            return;
-        }
-    }
-
-    bool found = false;
-
-    for (uint8_t addr = 0; addr < 0x80; addr++)
-    {
-        const bool ok = i2c->probe(addr, 2);
-        if (ok)
-        {
-            cli_print(cli, "found %#x%s", addr, cli->eol);
-            found = true;
-        }
-    }
-
-    if (!found)
-    {
-        cli_print(cli, "no device found%s", cli->eol);
-    }
-}
-
-#endif // (PO_I2C)
-
-    /*
-     *
-     */
-
 #if defined(PO_SPI)
 
 static void cmd_spi(CLI *cli, CliCommand *)
@@ -1744,14 +1685,6 @@ void add_cli_commands(CLI *cli)
     if(Objects::objects->get("rtc"))
     {
         static CliCommand cmd = { "rtc", 0, "", & rtc_get, 0, 0 };
-        cli_insert(cli, & cli->head, & cmd);
-    }
-#endif
-
-#if defined(PO_I2C)
-    if(Objects::objects->get("i2c"))
-    {
-        static CliCommand cmd = { "i2c", cmd_i2c, "i2c", 0, 0, 0 };
         cli_insert(cli, & cli->head, & cmd);
     }
 #endif

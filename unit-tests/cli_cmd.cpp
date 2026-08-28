@@ -194,14 +194,49 @@ class _I2C : public I2C
         return (addr == 0x12) || (addr == 0x35);
     }
 
-    virtual int write(uint8_t , const uint8_t* , uint32_t ) override
+    virtual int write(uint8_t addr, const uint8_t *wr, uint32_t len) override
     {
-        return 0;
+        if (addr != 0x12) return 0; // test writes to this device
+        if (len == 2)
+        {
+            EXPECT_EQ(wr[0], 2);
+            EXPECT_EQ(wr[1], 4);
+            return len;
+        }
+        if (len == 5)
+        {
+            EXPECT_EQ(wr[0], 16);
+            EXPECT_EQ(wr[1], 1);
+            EXPECT_EQ(wr[2], 2);
+            EXPECT_EQ(wr[3], 3);
+            EXPECT_EQ(wr[4], 4);
+            return len;
+        }
+        ASSERT(0);
+        return len;
     }
 
-    virtual int write_read(uint8_t , const uint8_t* , uint32_t , uint8_t* , uint32_t ) override
+    virtual int write_read(uint8_t addr, const uint8_t *wr, uint32_t wr_len, uint8_t *rd, uint32_t rd_len) override
     {
-        return 0;
+        if (!addr) return 0;
+        if (addr != 0x60) return 0;
+        // rd tests
+
+        static const uint8_t test_data[16] = {
+            0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+            0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
+        };
+
+        ASSERT(wr_len == 1);
+        ASSERT(rd_len >= 1);
+        ASSERT(wr);
+        ASSERT(rd);
+        uint8_t reg = *wr;
+        ASSERT((reg + rd_len) < sizeof(test_data));
+
+        //PO_DEBUG("addr=%d wr=%p wr_len=%d rd=%p rd_len=%d", addr, wr, wr_len, rd, rd_len);
+        memcpy(rd, & test_data[reg], rd_len);
+        return rd_len;
     }
 
     virtual int read(uint8_t , uint8_t* , uint32_t ) override
@@ -215,57 +250,71 @@ public:
     }
 };
 
+#include "panglos/app/cli_i2c.h"
+
+static I2C *i2c_lookup(const char *name, void *)
+{
+    static _I2C i2c;
+    if (!name) return & i2c;
+    if (!strcmp(name, "i2c")) return & i2c;
+    return 0;
+}
+
 TEST(CliCmd, I2C)
 {
     TestCli test;
     CLI *cli = test.get_cli();
 
-    I2C *i2c = new _I2C;
-    Objects::objects->add("i2c", i2c);
+    add_cli_i2c_cmd(cli, i2c_lookup, 0);
 
-    add_cli_commands(cli);
+    struct Test {
+        const char *cmd;
+        const char *expect[4];
+    };
 
-    { 
-        // probe test : fail
-        const uint8_t bad[] = { 0, 0x01, 0x11, 0x13, 0x7f, 0x80 };
-        for (size_t idx = 0; idx < sizeof(bad); idx++)
-        {
-            char cmd[24];
-            snprintf(cmd, sizeof(cmd), "i2c %#x\n", bad[idx]);
-            test.process(cmd);
-            const char *s = test.get();
-            EXPECT_TRUE(strstr(s, "no device found"));
-            //PO_DEBUG("'%s' '%s'", cmd, s);
-            test.reset();
-        }
-    }
+    const struct Test tests[] = {
+        {   "i2c scan\n", { "found 0x12", "found 0x35" } },
+        {   "i2c scan i2c\n", { "found 0x12", "found 0x35" } },
+        {   "i2c scan 100\n", { "no probe response at 0x64" } },
+        {   "i2c scan i2c 100\n", { "no probe response at 0x64" } },
+        {   "i2c scan 0x12\n", { "found 0x12" } },
+        {   "i2c scan i2c 0x12\n", { "found 0x12" } },
+        {   "i2c scan xxx\n", { "device 'xxx' not found" } },
 
-    { 
-        // probe test : pass
-        const uint8_t good[] = { 0x12, 0x35 };
-        for (size_t idx = 0; idx < sizeof(good); idx++)
-        {
-            char cmd[24];
-            snprintf(cmd, sizeof(cmd), "i2c %#x\n", good[idx]);
-            test.process(cmd);
-            const char *s = test.get();
-            EXPECT_TRUE(strstr(s, "found"));
-            //PO_DEBUG("'%s' '%s'", cmd, s);
-            test.reset();
-        }
-    }
+        {   "i2c rd\n", { "no device address" } },
+        {   "i2c rd i2c\n", { "no device address" } },
+        {   "i2c rd xxx\n", { "device 'xxx' not found" } },
+        {   "i2c rd 0\n", { "no device address" } },
+        {   "i2c rd 0x60\n", { "no reg address" } },
+        {   "i2c rd 0x60 0x0\n", { "dev=0x60 0x00: 0x10" } },
+        {   "i2c rd 0x60 2\n", { "dev=0x60 0x02: 0x12" } },
+        {   "i2c rd 0x60 2 4\n", { "dev=0x60 0x02: 0x12 0x13 0x14 0x15" } },
+        {   "i2c rd 0x12 2 4\n", { "error reading device 0x12 at address 0x02" } },
 
-    { 
-        // scan test
-        test.process("i2c\n");
+        {   "i2c wr\n", { "no device address" } },
+        {   "i2c wr i2c\n", { "no device address" } },
+        {   "i2c wr xxx\n", { "device 'xxx' not found" } },
+        {   "i2c wr 0\n", { "no device address" } },
+        {   "i2c wr 0x60\n", { "no reg address" } },
+        {   "i2c wr 0x12 2 4\n", { "written, 2 bytes" } },
+        {   "i2c wr 0x12 16 1 2 3 4\n", { "written, 5 bytes" } },
+        {   "i2c wr 0x12 16 1 nowt 3 4\n", { "bad value 'nowt'" } },
+        { 0 },
+    };
+
+    for (const struct Test *t = tests; t->cmd; t++)
+    {
+        PO_DEBUG("cli='%s'", t->cmd);
+        test.process(t->cmd);
         const char *s = test.get();
-        EXPECT_TRUE(strstr(s, "found 0x12"));
-        EXPECT_TRUE(strstr(s, "found 0x35"));
-        //PO_DEBUG("'%s'", s);
+        PO_DEBUG("%s", s);
+        for (const char * const *ex = & t->expect[0]; *ex; ex++)
+        {
+            PO_DEBUG("ex: %s", *ex);
+            EXPECT_TRUE(strstr(s, *ex));
+        }
         test.reset();
     }
-
-    delete i2c;
 }
 
 #endif  //  PO_I2C
