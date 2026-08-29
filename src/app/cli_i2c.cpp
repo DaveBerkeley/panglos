@@ -261,9 +261,9 @@ static void cmd_i2c_wr(CLI *cli, CliCommand *)
      *
      */
 
-static CliCommand cmd_scan = { .cmd="scan", .handler=cmd_i2c_scan, .help="i2c scan <dev> [addr]" };
-static CliCommand cmd_rd = { .cmd="rd", .handler=cmd_i2c_rd, .next=& cmd_scan };
-static CliCommand cmd_wr = { .cmd="wr", .handler=cmd_i2c_wr, .next=& cmd_rd };
+static CliCommand cmd_scan = { .cmd="scan", .handler=cmd_i2c_scan, .help="i2c scan [dev] [addr]" };
+static CliCommand cmd_rd = { .cmd="rd", .handler=cmd_i2c_rd, .help="i2c rd [dev] <addr> <reg> <n_regs>", .next=& cmd_scan, };
+static CliCommand cmd_wr = { .cmd="wr", .handler=cmd_i2c_wr, .help="i2c wr [dev] <addr> <reg> <data> [<data *]", .next=& cmd_rd, };
 
 static CliCommand cmd_i2c = { .cmd="i2c", .handler=0, .subcommand=& cmd_wr };
 

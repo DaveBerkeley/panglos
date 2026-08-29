@@ -23,9 +23,6 @@
 #if defined(PO_PWM)
 #include "panglos/drivers/pwm.h"
 #endif
-#if defined(PO_RTC)
-#include "panglos/drivers/rtc.h"
-#endif
 #if defined(PO_SPI)
 #include "panglos/drivers/spi.h"
 #endif
@@ -1158,79 +1155,6 @@ static CliCommand st_del  = { "del",  cmd_storage_del,  "<namespace> <key>", 0, 
      *
      */
 
-#if defined(PO_RTC)
-
-static void cmd_rtc_get(CLI *cli, CliCommand *cmd)
-{
-    IGNORE(cmd);
-    RTC *rtc = (RTC*) Objects::objects->get("rtc");
-    ASSERT(rtc);
-
-    RTC::DateTime dt;
-
-    if (!rtc->get(& dt))
-    {
-        cli_print(cli, "Error reading RTC%s", cli->eol);
-        return;
-    }
-
-    cli_print(cli, "%04d-%02d-%02d %02d:%02d:%02d%s", dt.yy, dt.mm, dt.dd, dt.h, dt.m, dt.s, cli->eol);
-}
-
-static void cmd_rtc_set(CLI *cli, CliCommand *)
-{
-    RTC *rtc = (RTC*) Objects::objects->get("rtc");
-    ASSERT(rtc);
-
-    int args[6];
-
-    for (int i = 0; i < 6; i++)
-    {
-        const char *s = cli_get_arg(cli, i);
-        if (!s)
-        {
-            cli_print(cli, "error reading arg=%d%s", i, cli->eol);
-            return;
-        }
-        if (!cli_parse_int(s, & args[i], 0))
-        {
-            cli_print(cli, "error parsing arg=%d%s", i, cli->eol);
-            return;
-        }
-    }
-
-    RTC::DateTime dt = {
-        .yy  = (uint16_t) args[0],
-        .mm = (uint8_t) args[1],
-        .dd   = (uint8_t) args[2],
-        .h  = (uint8_t) args[3],
-        .m   = (uint8_t) args[4],
-        .s   = (uint8_t) args[5],
-    };
-
-    if (!rtc->validate(dt))
-    {
-        cli_print(cli, "Invalid date-time%s", cli->eol);
-        return;
-    }
-
-    //cli_print(cli, "%04d-%02d-%02d %02d:%02d:%02d%s", dt.year, dt.month, dt.day, dt.hour, dt.min, dt.sec, cli->eol);
-    if (!rtc->set(& dt))
-    {
-        cli_print(cli, "Error writing RTC%s", cli->eol);
-        return;
-    }
-}
-
-static CliCommand rtc_set  = { "set",  cmd_rtc_set,  "y m d h m s", 0, 0, 0, };
-static CliCommand rtc_get  = { "get",  cmd_rtc_get,  "",  0, 0, & rtc_set, };
-
-#endif // (PO_RTC)
-
-    /*
-     *
-     */
-
 static void cmd_verbose(CLI *cli, CliCommand *cmd)
 {
     IGNORE(cmd);
@@ -1680,14 +1604,6 @@ void add_cli_commands(CLI *cli)
         static CliCommand cmd = { "uart", cmd_uart, "uart", 0, 0, 0 };
         cli_insert(cli, & cli->head, & cmd);
     }
-
-#if defined(PO_RTC)
-    if(Objects::objects->get("rtc"))
-    {
-        static CliCommand cmd = { "rtc", 0, "", & rtc_get, 0, 0 };
-        cli_insert(cli, & cli->head, & cmd);
-    }
-#endif
 
 #if defined(PO_SPI)
     if(Objects::objects->get("spi_dev"))

@@ -43,6 +43,7 @@ files = [
     'src/app/event.cpp',
     'src/app/cli_cmd.cpp',
     'src/app/cli_i2c.cpp',
+    'src/app/cli_rtc.cpp',
 
     # for test environment
     'src/linux/arch.cpp',

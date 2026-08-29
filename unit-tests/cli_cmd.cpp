@@ -111,6 +111,13 @@ public:
     }
 };
 
+#include "panglos/app/cli_rtc.h"
+
+static RTC *rtc_lookup(const char *name, void*)
+{
+    return (RTC*) Objects::objects->get(name);
+}
+
 TEST(CliCmd, RTC)
 {
     TestCli test;
@@ -119,7 +126,7 @@ TEST(CliCmd, RTC)
     RTC *rtc = new _RTC;
     Objects::objects->add("rtc", rtc);
 
-    add_cli_commands(cli);
+    add_cli_rtc_cmd(cli, rtc_lookup, 0);
 
     {
         test.process("rtc get\n");
