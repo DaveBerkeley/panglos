@@ -215,24 +215,54 @@ bool Si5351::set_pll(uint8_t pll, PllConfig *config)
 {
     ASSERT((pll == 0) || (pll == 1));
 
-    PO_DEBUG("a=%d b=%d c=%d", (int) config->a, (int) config->b, (int) config->c);
+    PO_DEBUG("pll=%d a=%d b=%d c=%d", 
+            (int) pll,
+            (int) config->a, (int) config->b, (int) config->c);
 
     struct P3 p;
     abc_to_p3(& p, config->a, config->b, config->c);
     if (!write_pll(pll, & p))
         return false;
  
-    // TODO set the PLL clock source : default is XTAL for both PLLs
-    // TODO clock in div for ext clock
+    // PLL_Input_Source Reg is shared between both PLLs, so need to do a read-modify-write
 
-    return true;
+    uint8_t reg = uint8_t(PLL_Input_Source);
+    uint8_t rd;
+
+    if (!i2c->write_read(addr, & reg, sizeof(reg), & rd, sizeof(rd)))
+        return false;
+
+    uint8_t state = rd;
+    uint8_t mask = (pll == 0) ? 0x04 : 0x08;
+
+    switch (config->source)
+    {
+        case PllConfig::XTAL : { state &= ~mask; break; }
+        case PllConfig::EXT  : { state |= mask; break; }
+        default : ASSERT(00);
+    }
+
+    // TODO clock input div for ext clock
+
+    uint8_t data[] = { reg, state };
+
+    if (state == rd) return true; // nothing to change
+
+    PO_DEBUG("reg=%d data=%02x", (int) data[0], (int) data[1]);
+
+    return i2c->write(addr, data, sizeof(data));
 }
+
+    /*
+     *
+     */
 
 bool Si5351::set_clock(uint8_t chan, ClockConfig *config)
 {
     ASSERT(chan < 8);
 
     uint8_t data[2] = { uint8_t(CLK_Control + chan), };
+    const char *state = "";
 
     switch (config->state)
     {
@@ -240,28 +270,53 @@ bool Si5351::set_clock(uint8_t chan, ClockConfig *config)
         case ClockConfig::LO :   ASSERT(0);
         case ClockConfig::OFF :
         {
-            PO_DEBUG("clock=%d Off", chan);
+            state = "Off";
             data[1] |= 0x80; 
             break;
         }
         case ClockConfig::ENABLE :
         {
-            PO_DEBUG("clock=%d On", chan);
+            state = "On";
             break;
         }
         default : ASSERT(0);
     }
+
+    switch (config->source)
+    {
+        case ClockConfig::PLLA : break;
+        case ClockConfig::PLLB : data[1] |= 0x20; break;
+        defaUlt : ASSERT(0);
+    }
+
+    if (config->integer_mode)
+    {
+        data[1] |= 0x40;
+    }
+    if (config->invert)
+    {
+        data[1] |= 0x10;
+    }
+
     // Other config : TODO
 
-    // Select MultiSynth as the clock source
-    data[1] |= 0x0c;
+    data[1] |= 0x0c; // Select MultiSynth as the source for CLK
+
+    PO_DEBUG("reg=%d data=%02x %s", (int) data[0], (int) data[1], state);
 
     return i2c->write(addr, data, sizeof(data));
 }
 
+    /*
+     *
+     */
+
 bool Si5351::set_multisynth(uint8_t chan, MultisynthConfig *config)
 {
-    PO_DEBUG("a=%d b=%d c=%d op_div=%d", (int) config->a, (int) config->b, (int) config->c, (int) config->op_divider);
+    PO_DEBUG("chan=%d a=%d b=%d c=%d op_div=%d", 
+            (int) chan,
+            (int) config->a, (int) config->b, (int) config->c,
+            (int) config->op_divider);
 
     struct P3 p;
     abc_to_p3(& p, config->a, config->b, config->c);

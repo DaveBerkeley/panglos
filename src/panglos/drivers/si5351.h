@@ -77,8 +77,10 @@ public:
         //  Clock 0..7
         enum ClockState { ENABLE, HI, LO, TRI, OFF };
         ClockState state;
-        //  integer mode
-        //  source select (VCO A/b)
+        enum Source { PLLA, PLLB };
+        Source source;
+        bool integer_mode;
+        bool invert;
         //  drive current
         //  source direct (bypass divider)
         //  drive current
