@@ -4,6 +4,8 @@
 
 namespace panglos {
 
+class Mutex;
+
 class I2C
 {
 public:
