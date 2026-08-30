@@ -10,6 +10,7 @@ class Si5351
 {
     I2C *i2c;
     uint8_t addr;
+    bool verbose;
 
     uint32_t xtal_freq;
 
@@ -29,7 +30,7 @@ class Si5351
 public:
     const static uint8_t ADDR = 0x60; // possibly 0x61
 
-    Si5351(I2C *i2c, uint8_t addr=0);
+    Si5351(I2C *i2c, uint8_t addr=0, bool verbose=false);
 
     bool init(uint32_t xtal_hz, uint32_t timeout_ms=1000);
 

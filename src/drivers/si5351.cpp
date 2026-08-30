@@ -10,8 +10,6 @@
 
 namespace panglos {
 
-static const bool verbose = false;
-
     /*
      *
      */
@@ -135,9 +133,10 @@ bool Si5351::loss_of_lock(uint8_t pll)
      *
      */
 
-Si5351::Si5351(I2C *_i2c, uint8_t _addr)
+Si5351::Si5351(I2C *_i2c, uint8_t _addr, bool _verbose)
 :   i2c(_i2c),
     addr(_addr ? _addr : ADDR),
+    verbose(_verbose),
     xtal_freq(0)
 {
     PO_DEBUG("");
@@ -171,7 +170,7 @@ bool Si5351::init(uint32_t xtal_hz, uint32_t ms)
             return false;
         }
 
-        Time::msleep(5);
+        //Time::msleep(5);
     }
 
     for (uint8_t pll = 0; pll < 2; pll++)
@@ -242,6 +241,7 @@ bool Si5351::set_pll(uint8_t pll, PllConfig *config)
     {
         case PllConfig::XTAL : { state &= ~mask; break; }
         case PllConfig::EXT  : { state |= mask; break; }
+        case PllConfig::VCXO : break;
         default : ASSERT(00);
     }
 
@@ -269,8 +269,9 @@ bool Si5351::set_clock(uint8_t chan, ClockConfig *config)
 
     switch (config->state)
     {
+        case ClockConfig::TRI :
         case ClockConfig::HI :
-        case ClockConfig::LO :   ASSERT(0);
+        case ClockConfig::LO :   ASSERT(0); break;
         case ClockConfig::OFF :
         {
             state = "Off";
@@ -289,7 +290,7 @@ bool Si5351::set_clock(uint8_t chan, ClockConfig *config)
     {
         case ClockConfig::PLLA : break;
         case ClockConfig::PLLB : data[1] |= 0x20; break;
-        defaUlt : ASSERT(0);
+        default : ASSERT(0);
     }
 
     if (config->integer_mode)
