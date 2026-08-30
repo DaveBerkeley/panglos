@@ -31,7 +31,7 @@ public:
 
     Si5351(I2C *i2c, uint8_t addr=0);
 
-    bool init(uint32_t timeout_ms=1000);
+    bool init(uint32_t xtal_hz, uint32_t timeout_ms=1000);
 
     // 1..3 clock sources
     // 2 PLLS
@@ -90,6 +90,16 @@ public:
 
     bool set_clock(uint8_t chan, ClockConfig *config);
 
+    struct Config
+    {
+        uint8_t pll;
+        uint8_t chan;
+        PllConfig vco;
+        MultisynthConfig ms;
+        ClockConfig clock;
+    };
+
+    bool set_config(Config *config);
 };
 
 };  //  namespace panglos

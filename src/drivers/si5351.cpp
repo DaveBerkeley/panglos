@@ -10,14 +10,7 @@
 
 namespace panglos {
 
-#if 0
-
-Xtal - 25,27Mhz
-ext clock : 10Mh .. 100MHz
-PLL output 600MHz .. 900MHz
-Clock output 2.5kHz .. 200MHz
-
-#endif
+static const bool verbose = false;
 
     /*
      *
@@ -67,8 +60,8 @@ bool Si5351::write_pll(uint8_t pll, struct P3 *p)
     wr[0] = (pll == 0) ? Multisynth_N_Params : (Multisynth_N_Params + 8);
     set_p123(& wr[1], p);
 
-    PO_DEBUG("p1=0x%x p2=0x%x p3=0x%x", (int) p->p1, (int) p->p2, (int) p->p3);
-    PO_DEBUG("reg=%d %02x %02x %02x %02x %02x %02x %02x %02x",
+    if (verbose) PO_DEBUG("p1=0x%x p2=0x%x p3=0x%x", (int) p->p1, (int) p->p2, (int) p->p3);
+    if (verbose) PO_DEBUG("reg=%d %02x %02x %02x %02x %02x %02x %02x %02x",
             (int) wr[0],
             (int) wr[1], (int) wr[2], (int) wr[3], (int) wr[4],
             (int) wr[5], (int) wr[6], (int) wr[7], (int) wr[8]);
@@ -102,8 +95,8 @@ bool Si5351::write_msx(uint8_t chan, struct P3 *p, uint8_t op_div)
 
     wr[3] += (div << 4) + (en_4 ? 0x0c : 0);
 
-    PO_DEBUG("p1=0x%x p2=0x%x p3=0x%x", (int) p->p1, (int) p->p2, (int) p->p3);
-    PO_DEBUG("reg=%d %02x %02x %02x %02x %02x %02x %02x %02x",
+    if (verbose) PO_DEBUG("p1=0x%x p2=0x%x p3=0x%x", (int) p->p1, (int) p->p2, (int) p->p3);
+    if (verbose) PO_DEBUG("reg=%d %02x %02x %02x %02x %02x %02x %02x %02x",
             (int) wr[0],
             (int) wr[1], (int) wr[2], (int) wr[3], (int) wr[4],
             (int) wr[5], (int) wr[6], (int) wr[7], (int) wr[8]);
@@ -155,7 +148,7 @@ Si5351::Si5351(I2C *_i2c, uint8_t _addr)
      *
      */
 
-bool Si5351::init(uint32_t ms)
+bool Si5351::init(uint32_t xtal_hz, uint32_t ms)
 {
     uint8_t reg = Device_Status;
     uint8_t data = 0;
@@ -191,13 +184,23 @@ bool Si5351::init(uint32_t ms)
 
     // REVID shows which silicon the device is A=0 ? others?
     //uint8_t revision = data & 0x03;
+
+    //  disable all the output channels
+    for (uint8_t chan = 0; chan < 8; chan++)
+    {
+        ClockConfig config = { .state = ClockConfig::OFF };
+        set_clock(chan, & config);
+    }
+    
+    PO_DEBUG("xtal_freq=%d", (int) xtal_hz);
+    xtal_freq = xtal_hz;
+
     return true;
 }
 
-void Si5351::set_xtal(XtalConfig *config)
+void Si5351::set_xtal(XtalConfig *)
 {
-    PO_DEBUG("freq=%d", (int) config->freq);
-    xtal_freq = config->freq;
+    // TODO : xtal capacitance etc.
 }
 
 bool Si5351::reset_pll(bool a, bool b)
@@ -206,7 +209,7 @@ bool Si5351::reset_pll(bool a, bool b)
     if (a) mask |= 0x20;
     if (b) mask |= 0x80;
 
-    PO_DEBUG("a=%d b=%d", a, b);
+    if (verbose) PO_DEBUG("a=%d b=%d", a, b);
     uint8_t wr[2] { PLL_Reset, mask };
     return i2c->write(addr, wr, sizeof(wr));
 }
@@ -215,7 +218,7 @@ bool Si5351::set_pll(uint8_t pll, PllConfig *config)
 {
     ASSERT((pll == 0) || (pll == 1));
 
-    PO_DEBUG("pll=%d a=%d b=%d c=%d", 
+    if (verbose) PO_DEBUG("pll=%d a=%d b=%d c=%d", 
             (int) pll,
             (int) config->a, (int) config->b, (int) config->c);
 
@@ -248,7 +251,7 @@ bool Si5351::set_pll(uint8_t pll, PllConfig *config)
 
     if (state == rd) return true; // nothing to change
 
-    PO_DEBUG("reg=%d data=%02x", (int) data[0], (int) data[1]);
+    if (verbose) PO_DEBUG("reg=%d data=%02x", (int) data[0], (int) data[1]);
 
     return i2c->write(addr, data, sizeof(data));
 }
@@ -302,7 +305,7 @@ bool Si5351::set_clock(uint8_t chan, ClockConfig *config)
 
     data[1] |= 0x0c; // Select MultiSynth as the source for CLK
 
-    PO_DEBUG("reg=%d data=%02x %s", (int) data[0], (int) data[1], state);
+    if (verbose) PO_DEBUG("reg=%d data=%02x %s", (int) data[0], (int) data[1], state);
 
     return i2c->write(addr, data, sizeof(data));
 }
@@ -313,7 +316,7 @@ bool Si5351::set_clock(uint8_t chan, ClockConfig *config)
 
 bool Si5351::set_multisynth(uint8_t chan, MultisynthConfig *config)
 {
-    PO_DEBUG("chan=%d a=%d b=%d c=%d op_div=%d", 
+    if (verbose) PO_DEBUG("chan=%d a=%d b=%d c=%d op_div=%d", 
             (int) chan,
             (int) config->a, (int) config->b, (int) config->c,
             (int) config->op_divider);
@@ -322,6 +325,23 @@ bool Si5351::set_multisynth(uint8_t chan, MultisynthConfig *config)
     abc_to_p3(& p, config->a, config->b, config->c);
 
     return write_msx(chan, & p, config->op_divider);
+}
+
+    /*
+     *
+     */
+
+bool Si5351::set_config(Si5351::Config *config)
+{
+    if (!set_pll(config->pll, & config->vco))
+        return false;
+    if (!set_multisynth(config->chan, & config->ms))
+        return false;
+    if (!reset_pll(config->pll == 0, config->pll == 1))
+        return false;
+    if (!set_clock(config->chan, & config->clock))
+        return false;
+    return true;
 }
 
 }   //  namespace panglos
