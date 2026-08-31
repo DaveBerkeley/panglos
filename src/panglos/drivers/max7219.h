@@ -5,11 +5,12 @@
 
 namespace panglos {
 
-class SpiDevice;
+class SPI;
 
 class MAX7219 : public Display
 {
-    SpiDevice *spi;
+    SPI *spi;
+    GPIO *cs;
 
     enum Reg {
         NOOP = 0,
@@ -26,7 +27,7 @@ class MAX7219 : public Display
 
 public:
 
-    MAX7219(SpiDevice *_spi);
+    MAX7219(SPI *spi, GPIO *cs);
 
     virtual void write(const char *text) override;
     virtual void set_brightness(uint8_t level) override;

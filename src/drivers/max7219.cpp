@@ -8,8 +8,9 @@
 
 namespace panglos {
 
-MAX7219::MAX7219(SpiDevice *_spi)
-:   spi(_spi)
+MAX7219::MAX7219(SPI *_spi, GPIO *gpio)
+:   spi(_spi),
+    cs(gpio)
 {
     ASSERT(spi);
 }
@@ -28,6 +29,8 @@ bool MAX7219::init()
 bool MAX7219::write(enum Reg reg, uint8_t value)
 {
     uint8_t data[] = { reg, value };
+
+    SPI::CS_Lock lock(spi, cs);
     return spi->write(data, sizeof(data));
 }
 
