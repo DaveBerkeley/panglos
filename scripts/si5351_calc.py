@@ -14,11 +14,11 @@ def find_si5351_params(value, max_den=1048575):
 
 def generate_config(xtal_hz, outputs):
     """Generate Si5351A configuration."""
-    print(f"// Si5351A configuration for {xtal_hz} MHz crystal")
+    print(f"// Si5351A configuration for {xtal_hz} Hz crystal")
     print()
     
     for name, freq_hz in outputs.items():
-        print(f"// Output: {name} = {freq_hz} MHz")
+        print(f"// Output: {name} = {freq_hz} Hz")
         
         # Try to find a good integer divider
         # PLL must be 600-900 MHz
@@ -70,13 +70,13 @@ if __name__ == "__main__":
 
     p = argparse.ArgumentParser()
     p.add_argument('-x', '--xtal', default=25e6, type=float)
-    p.add_argument('freq', nargs='*', type=float)
+    p.add_argument('freq', nargs='*')
     args = p.parse_args()
 
     xtal_hz = args.xtal
     outputs = {}
     for i, f in enumerate(args.freq):
-        outputs[f"clk{i}"] = f
+        outputs[f"clk{i}"] = eval(f)
     generate_config(xtal_hz, outputs)
 
 #   FIN
