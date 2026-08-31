@@ -42,7 +42,18 @@ void MAX7219::write(const char *text)
     for (int i = 0; i < 8; i++)
     {
         const char c = *text ? *text : ' ';
-        write((enum Reg) addr, SevenSegment::seg(c, true));
+        uint8_t data = SevenSegment::seg(c, true);
+        if (*text)
+        {
+            // add any "." char to the preceeding char.
+            // it will appear as the decimal point.
+            if (text[1] == '.')
+            {
+                data += SevenSegment::seg('.', true);
+                text += 1;
+            }
+        }
+        write((enum Reg) addr, data);
         if (*text) text++;
         addr -= 1;
         if (addr < DIGIT0) break;
