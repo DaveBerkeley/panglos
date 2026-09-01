@@ -501,15 +501,15 @@ GPIO * MCP23S17::make_gpio(Port port, int bit, Mode mode, bool auto_flush)
      *
      */
 
-SPI_MCP23S17::SPI_MCP23S17(SPI *spi, GPIO *cs, uint8_t _addr)
+SPI_MCP23S17::SPI_MCP23S17(SPI *_spi, GPIO *_cs, uint8_t _addr)
 :   MCP23S17(), 
-    dev(0),
+    spi(_spi),
+    cs(_cs),
     addr_cmd(0)
 {
     ASSERT(_addr <= 7);
 
     addr_cmd = (uint8_t) (0x40 + (_addr << 1));
-    dev = new SpiDevice(spi, cs, addr_cmd);
 
     // assume the chip is initialised ...
 
@@ -530,7 +530,6 @@ SPI_MCP23S17::SPI_MCP23S17(SPI *spi, GPIO *cs, uint8_t _addr)
 
 SPI_MCP23S17::~SPI_MCP23S17()
 {
-    delete dev;
 }
 
     /**
@@ -539,7 +538,12 @@ SPI_MCP23S17::~SPI_MCP23S17()
 
 bool SPI_MCP23S17::read(Register reg, uint8_t *data)
 {
-    const bool ok = dev->read(reg, data);
+    SPI::CS_Lock lock(spi, cs);
+
+    uint8_t wr[3] = { uint8_t(addr_cmd | 0x01), reg, };
+    uint8_t rd[sizeof(wr)];
+    const bool ok = spi->io(wr, rd, sizeof(wr));
+    *data = rd[2];
     return ok;
 }
 
@@ -558,7 +562,10 @@ void SPI_MCP23S17::_on_interrupt()
     const uint8_t wr[] = { uint8_t(addr_cmd | 0x01), R_INTFA, 0, 0, 0, 0, 0, 0 };
     uint8_t rd[sizeof(wr)];
 
-    dev->io(wr, rd, sizeof(wr));
+    {
+        SPI::CS_Lock lock(spi, cs);
+        spi->io(wr, rd, sizeof(wr));
+    }
 
     int idx = 0;
     for (int port = 0; port < 2; port++)
@@ -582,7 +589,10 @@ void SPI_MCP23S17::_on_interrupt()
 
 void SPI_MCP23S17::reg_write(Register reg, uint8_t data)
 {
-    dev->write(reg, data);
+    SPI::CS_Lock lock(spi, cs);
+
+    uint8_t wr[] = { addr_cmd, reg, data };
+    spi->write(wr, sizeof(wr));
 }
 
     /*

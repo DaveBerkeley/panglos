@@ -128,12 +128,11 @@ public:
      */
 
 class SPI;
-class SpiDevice;
 
 class SPI_MCP23S17 :  public MCP23S17
 {
-    /// the SPI device
-    SpiDevice *dev;
+    SPI *spi;
+    GPIO *cs;
     /// the code/addr used to start each SPI transaction
     uint8_t addr_cmd;
 
