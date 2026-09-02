@@ -208,7 +208,7 @@ class _I2C : public I2C
         {
             EXPECT_EQ(wr[0], 2);
             EXPECT_EQ(wr[1], 4);
-            return len;
+            return int(len);
         }
         if (len == 5)
         {
@@ -217,10 +217,10 @@ class _I2C : public I2C
             EXPECT_EQ(wr[2], 2);
             EXPECT_EQ(wr[3], 3);
             EXPECT_EQ(wr[4], 4);
-            return len;
+            return int(len);
         }
         ASSERT(0);
-        return len;
+        return int(len);
     }
 
     virtual int write_read(uint8_t addr, const uint8_t *wr, uint32_t wr_len, uint8_t *rd, uint32_t rd_len) override
@@ -243,7 +243,7 @@ class _I2C : public I2C
 
         //PO_DEBUG("addr=%d wr=%p wr_len=%d rd=%p rd_len=%d", addr, wr, wr_len, rd, rd_len);
         memcpy(rd, & test_data[reg], rd_len);
-        return rd_len;
+        return int(rd_len);
     }
 
     virtual int read(uint8_t , uint8_t* , uint32_t ) override

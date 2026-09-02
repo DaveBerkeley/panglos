@@ -204,7 +204,7 @@ static void cmd_i2c_rd(CLI *cli, CliCommand *)
     const int n_args = args.args[1].valid ? args.args[1].value : 1;
 
     uint8_t data[16];
-    if (!args.i2c->write_read(args.addr, & reg, sizeof(reg), data, n_args))
+    if (!args.i2c->write_read(args.addr, & reg, sizeof(reg), data, uint32_t(n_args)))
     {
         cli_print(cli, "error reading device 0x%02x at address 0x%02x%s", args.addr, reg, cli->eol);
         return;
@@ -233,7 +233,7 @@ static void cmd_i2c_wr(CLI *cli, CliCommand *)
     }
 
     uint8_t data[16+1];
-    int len = 0;
+    uint32_t len = 0;
 
     for (int i = 0; i < 16; i++)
     {

@@ -4,6 +4,7 @@
      */
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include "panglos/debug.h"
 #include "panglos/mutex.h"
@@ -181,7 +182,7 @@ int BitBang_I2C::write_read(uint8_t addr, const uint8_t* wr, uint32_t len_wr, ui
 
     Lock lock(mutex);
 
-    const bool ok = io_write_read(addr, wr, len_wr, rd, len_rd);
+    const bool ok = io_write_read(addr, wr, int(len_wr), rd, int(len_rd));
     return ok ? int(len_rd) : 0;
 }
 
@@ -189,7 +190,7 @@ int BitBang_I2C::read(uint8_t addr, uint8_t* rd, uint32_t len)
 {
     Lock lock(mutex);
 
-    const bool ok = io_write_read(addr, 0, 0, rd, len);
+    const bool ok = io_write_read(addr, 0, 0, rd, int(len));
     return ok ? int(len) : 0;
 }
 

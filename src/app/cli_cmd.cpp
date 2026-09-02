@@ -127,7 +127,7 @@ static void print_help(CLI *cli, CliCommand *cmd)
         for (cmd = cmd->subcommand; cmd; cmd = cmd->next)
         {
             if (sep)
-                cli_print(cli, sep);
+                cli_print(cli, "%s", sep);
             cli_print(cli, "%s", cmd->cmd);
             sep = "|";
         }
@@ -1264,7 +1264,7 @@ static void cmd_spi(CLI *cli, CliCommand *)
         packet[words++] = htonl(uint32_t(value));
     }
 
-    if (!spi->write((uint8_t*) packet, sizeof(uint32_t) * words))
+    if (!spi->write((uint8_t*) packet, int(sizeof(uint32_t)) * words))
     {
         cli_print(cli, "Error writing to SPI interface%s", cli->eol);
         return;

@@ -75,7 +75,7 @@ public:
     {
         ASSERT(data);
         ASSERT((size+in) < (int) sizeof buff);
-        memcpy(data, rd_data, size);
+        memcpy(data, rd_data, size_t(size));
         return true;
     }
 

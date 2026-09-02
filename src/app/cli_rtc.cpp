@@ -88,9 +88,9 @@ static void cmd_rtc_set(CLI *cli, CliCommand *)
     }
 }
 
-static CliCommand rtc_set  = { "set", cmd_rtc_set, .help="set y m d h m s", };
-static CliCommand rtc_get  = { "get", cmd_rtc_get, .next=& rtc_set, };
-static CliCommand rtc_cmd  = { "rtc", .subcommand=& rtc_get };
+static CliCommand rtc_set  = { .cmd="set", .handler=cmd_rtc_set, .help="set y m d h m s", };
+static CliCommand rtc_get  = { .cmd="get", .handler=cmd_rtc_get, .next=& rtc_set, };
+static CliCommand rtc_cmd  = { .cmd="rtc", .subcommand=& rtc_get };
 
 void add_cli_rtc_cmd(CLI *cli, RTC* (*fn)(const char *name, void *), void *arg)
 {

@@ -540,7 +540,7 @@ bool SPI_MCP23S17::read(Register reg, uint8_t *data)
 {
     SPI::CS_Lock lock(spi, cs);
 
-    uint8_t wr[3] = { uint8_t(addr_cmd | 0x01), reg, };
+    uint8_t wr[3] = { uint8_t(addr_cmd | 0x01), uint8_t(reg), };
     uint8_t rd[sizeof(wr)];
     const bool ok = spi->io(wr, rd, sizeof(wr));
     *data = rd[2];
@@ -591,7 +591,7 @@ void SPI_MCP23S17::reg_write(Register reg, uint8_t data)
 {
     SPI::CS_Lock lock(spi, cs);
 
-    uint8_t wr[] = { addr_cmd, reg, data };
+    uint8_t wr[] = { addr_cmd, uint8_t(reg), data };
     spi->write(wr, sizeof(wr));
 }
 
