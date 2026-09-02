@@ -23,6 +23,7 @@ files = [
     'src/json_fmt.cpp',
     'src/storage.cpp',
     'src/flash_storage.cpp',
+    #'src/request.cpp',
 
     'src/drivers/i2c_bitbang.cpp',
     'src/drivers/2_wire_bitbang.cpp',
@@ -44,6 +45,7 @@ files = [
     'src/app/cli_cmd.cpp',
     'src/app/cli_i2c.cpp',
     'src/app/cli_rtc.cpp',
+    'src/app/cli_spi.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
@@ -102,6 +104,7 @@ files = [
     'unit-tests/storage.cpp',
     'unit-tests/flash_storage.cpp',
     'unit-tests/lut.cpp',
+    #'unit-tests/request.cpp',
 ]
 
 ccflags = [
@@ -125,6 +128,7 @@ ccflags = [
     '-DARCH_LINUX=1',
     '-DPO_RTC=1',
     '-DPO_I2C=1',
+    '-DPO_SPI=1',
 ]
 
 cpppath = [
