@@ -31,6 +31,8 @@ public:
 
     virtual void write(const char *text) override;
     virtual void set_brightness(uint8_t level) override;
+
+    bool write_raw(uint8_t data, uint8_t digit);
     
     bool init();
 };

@@ -34,6 +34,12 @@ bool MAX7219::write(enum Reg reg, uint8_t value)
     return spi->write(data, sizeof(data));
 }
 
+bool MAX7219::write_raw(uint8_t data, uint8_t digit)
+{
+    SPI::CS_Lock lock(spi, cs);
+    return write(Reg(DIGIT0 + digit), data);
+}
+
 void MAX7219::write(const char *text)
 {
     ASSERT(text);
