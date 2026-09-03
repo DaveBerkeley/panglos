@@ -254,7 +254,7 @@ static void cmd_i2c_wr(CLI *cli, CliCommand *)
         return;
     }
 
-    cli_print(cli, "written, %d bytes%s", len, cli->eol);
+    cli_print(cli, "written, %d bytes%s", (int) len, cli->eol);
 }
 
     /*

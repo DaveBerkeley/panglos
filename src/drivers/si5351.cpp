@@ -170,7 +170,7 @@ bool Si5351::init(uint32_t xtal_hz, uint32_t ms)
             return false;
         }
 
-        //Time::msleep(5);
+        Time::msleep(5);
     }
 
     for (uint8_t pll = 0; pll < 2; pll++)

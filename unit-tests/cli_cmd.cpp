@@ -12,6 +12,7 @@
 #include "panglos/storage.h"
 
 #include "panglos/app/cli_cmd.h"
+#include "panglos/app/cli_gpio.h"
 
 #include "panglos/drivers/rtc.h"
 #include "panglos/drivers/i2c.h"
@@ -311,13 +312,13 @@ TEST(CliCmd, I2C)
 
     for (const struct Test *t = tests; t->cmd; t++)
     {
-        PO_DEBUG("cli='%s'", t->cmd);
+        //PO_DEBUG("cli='%s'", t->cmd);
         test.process(t->cmd);
         const char *s = test.get();
-        PO_DEBUG("%s", s);
+        //PO_DEBUG("%s", s);
         for (const char * const *ex = & t->expect[0]; *ex; ex++)
         {
-            PO_DEBUG("ex: %s", *ex);
+            //PO_DEBUG("ex: %s", *ex);
             EXPECT_TRUE(strstr(s, *ex));
         }
         test.reset();
@@ -414,6 +415,7 @@ TEST(CliCmd, GPIO)
     TestCli test;
     CLI *cli = test.get_cli();
 
+    //add_cli_gpio_cmd(cli, 0, 0);
     add_cli_commands(cli);
 
     _GPIO *led = new _GPIO;

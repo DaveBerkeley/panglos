@@ -85,6 +85,7 @@ static void cmd_spi(CLI *cli, CliCommand *cmd)
                     error = "Error reading/writing to spi";
                 break;
             }
+            case SPI_NONE :
             default : ASSERT(0);
         }
     }

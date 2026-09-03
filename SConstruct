@@ -46,6 +46,7 @@ files = [
     'src/app/cli_i2c.cpp',
     'src/app/cli_rtc.cpp',
     'src/app/cli_spi.cpp',
+    'src/app/cli_gpio.cpp',
 
     # for test environment
     'src/linux/arch.cpp',
@@ -104,7 +105,7 @@ files = [
     'unit-tests/storage.cpp',
     'unit-tests/flash_storage.cpp',
     'unit-tests/lut.cpp',
-    #'unit-tests/request.cpp',
+    'unit-tests/request.cpp',
 ]
 
 ccflags = [
